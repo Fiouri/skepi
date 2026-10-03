@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- Safe Browsing would send URL lookups to Google: zero egress. -->
+    <meta-data android:name="android.webkit.WebView.EnableSafeBrowsing" android:value="false" />
+    <meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />
+  </application>
+</manifest>

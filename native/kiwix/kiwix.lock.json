@@ -1,0 +1,15 @@
+{
+  "artifact": "org.kiwix:libkiwix",
+  "version": "2.6.0",
+  "repository": "https://repo1.maven.org/maven2/",
+  "file": "libkiwix-2.6.0.aar",
+  "sha256": "2722f22d6b02b26cb3b23bcedd0b74a2d1d70e190bc98caf000660af53bcbe43",
+  "contains": {
+    "libkiwix": "14.2.1",
+    "libzim": "9.7.0",
+    "icu": "73.2",
+    "abis": ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
+  },
+  "license": "GPL-3.0",
+  "source": "https://github.com/kiwix/java-libkiwix/releases/tag/2.6.0"
+}

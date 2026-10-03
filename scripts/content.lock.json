@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "package": "org.skepi.app",
+  "zim": {
+    "top_mini": {
+      "file": "wikipedia_el_top_mini_2026-07.zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_top_mini_2026-07.zim",
+      "sha256": "369118ef0737561ef5624cc56546b52e6c2c244193b0e1c23a8cd58896044571",
+      "license": "CC-BY-SA-4.0"
+    },
+    "all_mini": {
+      "file": "wikipedia_el_all_mini_2026-09.zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_all_mini_2026-09.zim",
+      "sha256": "03e741cbfaad2d3d7b7c81b4332d1d7f2d2f559f65e634f115a5e4869ef3f962",
+      "license": "CC-BY-SA-4.0"
+    }
+  },
+  "model": {
+    "file": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+    "license": "Apache-2.0",
+    "licenseVerified": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF (license: apache-2.0, LICENSE file = Apache License 2.0)"
+  },
+  "map": {
+    "file": "achaia-20261001.pmtiles",
+    "source": "https://build.protomaps.com/20261001.pmtiles",
+    "basemapVersion": "4.15.2",
+    "bbox": "21.30,37.85,22.45,38.40",
+    "maxzoom": 15,
+    "sha256": "34309a90c55a8cbee04cfd0251c098dc9e1a29c838dbc1b01144b728d246f493",
+    "license": "ODbL-1.0 (OpenStreetMap contributors)"
+  },
+  "pmtilesCli": {
+    "version": "1.31.2",
+    "url": "https://github.com/protomaps/go-pmtiles/releases/download/v1.31.2/go-pmtiles_1.31.2_Windows_x86_64.zip",
+    "sha256": "a658baa4d7e55020aef6ca17bd9ff9faa1582671266b36f58c52db0ac8e785a1"
+  },
+  "icu": {
+    "file": "icudt73l.dat",
+    "url": "https://github.com/unicode-org/icu/releases/download/release-73-2/icu4c-73_2-data-bin-l.zip",
+    "zipSha256": "2657bd18c23b930ddf63f466192832cc083256515e07b5a5e7d79c5c1db058a1",
+    "sha256": "9e9263659e630c6a6c8cbcc6d0caa726ecbf7c125e791089f9014543afaf2323",
+    "note": "zip verified against the official SHASUM512.txt of ICU release-73-2"
+  }
+}

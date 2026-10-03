@@ -13,3 +13,4 @@ coverage/
 
 # Bench/E2E outputs
 e2e/out/
+AGENTS.md

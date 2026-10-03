@@ -1,0 +1,106 @@
+# Phase 0 spike E2E (Android, physical device, airplane mode).
+# search -> open article -> ask -> citation chip -> article -> unrelated question (no source) -> map
+# Run: e2e/run-spike.ps1 (sets MAESTRO_CLI_NO_ANALYTICS, collects logcat + blocked-request log).
+appId: org.skepi.app
+name: SKEPI spike (offline)
+env:
+  SEARCH_QUERY: Πάτρα
+  ASK_QUESTION: Πού βρίσκεται η Πάτρα;
+  EXPECTED_ARTICLE: Πάτρα
+  UNRELATED_QUESTION: Ποια είναι η καλύτερη συνταγή για σουφλέ τρούφας;
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+
+# 1. Search: suggestions while typing, full-text on submit
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 30000
+- tapOn:
+    id: search-input
+- inputText: ${SEARCH_QUERY}
+- extendedWaitUntil:
+    visible:
+      id: search-timing
+    timeout: 10000
+- tapOn:
+    id: search-fulltext
+- extendedWaitUntil:
+    visible:
+      text: "fulltext:.*"
+    timeout: 10000
+- takeScreenshot: e2e/out/01-search
+
+# 2. Open the first result in the sealed zim:// viewer
+- tapOn:
+    id: search-result-0
+- extendedWaitUntil:
+    visible:
+      text: "Άνοιγμα: .*"
+    timeout: 15000
+- assertVisible:
+    id: article-view
+- assertVisible: "Blocked requests: 0"
+- takeScreenshot: e2e/out/02-article
+- back
+
+# 3. Ask: grounded answer with at least one valid citation chip
+- tapOn:
+    id: tab-ask
+- tapOn:
+    id: ask-input
+- inputText: ${ASK_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: ask-metrics
+    timeout: 180000
+- assertVisible:
+    id: citation-S1
+- assertNotVisible:
+    id: answer-unverified
+- takeScreenshot: e2e/out/03-answer
+
+# 4. Citation chip opens the cited article
+- tapOn:
+    id: citation-S1
+- extendedWaitUntil:
+    visible:
+      text: "Άνοιγμα: .*"
+    timeout: 15000
+- assertVisible: ${EXPECTED_ARTICLE}
+- assertVisible: "Blocked requests: 0"
+- takeScreenshot: e2e/out/04-cited-article
+- back
+
+# 5. Unrelated question: "no source found" without generation
+- tapOn:
+    id: ask-input
+- eraseText: 200
+- inputText: ${UNRELATED_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: no-source
+    timeout: 60000
+- assertNotVisible:
+    id: answer-text
+- assertVisible: "status=no_source"
+- takeScreenshot: e2e/out/05-no-source
+
+# 6. Offline map (PMTiles from local file, Greek labels)
+- tapOn:
+    id: tab-map
+- extendedWaitUntil:
+    visible:
+      text: "Χάρτης έτοιμος.*"
+    timeout: 60000
+- takeScreenshot: e2e/out/06-map

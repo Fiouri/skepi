@@ -1,0 +1,81 @@
+package org.skepi.zim
+
+import android.net.Uri
+import android.util.Log
+import android.webkit.WebResourceResponse
+import java.io.ByteArrayInputStream
+
+/**
+ * Serves `zim://<archiveId>/<path>` from an open archive. Everything else is refused.
+ */
+internal object ZimSchemeHandler {
+  const val SCHEME = "zim"
+
+  const val CSP =
+    "default-src 'none'; img-src zim: data:; style-src zim: 'unsafe-inline'; font-src zim:; media-src zim:"
+
+  private val SECURITY_HEADERS = mapOf(
+    "Content-Security-Policy" to CSP,
+    "X-Content-Type-Options" to "nosniff",
+    "Referrer-Policy" to "no-referrer",
+    "Cache-Control" to "no-store",
+  )
+
+  private val HEAD_OPEN = Regex("<head(\\s[^>]*)?>", RegexOption.IGNORE_CASE)
+
+  data class Target(val archiveId: String, val path: String)
+
+  /** Parses and validates a zim:// URL. Returns null for anything malformed. */
+  fun parse(url: Uri): Target? {
+    if (url.scheme != SCHEME) return null
+    val archiveId = url.host?.takeIf { it.isNotEmpty() } ?: return null
+    // Uri.path is already percent-decoded. ZIM paths are flat keys: reject traversal and NULs.
+    val path = url.path?.removePrefix("/")?.takeIf { it.isNotEmpty() } ?: return null
+    if (path.contains('\u0000') || path.split('/').any { it == ".." || it == "." }) return null
+    return Target(archiveId, path)
+  }
+
+  fun blocked(url: String, reason: String): WebResourceResponse {
+    ZimRegistry.recordBlocked(url, reason)
+    return WebResourceResponse("text/plain", "utf-8", 403, "Forbidden", SECURITY_HEADERS, ByteArrayInputStream(ByteArray(0)))
+  }
+
+  private fun notFound(): WebResourceResponse =
+    WebResourceResponse("text/plain", "utf-8", 404, "Not Found", SECURITY_HEADERS, ByteArrayInputStream(ByteArray(0)))
+
+  fun handle(url: Uri): WebResourceResponse {
+    val raw = url.toString()
+    val target = parse(url) ?: return blocked(raw, "invalid-zim-url")
+    val open = ZimRegistry.find(target.archiveId) ?: return blocked(raw, "archive-not-open")
+    return try {
+      val item = ZimContent.readItem(open, target.path)
+      val (mime, charset) = splitMime(item.mimeType)
+      val body = if (mime == "text/html") injectCsp(item.data) else item.data
+      WebResourceResponse(mime, charset, 200, "OK", SECURITY_HEADERS, ByteArrayInputStream(body))
+    } catch (e: ZimException) {
+      Log.i(TAG, "zim:// miss ${target.path}: ${e.message}")
+      notFound()
+    }
+  }
+
+  private fun splitMime(mimeType: String): Pair<String, String?> {
+    val parts = mimeType.split(';').map { it.trim() }
+    val mime = parts.first().lowercase()
+    val charset = parts.drop(1).firstOrNull { it.startsWith("charset=", ignoreCase = true) }
+      ?.substringAfter('=')?.trim('"')
+    return mime to (charset ?: if (mime.startsWith("text/")) "utf-8" else null)
+  }
+
+  /** Defence in depth: the CSP also travels inside the document. */
+  private fun injectCsp(html: ByteArray): ByteArray {
+    val text = String(html, Charsets.UTF_8)
+    val meta = "<meta http-equiv=\"Content-Security-Policy\" content=\"$CSP\">"
+    val match = HEAD_OPEN.find(text)
+    val out = if (match != null) {
+      text.substring(0, match.range.last + 1) + meta + text.substring(match.range.last + 1)
+    } else {
+      meta + text
+    }
+    return out.toByteArray(Charsets.UTF_8)
+  }
+}

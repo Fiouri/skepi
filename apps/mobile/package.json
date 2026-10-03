@@ -1,14 +1,24 @@
 {
   "name": "@skepi/mobile",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
+    "@maplibre/maplibre-react-native": "11.4.1",
+    "@skepi/contracts": "workspace:*",
+    "@skepi/core": "workspace:*",
     "expo": "~57.0.26",
+    "expo-constants": "~57.0.20",
+    "expo-keep-awake": "~57.0.2",
+    "expo-linking": "~57.0.11",
+    "expo-router": "~57.0.24",
     "expo-status-bar": "~57.0.1",
+    "expo-zim": "workspace:*",
+    "llama.rn": "0.12.9",
     "react": "19.2.3",
     "react-native": "0.86.3",
-    "@skepi/core": "workspace:*",
-    "@skepi/contracts": "workspace:*"
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2",
+    "zustand": "5.0.15"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

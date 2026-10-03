@@ -1,0 +1,50 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+def kiwixLockFile = new File(projectDir, "../../../native/kiwix/kiwix.lock.json")
+def kiwixLock = new groovy.json.JsonSlurper().parse(kiwixLockFile)
+
+group = 'org.skepi.zim'
+version = '0.0.0'
+
+android {
+  namespace "org.skepi.zim"
+  defaultConfig {
+    versionCode 1
+    versionName "0.0.0"
+  }
+}
+
+dependencies {
+  // Official java-libkiwix AAR (libkiwix 14.2.1, libzim 9.7.0, ICU 73.2), pinned in native/kiwix/kiwix.lock.json.
+  implementation "org.kiwix:libkiwix:${kiwixLock.version}"
+  implementation "org.jsoup:jsoup:1.23.2"
+}
+
+// Supply-chain check: the resolved libkiwix AAR must match native/kiwix/kiwix.lock.json.
+
+def verifyKiwixChecksum = tasks.register("verifyKiwixChecksum") {
+  inputs.file(kiwixLockFile)
+  def lockedVersion = kiwixLock.version
+  def lockedSha = kiwixLock.sha256
+  def aar = configurations.detachedConfiguration(dependencies.create("org.kiwix:libkiwix:${lockedVersion}@aar"))
+  aar.transitive = false
+  doLast {
+    def file = aar.singleFile
+    def digest = java.security.MessageDigest.getInstance("SHA-256")
+    file.withInputStream { stream ->
+      byte[] buffer = new byte[1 << 16]
+      int read
+      while ((read = stream.read(buffer)) > 0) digest.update(buffer, 0, read)
+    }
+    def actual = digest.digest().encodeHex().toString()
+    if (actual != lockedSha) {
+      throw new GradleException("libkiwix ${lockedVersion} checksum mismatch: expected ${lockedSha}, got ${actual}")
+    }
+    logger.lifecycle("libkiwix ${lockedVersion} checksum OK")
+  }
+}
+
+preBuild.dependsOn(verifyKiwixChecksum)

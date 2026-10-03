@@ -4,10 +4,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["src", "expo-env.d.ts"]
+  "include": ["src"]
 }
