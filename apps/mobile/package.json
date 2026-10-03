@@ -1,0 +1,26 @@
+{
+  "name": "@skepi/mobile",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~57.0.26",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "@skepi/core": "workspace:*",
+    "@skepi/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "prebuild": "expo prebuild --platform android --clean"
+  },
+  "private": true,
+  "license": "GPL-3.0-or-later"
+}

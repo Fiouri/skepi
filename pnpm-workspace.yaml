@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'modules/*'
+
+# React Native native autolinking is more reliable with a flat node_modules.
+nodeLinker: hoisted

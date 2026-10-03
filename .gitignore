@@ -1,0 +1,15 @@
+node_modules/
+.turbo/
+coverage/
+*.tsbuildinfo
+.DS_Store
+.env*.local
+
+# Provisioned content (large, never committed)
+.cache/
+*.zim
+*.gguf
+*.pmtiles
+
+# Bench/E2E outputs
+e2e/out/
