@@ -8,6 +8,8 @@ coverage/
 # Provisioned content (large, never committed)
 .cache/
 *.zim
+# Small test fixtures are the exception (see their README).
+!modules/expo-zim/android/src/androidTest/assets/*.zim
 *.gguf
 *.pmtiles
 

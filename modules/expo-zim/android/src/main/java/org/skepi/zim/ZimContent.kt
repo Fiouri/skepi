@@ -15,10 +15,14 @@ internal data class Section(val heading: String, val level: Int, val text: Strin
 internal object ZimContent {
   /** Reads an entry (following redirects) with a hard size cap. */
   fun readItem(open: OpenArchive, path: String): ResolvedItem {
+    // libkiwix throws a plain java.lang.Exception ("Cannot find entry") as well as
+    // EntryNotFoundException, depending on the lookup path.
     val entry = try {
       open.archive.getEntryByPath(path)
     } catch (e: EntryNotFoundException) {
       throw ZimException("ERR_ZIM_ENTRY_NOT_FOUND", "No entry '$path' in ${open.id}")
+    } catch (e: Exception) {
+      throw ZimException("ERR_ZIM_ENTRY_NOT_FOUND", "No entry '$path' in ${open.id}: ${e.message}")
     }
     val item: Item = entry.getItem(true)
     val size = item.size

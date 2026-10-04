@@ -14,6 +14,14 @@ android {
   defaultConfig {
     versionCode 1
     versionName "0.0.0"
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+  }
+  // The androidTest APK bundles both react-android's and libkiwix's libc++_shared.so (same NDK ABI);
+  // the app resolves the same clash in its own packaging.
+  packaging {
+    jniLibs {
+      pickFirsts += ["**/libc++_shared.so"]
+    }
   }
 }
 
@@ -21,6 +29,11 @@ dependencies {
   // Official java-libkiwix AAR (libkiwix 14.2.1, libzim 9.7.0, ICU 73.2), pinned in native/kiwix/kiwix.lock.json.
   implementation "org.kiwix:libkiwix:${kiwixLock.version}"
   implementation "org.jsoup:jsoup:1.23.2"
+
+  // Viewer sealing instrumentation tests (src/androidTest, run with connectedAndroidTest).
+  androidTestImplementation "androidx.test:runner:1.7.0"
+  androidTestImplementation "androidx.test:core:1.7.0"
+  androidTestImplementation "androidx.test.ext:junit:1.3.0"
 }
 
 // Supply-chain check: the resolved libkiwix AAR must match native/kiwix/kiwix.lock.json.

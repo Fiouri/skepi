@@ -29,11 +29,16 @@ internal object ZimSchemeHandler {
   fun parse(url: Uri): Target? {
     if (url.scheme != SCHEME) return null
     val archiveId = url.host?.takeIf { it.isNotEmpty() } ?: return null
-    // Uri.path is already percent-decoded. ZIM paths are flat keys: reject traversal and NULs.
+    // Uri.path is already percent-decoded. ZIM paths are flat keys: reject NULs and any dot
+    // segment, including backslash-separated and double-encoded (%252e%252e) forms.
     val path = url.path?.removePrefix("/")?.takeIf { it.isNotEmpty() } ?: return null
-    if (path.contains('\u0000') || path.split('/').any { it == ".." || it == "." }) return null
+    if (path.contains('\u0000')) return null
+    val segments = path.split('/', '\\')
+    if (segments.any { it.isDotSegment() || Uri.decode(it).isDotSegment() }) return null
     return Target(archiveId, path)
   }
+
+  private fun String.isDotSegment(): Boolean = this == "." || this == ".."
 
   fun blocked(url: String, reason: String): WebResourceResponse {
     ZimRegistry.recordBlocked(url, reason)
@@ -54,6 +59,10 @@ internal object ZimSchemeHandler {
       WebResourceResponse(mime, charset, 200, "OK", SECURITY_HEADERS, ByteArrayInputStream(body))
     } catch (e: ZimException) {
       Log.i(TAG, "zim:// miss ${target.path}: ${e.message}")
+      notFound()
+    } catch (e: Exception) {
+      // Never let a native error escape the WebView's interceptor thread.
+      Log.w(TAG, "zim:// error ${target.path}: ${e.message}")
       notFound()
     }
   }
