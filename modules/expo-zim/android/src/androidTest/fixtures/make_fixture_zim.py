@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import pathlib
+import shutil
 
 from libzim.writer import Creator, Hint, Item, StringProvider
 
@@ -117,6 +118,9 @@ def main() -> None:
         creator.add_item(Entry("en/Water_purification", "Water purification", "text/html", EN_ARTICLE, True))
         creator.add_item(Entry("el/Καθαρισμός_νερού", "Καθαρισμός νερού", "text/html", EL_ARTICLE, True))
         creator.add_item(Entry("a/b/page", "Nested page", "text/html", NESTED, True))
+    # The writer leaves its title-index scratch files next to the archive.
+    for leftover in OUT.parent.glob(f"{OUT.name}_*"):
+        shutil.rmtree(leftover) if leftover.is_dir() else leftover.unlink()
     print(f"{OUT} ({OUT.stat().st_size} bytes)")
 
 
