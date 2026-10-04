@@ -1,4 +1,5 @@
-import { chunkArticle, estimateTokens, PROMPT_VERSION, runRag, summarize, type LatencySummary } from '@skepi/core';
+import type { LoadOptions } from '@skepi/contracts';
+import { buildPrompt, chunkArticle, detectLanguage, estimateTokens, PROMPT_VERSION, runRag, summarize, type LatencySummary } from '@skepi/core';
 import { ExpoZim, type ZimArchiveInfo } from 'expo-zim';
 import { knowledge, llama, loadOptions, T1_CONTEXT, useContent } from './content';
 
@@ -25,6 +26,18 @@ export const GATES = {
   ttftMs: 4_000,
 } as const;
 
+export interface PrefillSample {
+  model: string;
+  label: string;
+  threads: number;
+  affinity: number[] | null;
+  flashAttention: boolean | null;
+  loadMs: number;
+  promptTokens: number;
+  ttftMs: number | null;
+  promptTokensPerSecond: number;
+}
+
 interface Timed {
   totalMs: number;
   nativeMs: number;
@@ -43,6 +56,7 @@ export interface BenchReport {
   fulltext: { total: LatencySummary; native: LatencySummary; results: number[] };
   articleHtml: { total: LatencySummary; native: LatencySummary; bytes: number[] };
   plainText: { total: LatencySummary; native: LatencySummary; sections: number[] };
+  prefillSweep: PrefillSample[];
   model: null | {
     id: string;
     sizeBytes: number;
@@ -84,7 +98,7 @@ function gate(value: number | null, limit: number): { value: number | null; gate
 }
 
 export async function runBench(log: (line: string) => void): Promise<BenchReport> {
-  const { archives, model, cpu } = useContent.getState();
+  const { archives, model, models, cpu } = useContent.getState();
   if (archives.length === 0) throw new Error('No ZIM archive open');
 
   const [device, cpuInfo, snapshotBefore, runtime] = await Promise.all([
@@ -140,9 +154,49 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
   log(`article html p95 ${summarize(html.map((s) => s.totalMs)).p95.toFixed(1)} ms`);
 
   let modelReport: BenchReport['model'] = null;
+  const prefillSweep: PrefillSample[] = [];
   if (model) {
+    // Prefill (time to first token) dominates on CPU: measure thread/affinity/flash-attn variants
+    // on the real RAG prompt and keep the fastest for the end-to-end run.
+    const ragSources = await runRag(BENCH_RAG_QUESTION, { knowledge, inference: null }, { signal: new AbortController().signal });
+    const messages = buildPrompt(BENCH_RAG_QUESTION, ragSources.sources, detectLanguage(BENCH_RAG_QUESTION), 'json');
+    const base = loadOptions(cpu ?? cpuInfo);
+    const byFreq = cpuInfo.maxFreqKhz.map((f, id) => ({ f, id })).sort((a, b) => b.f - a.f).map((x) => x.id);
+    const variants: { label: string; opts: LoadOptions }[] = [
+      { label: 'perf-cores pinned', opts: base },
+      { label: 'perf-cores unpinned', opts: { ...base, cpuAffinity: [] } },
+      { label: 'top-4 pinned', opts: { ...base, threads: 4, cpuAffinity: byFreq.slice(0, 4) } },
+      { label: 'perf-cores pinned + flash-attn', opts: { ...base, flashAttention: true } },
+      { label: 'all cores unpinned', opts: { ...base, threads: cpuInfo.cores, cpuAffinity: [] } },
+    ];
+    let best: { opts: LoadOptions; ttft: number } | null = null;
+    // Full sweep on the default model, best-known config on every other GGUF (quantisation compare).
+    const runs = [
+      ...variants.map((v) => ({ m: model, v })),
+      ...models.filter((m) => m.id !== model.id).flatMap((m) => [variants[0], variants[1]].flatMap((v) => (v ? [{ m, v }] : []))),
+    ];
+    for (const { m, v } of runs) {
+      await llama.unload();
+      const loaded = await llama.load(m, v.opts);
+      const r = await llama.generate({ messages, maxTokens: 4, temperature: 0 }, () => undefined, new AbortController().signal);
+      const ttft = r.timeToFirstTokenMs ?? Number.POSITIVE_INFINITY;
+      prefillSweep.push({
+        model: m.id,
+        label: v.label,
+        threads: v.opts.threads,
+        affinity: v.opts.cpuAffinity && v.opts.cpuAffinity.length > 0 ? [...v.opts.cpuAffinity] : null,
+        flashAttention: v.opts.flashAttention ?? null,
+        loadMs: loaded.loadMs,
+        promptTokens: r.promptTokens,
+        ttftMs: r.timeToFirstTokenMs,
+        promptTokensPerSecond: r.timeToFirstTokenMs ? (r.promptTokens / r.timeToFirstTokenMs) * 1000 : 0,
+      });
+      log(`prefill ${m.id} ${v.label}: ttft ${r.timeToFirstTokenMs ?? '–'} ms (${r.promptTokens} tok)`);
+      if (m.id === model.id && (!best || ttft < best.ttft)) best = { opts: v.opts, ttft };
+    }
+
     await llama.unload();
-    const opts = loadOptions(cpu ?? cpuInfo);
+    const opts = best?.opts ?? base;
     const loaded = await llama.load(model, opts);
     log(`model load ${loaded.loadMs} ms (${opts.threads} threads)`);
 
@@ -210,6 +264,7 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
     fulltext: { ...fulltextStats, results: fulltextCounts },
     articleHtml: { ...htmlStats, bytes: htmlBytes },
     plainText: text.length > 0 ? { ...split(text), sections: sectionCounts } : { ...htmlStats, sections: sectionCounts },
+    prefillSweep,
     model: modelReport,
     memory,
     gates: {

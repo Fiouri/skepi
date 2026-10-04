@@ -24,6 +24,37 @@ const withProperties = (config) =>
   withGradleProperties(config, (cfg) => {
     setGradleProperty(cfg.modResults, 'reactNativeArchitectures', ABI);
     setGradleProperty(cfg.modResults, 'rnllamaBuildFromSource', 'true');
+    // Deflate native libs inside the APK (download size); they are extracted at install time.
+    setGradleProperty(cfg.modResults, 'expo.useLegacyPackaging', 'true');
+    return cfg;
+  });
+
+// llama.rn builds 7 arm64 variants and picks one at runtime with graceful fallback
+// (tryLoadLibrary). Keep the baseline + the two common fast paths; Hexagon/OpenCL stays out
+// (architecture: NPU only behind a feature flag) together with its prebuilt HTP assets.
+const LLAMA_EXCLUDED_VARIANTS = ['v8_2', 'v8_2_i8mm', 'v8_2_dotprod_i8mm_hexagon_opencl'];
+const PACKAGING_MARKER = '// skepi:llama-variants';
+const withLlamaVariants = (config) =>
+  withAppBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(PACKAGING_MARKER)) return cfg;
+    const excludes = LLAMA_EXCLUDED_VARIANTS.flatMap((v) => [
+      `"**/librnllama_${v}.so"`,
+      `"**/librnllama_jni_${v}.so"`,
+    ]).join(', ');
+    cfg.modResults.contents += `
+${PACKAGING_MARKER}
+android {
+    packaging {
+        jniLibs {
+            excludes += [${excludes}]
+        }
+    }
+}
+// Prebuilt Qualcomm HTP binaries from the npm package are never shipped.
+tasks.configureEach { task ->
+    if (task.name == "syncRNLlamaHtpAssets") task.enabled = false
+}
+`;
     return cfg;
   });
 
@@ -60,7 +91,11 @@ const withOfflineManifest = (config) => {
     perms.push({ $: { 'android:name': 'android.permission.INTERNET', 'tools:node': 'remove' } });
     manifest['uses-permission'] = perms;
     const app = AndroidConfig.Manifest.getMainApplicationOrThrow(cfg.modResults);
+    // libkiwix's AAR declares allowBackup=true; GB-sized content must never go to cloud backup.
     app.$['android:allowBackup'] = 'false';
+    const replace = new Set((app.$['tools:replace'] ?? '').split(',').filter(Boolean));
+    replace.add('android:allowBackup');
+    app.$['tools:replace'] = [...replace].join(',');
     return cfg;
   });
   // Debug builds still need INTERNET for Metro; build-type manifests override the main one.
@@ -110,4 +145,4 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withWindowsCmake(withOfflineManifest(withMapAssets(withAbiSplit(withProperties(config)))));
+  withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config))))));

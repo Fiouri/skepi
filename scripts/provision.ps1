@@ -17,6 +17,8 @@ param(
   [ValidateSet('top_mini', 'all_mini')]
   [string]$ZimVariant = 'top_mini',
   [switch]$WithIcu,
+  # Also push the Q4_0 quantisation so the bench can compare prefill speed against Q4_K_M.
+  [switch]$WithCompareModel,
   [switch]$SkipModel,
   [switch]$SkipMap,
   [switch]$DownloadOnly,
@@ -150,8 +152,12 @@ function Push-IfChanged([string]$Local, [string]$Kind) {
     Write-Host "  up to date  $Kind/$name"
     return
   }
+  # The folder must be created (and owned) by the app; shell-created folders are unreadable for it.
+  $owner = Get-AdbOutput shell "stat -c %u '$remoteRoot/$Kind' 2>/dev/null"
+  if (-not $owner -or $owner -eq '2000') {
+    throw "$remoteRoot/$Kind is missing or owned by shell. Uninstall/reinstall the app (or delete the folder) and rerun."
+  }
   Write-Host "  pushing     $Kind/$name ($([math]::Round($localSize / 1MB, 1)) MB)"
-  Invoke-Adb shell "mkdir -p '$remoteRoot/$Kind'"
   Invoke-Adb push $Local $remote
 }
 
@@ -160,6 +166,9 @@ $zim = $lock.zim.$ZimVariant
 $items = @(@{ Path = (Get-Verified $zim.url $zim.file $zim.sha256); Kind = 'zim' })
 if (-not $SkipModel) {
   $items += @{ Path = (Get-Verified $lock.model.url $lock.model.file $lock.model.sha256); Kind = 'models' }
+}
+if ($WithCompareModel) {
+  $items += @{ Path = (Get-Verified $lock.modelCompare.url $lock.modelCompare.file $lock.modelCompare.sha256); Kind = 'models' }
 }
 if (-not $SkipMap) {
   $items += @{ Path = (Get-MapExtract); Kind = 'maps' }
@@ -187,13 +196,16 @@ foreach ($item in $items) {
 }
 if (-not $WithIcu) {
   # Keep the device state explicit: without -WithIcu no ICU data is present.
-  Invoke-Adb shell "rm -rf '$remoteRoot/icu'"
+  Invoke-Adb shell "rm -f '$remoteRoot/icu/'*"
 }
 # Only one ZIM variant at a time so benchmarks are unambiguous.
 foreach ($other in $lock.zim.PSObject.Properties) {
   if ($other.Name -ne $ZimVariant) {
     Invoke-Adb shell "rm -f '$remoteRoot/zim/$($other.Value.file)'"
   }
+}
+if (-not $WithCompareModel) {
+  Invoke-Adb shell "rm -f '$remoteRoot/models/$($lock.modelCompare.file)'"
 }
 Invoke-Adb shell am force-stop $package
 Write-Host "Provisioned $package ($ZimVariant, icu=$([bool]$WithIcu)). Remote: $remoteRoot"

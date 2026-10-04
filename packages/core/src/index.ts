@@ -10,7 +10,18 @@ export {
   type EmergencyTopic,
 } from './emergency';
 export { reciprocalRankFusion, RRF_K } from './fusion';
-export { buildPrompt, NOT_COVERED_MARKER, PROMPT_VERSION, renderSources, type PromptSource } from './prompt';
+export { buildPrompt, NOT_COVERED_MARKER, PROMPT_VERSION, renderSources, type AnswerFormat, type PromptSource } from './prompt';
+export {
+  answerJsonSchema,
+  MAX_ANSWER_SENTENCES,
+  MIN_SUPPORT,
+  parseStructuredAnswer,
+  supportScore,
+  validateStructured,
+  type CitedSource,
+  type StructuredAnswer,
+  type StructuredValidation,
+} from './structured';
 export {
   DEFAULT_RAG_CONFIG,
   planQueries,

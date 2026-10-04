@@ -42,5 +42,12 @@
     "zipSha256": "2657bd18c23b930ddf63f466192832cc083256515e07b5a5e7d79c5c1db058a1",
     "sha256": "9e9263659e630c6a6c8cbcc6d0caa726ecbf7c125e791089f9014543afaf2323",
     "note": "zip verified against the official SHASUM512.txt of ICU release-73-2"
+  },
+  "modelCompare": {
+    "file": "qwen2.5-1.5b-instruct-q4_0.gguf",
+    "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_0.gguf",
+    "sha256": "dcd819ff094852c38faba6873d8ff0c9d51eadb2844539e52042ae5d647bbfdb",
+    "license": "Apache-2.0",
+    "note": "Bench-only: ARM i8mm repacked Q4_0 vs Q4_K_M prefill comparison"
   }
 }

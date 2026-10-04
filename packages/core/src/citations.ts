@@ -7,6 +7,8 @@ export interface ValidatedAnswer {
   cited: string[];
   /** Cited ids that do not exist in the provided sources (removed from text). */
   invalid: string[];
+  /** Cited ids dropped because the sentence is not supported by that source (structured mode). */
+  unsupported: string[];
   /** True when the answer has zero valid citations ("unverified" label). */
   unverified: boolean;
   /** True when the model reported that the sources do not cover the question. */
@@ -39,5 +41,5 @@ export function validateCitations(answer: string, knownIds: readonly string[]): 
     .trim();
 
   const notCovered = text.includes(NOT_COVERED_MARKER);
-  return { text, cited, invalid, unverified: cited.length === 0, notCovered };
+  return { text, cited, invalid, unsupported: [], unverified: cited.length === 0, notCovered };
 }

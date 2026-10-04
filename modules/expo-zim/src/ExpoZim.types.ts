@@ -88,6 +88,7 @@ export interface MemoryInfo {
 export interface CpuInfo {
   cores: number;
   performanceCores: number;
+  performanceCoreIds: number[];
   maxFreqKhz: number[];
   abi: string;
 }

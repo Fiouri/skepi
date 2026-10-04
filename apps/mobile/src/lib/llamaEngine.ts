@@ -23,8 +23,11 @@ export class LlamaEngine implements InferenceEngine {
     return this.ctx;
   }
 
+  private loadedOpts: string | null = null;
+
   async load(model: InstalledModel, opts: LoadOptions): Promise<LoadedModel> {
-    if (this.loaded?.modelId === model.id) return this.loaded;
+    const key = JSON.stringify(opts);
+    if (this.loaded?.modelId === model.id && this.loadedOpts === key) return this.loaded;
     if (this.loading) return this.loading;
     this.loading = (async () => {
       await this.unload();
@@ -36,8 +39,15 @@ export class LlamaEngine implements InferenceEngine {
         n_gpu_layers: opts.gpuLayers,
         use_mmap: opts.useMmap,
         use_mlock: opts.useMlock,
+        // One conversation at a time: do not reserve KV for 8 parallel slots (llama.rn default).
+        n_parallel: 1,
+        ...(opts.cpuAffinity && opts.cpuAffinity.length > 0
+          ? { cpu_mask: opts.cpuAffinity.join(','), cpu_strict: true }
+          : {}),
+        ...(opts.flashAttention === undefined ? {} : { flash_attn_type: opts.flashAttention ? 'on' : 'off' }),
       });
       this.ctx = ctx;
+      this.loadedOpts = key;
       this.loaded = {
         modelId: model.id,
         contextSize: opts.contextSize,
@@ -70,6 +80,9 @@ export class LlamaEngine implements InferenceEngine {
           temperature: req.temperature,
           enable_thinking: false,
           ...(req.stop ? { stop: req.stop } : {}),
+          ...(req.jsonSchema
+            ? { response_format: { type: 'json_schema' as const, json_schema: { strict: true, schema: req.jsonSchema } } }
+            : {}),
         },
         (data) => {
           first.at ??= Date.now();
@@ -100,6 +113,7 @@ export class LlamaEngine implements InferenceEngine {
     const ctx = this.ctx;
     this.ctx = null;
     this.loaded = null;
+    this.loadedOpts = null;
     if (ctx) await ctx.release();
   }
 }

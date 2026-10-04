@@ -10,6 +10,10 @@ export interface LoadOptions {
   useMmap: boolean;
   useMlock: boolean;
   gpuLayers: number;
+  /** Pin inference threads to these CPU ids (performance cores); unpinned when omitted. */
+  cpuAffinity?: readonly number[];
+  /** Flash attention on CPU; engine default when omitted. */
+  flashAttention?: boolean;
 }
 
 export interface LoadedModel {
@@ -29,6 +33,8 @@ export interface GenerateRequest {
   maxTokens: number;
   temperature: number;
   stop?: string[];
+  /** Constrains the output to this JSON schema (compiled to a GBNF grammar by the engine). */
+  jsonSchema?: Readonly<Record<string, unknown>>;
 }
 
 export type StopReason = 'eos' | 'limit' | 'stop' | 'abort';

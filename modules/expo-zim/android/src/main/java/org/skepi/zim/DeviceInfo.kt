@@ -59,10 +59,12 @@ internal object DeviceInfo {
     }
     val known = maxFreqs.filter { it > 0 }
     val lowest = known.minOrNull() ?: 0L
-    val performance = if (known.isEmpty() || known.all { it == lowest }) cores else known.count { it > lowest }
+    val allSame = known.isEmpty() || known.all { it == lowest }
+    val performanceIds = if (allSame) (0 until cores).toList() else maxFreqs.indices.filter { maxFreqs[it] > lowest }
     return mapOf(
       "cores" to cores,
-      "performanceCores" to performance,
+      "performanceCores" to performanceIds.size,
+      "performanceCoreIds" to performanceIds,
       "maxFreqKhz" to maxFreqs,
       "abi" to (Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"),
     )

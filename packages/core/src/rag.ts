@@ -11,7 +11,8 @@ import { chunkArticle, type Chunk } from './chunk';
 import { validateCitations, type ValidatedAnswer } from './citations';
 import { detectEmergency, type EmergencyMatch } from './emergency';
 import { reciprocalRankFusion } from './fusion';
-import { buildPrompt, PROMPT_VERSION, type PromptSource } from './prompt';
+import { buildPrompt, PROMPT_VERSION, type AnswerFormat, type PromptSource } from './prompt';
+import { answerJsonSchema, parseStructuredAnswer, validateStructured, type StructuredValidation } from './structured';
 import { detectLanguage, extractKeywords, type Lang } from './text';
 
 export interface RagConfig {
@@ -27,6 +28,8 @@ export interface RagConfig {
   minScore: number;
   maxTokens: number;
   temperature: number;
+  /** 'json' = grammar-constrained sentences with per-sentence source ids (default). */
+  answerFormat: AnswerFormat;
 }
 
 export const DEFAULT_RAG_CONFIG: RagConfig = {
@@ -38,6 +41,7 @@ export const DEFAULT_RAG_CONFIG: RagConfig = {
   minScore: 0.5,
   maxTokens: 400,
   temperature: 0.2,
+  answerFormat: 'json',
 };
 
 export interface RagSource extends PromptSource {
@@ -76,6 +80,8 @@ export interface RagResult {
   noSourceReason: NoSourceReason | null;
   best: { score: number; coverage: number } | null;
   answer: ValidatedAnswer | null;
+  /** Per-sentence support details in JSON mode; null in text mode or when the JSON did not parse. */
+  structured: StructuredValidation | null;
   generation: GenerateResult | null;
   timings: RagTimings;
 }
@@ -190,6 +196,7 @@ export async function runRag(question: string, deps: RagDeps, options: RagRunOpt
     noSourceReason: null,
     best: null,
     answer: null,
+    structured: null,
     generation: null,
     timings,
   };
@@ -229,8 +236,15 @@ export async function runRag(question: string, deps: RagDeps, options: RagRunOpt
   if (isAborted(options.signal)) return { ...withContext, status: 'aborted' };
 
   t = now();
+  const ids = sources.map((s) => s.id);
+  const json = cfg.answerFormat === 'json';
   const generation = await deps.inference.generate(
-    { messages: buildPrompt(question, sources, lang), maxTokens: cfg.maxTokens, temperature: cfg.temperature },
+    {
+      messages: buildPrompt(question, sources, lang, cfg.answerFormat),
+      maxTokens: cfg.maxTokens,
+      temperature: cfg.temperature,
+      ...(json ? { jsonSchema: answerJsonSchema(ids) } : {}),
+    },
     (token) => {
       emit({ type: 'token', text: token });
     },
@@ -238,11 +252,15 @@ export async function runRag(question: string, deps: RagDeps, options: RagRunOpt
   );
   timings.generateMs = now() - t;
 
-  const answer = validateCitations(generation.text, sources.map((s) => s.id));
+  const parsed = json ? parseStructuredAnswer(generation.text) : null;
+  const structured = parsed ? validateStructured(parsed, sources) : null;
+  // Unparseable JSON (e.g. cut at maxTokens) falls back to marker parsing and is then unverified.
+  const answer: ValidatedAnswer = structured ?? validateCitations(generation.text, ids);
   return {
     ...withContext,
     status: generation.stopReason === 'abort' ? 'aborted' : 'answered',
     answer,
+    structured,
     generation,
   };
 }

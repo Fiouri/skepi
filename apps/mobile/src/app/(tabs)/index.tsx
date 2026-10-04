@@ -85,7 +85,7 @@ export default function SearchScreen() {
               }}
             >
               <Text style={styles.title}>{item.title}</Text>
-              {item.snippet ? <Text style={styles.muted}>{item.snippet}</Text> : null}
+              {item.snippet && item.snippet !== item.title ? <Text style={styles.muted}>{item.snippet}</Text> : null}
             </Pressable>
           )}
         />

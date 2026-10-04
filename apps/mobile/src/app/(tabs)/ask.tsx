@@ -108,9 +108,14 @@ export default function AskScreen() {
           </View>
         )}
 
-        {(streamed.length > 0 || result?.answer) && (
+        {phase === 'generating' && streamed.length > 0 && (
+          <Text style={styles.muted} testID="answer-progress">
+            Γράφεται… ({streamed.length} χαρακτήρες JSON)
+          </Text>
+        )}
+        {result?.answer && !result.answer.notCovered && (
           <Text style={styles.text} testID="answer-text" selectable>
-            {result?.answer?.text ?? streamed}
+            {result.answer.text}
           </Text>
         )}
         {result?.answer?.unverified && (
@@ -118,7 +123,11 @@ export default function AskScreen() {
             Χωρίς επαλήθευση (καμία έγκυρη παραπομπή)
           </Text>
         )}
-        {result?.answer?.notCovered && <Text style={styles.muted}>Το μοντέλο δήλωσε ότι οι πηγές δεν καλύπτουν την ερώτηση.</Text>}
+        {result?.answer?.notCovered && (
+          <Text style={styles.muted} testID="answer-not-covered">
+            Το μοντέλο δήλωσε ότι οι πηγές δεν καλύπτουν την ερώτηση.
+          </Text>
+        )}
 
         {sources.length > 0 && (
           <View style={{ gap: 6 }}>
@@ -148,7 +157,12 @@ export default function AskScreen() {
               result.generation
                 ? `ttft=${result.generation.timeToFirstTokenMs ?? '–'}ms tok/s=${result.generation.tokensPerSecond?.toFixed(1) ?? '–'} prompt=${result.generation.promptTokens} gen=${result.generation.generatedTokens} stop=${result.generation.stopReason}`
                 : null,
-              result.answer ? `cited=${result.answer.cited.join(',') || '-'} invalid=${result.answer.invalid.join(',') || '-'}` : null,
+              result.answer
+                ? `cited=${result.answer.cited.join(',') || '-'} invalid=${result.answer.invalid.join(',') || '-'} unsupported=${result.answer.unsupported.join(',') || '-'}`
+                : null,
+              result.structured
+                ? `support=${result.structured.sentences.map((x) => `${x.source}:${x.support === null ? '–' : x.support.toFixed(2)}`).join(' ')}`
+                : null,
               `keywords=${result.keywords.join(' ')}`,
             ]
               .filter(Boolean)

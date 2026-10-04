@@ -88,5 +88,6 @@ describe('prompt', () => {
     expect(msgs.map((m) => m.role)).toEqual(['system', 'user']);
     expect(msgs[1]?.content.endsWith('Ερώτηση: Τι είναι;')).toBe(true);
     expect(msgs[0]?.content).toContain(NOT_COVERED_MARKER);
+    expect(msgs[1]?.content).toContain('[S1].»');
   });
 });

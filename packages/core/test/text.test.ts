@@ -31,6 +31,15 @@ describe('extractKeywords', () => {
     expect(extractKeywords('What is the capital of Greece?')).toEqual(['capital', 'greece']);
   });
 
+  it('drops interrogatives and light verbs that describe the question, not the topic', () => {
+    expect(extractKeywords('Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;')).toEqual(['πατρα', 'κατοικουσ']);
+    expect(extractKeywords('Where is Patras located and how many people live there?')).toEqual([
+      'patras',
+      'people',
+      'live',
+    ]);
+  });
+
   it('returns nothing for a question made of stopwords', () => {
     expect(extractKeywords('Τι είναι αυτό;')).toEqual([]);
   });

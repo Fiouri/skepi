@@ -46,6 +46,7 @@ internal object ZimRegistry {
   private val archives = ConcurrentHashMap<String, OpenArchive>()
   private val blocked = ArrayDeque<BlockedRequest>()
   private const val MAX_BLOCKED = 200
+  val CONTENT_DIRS = listOf("zim", "models", "maps", "icu", "bench")
 
   @Volatile private var initialised = false
   @Volatile var icuDataDir: String? = null
@@ -58,6 +59,9 @@ internal object ZimRegistry {
   fun ensureInitialised(context: Context) {
     if (initialised) return
     val start = System.nanoTime()
+    // The app must own its content folders: directories created by `adb shell` (uid shell,
+    // mode 770) are not listable by the app on Android 11+.
+    contentRoot(context)?.let { root -> CONTENT_DIRS.forEach { File(root, it).mkdirs() } }
     val kiwix = JNIKiwix(context.applicationContext)
     val icuDir = contentRoot(context)?.let { File(it, "icu") }
     if (icuDir != null && icuDir.listFiles { f -> f.name.startsWith("icudt") && f.name.endsWith(".dat") }?.isNotEmpty() == true) {

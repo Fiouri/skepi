@@ -10,6 +10,8 @@ export const llama = new LlamaEngine();
 /** T1 inference settings from docs/architecture.md (CPU, mmap on, mlock off). */
 export const T1_CONTEXT = 2048;
 export const T1_BUDGET = TIER_BUDGET_TOKENS.T1;
+/** Default model for Ask; other GGUFs in models/ are only compared by the bench. */
+export const PREFERRED_MODEL = 'qwen2.5-1.5b-instruct-q4_k_m.gguf';
 
 interface ContentState {
   status: 'idle' | 'loading' | 'ready' | 'error';
@@ -18,6 +20,7 @@ interface ContentState {
   files: ZimContentFile[];
   archives: ZimArchiveInfo[];
   model: InstalledModel | null;
+  models: InstalledModel[];
   pmtilesPath: string | null;
   cpu: CpuInfo | null;
   bootstrap: () => Promise<void>;
@@ -30,6 +33,7 @@ export const useContent = create<ContentState>((set, get) => ({
   files: [],
   archives: [],
   model: null,
+  models: [],
   pmtilesPath: null,
   cpu: null,
   bootstrap: async () => {
@@ -42,7 +46,10 @@ export const useContent = create<ContentState>((set, get) => ({
       for (const f of files.filter((x) => x.kind === 'zim')) {
         archives.push(await ExpoZim.openArchive(f.path));
       }
-      const gguf = files.find((x) => x.kind === 'models' && x.name.endsWith('.gguf'));
+      const models = files
+        .filter((x) => x.kind === 'models' && x.name.endsWith('.gguf'))
+        .map((x) => ({ id: x.name, path: x.path, sizeBytes: x.sizeBytes }));
+      const preferred = models.find((m) => m.id === PREFERRED_MODEL) ?? models[0] ?? null;
       const pmtiles = files.find((x) => x.kind === 'maps' && x.name.endsWith('.pmtiles'));
       set({
         status: 'ready',
@@ -50,7 +57,8 @@ export const useContent = create<ContentState>((set, get) => ({
         files,
         archives,
         cpu,
-        model: gguf ? { id: gguf.name, path: gguf.path, sizeBytes: gguf.sizeBytes } : null,
+        model: preferred,
+        models,
         pmtilesPath: pmtiles?.path ?? null,
       });
     } catch (e) {
@@ -66,5 +74,6 @@ export function loadOptions(cpu: CpuInfo | null): LoadOptions {
     useMmap: true,
     useMlock: false,
     gpuLayers: 0,
+    ...(cpu ? { cpuAffinity: cpu.performanceCoreIds } : {}),
   };
 }

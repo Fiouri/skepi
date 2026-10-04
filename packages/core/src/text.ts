@@ -34,7 +34,11 @@ const STOPWORDS_EL = new Set(
     'ειναι ειμαι εισαι ειμαστε ειστε ηταν εχει εχω εχουν εχουμε μπορω μπορει μπορουμε πρεπει κανω κανει ' +
     'αυτοσ αυτη αυτο αυτοι αυτεσ αυτα αυτου αυτησ αυτων αυτον αυτην εγω εσυ εμεισ εσεισ μου σου μασ σασ ' +
     'τουσ τισ τοσο πολυ λιγο ολα ολοι ολεσ καθε κατι κανεισ καποιοσ καποια καποιο εδω εκει τωρα πριν ' +
-    'μετα παντα ακομα ηδη πλεον επισησ μονο ναι οχι ωσ σαν'
+    'μετα παντα ακομα ηδη πλεον επισησ μονο ναι οχι ωσ σαν ' +
+    // Interrogatives and light verbs: they carry the question form, not the topic.
+    'ποσουσ ποσων ποσοσ ποση ποιουσ ποιαν ποιον ποιασ ποιου ποιεσ ποιεσ πουθενα ποτε πωσ γιατι ' +
+    'βρισκεται βρισκονται υπαρχει υπαρχουν γινεται γινονται λεγεται λεγονται ονομαζεται ονομαζονται ' +
+    'σημαινει κανουμε κανουν πρεπει χρειαζεται χρειαζομαι θελω ξερω πεσ εξηγησε'
   ).split(/\s+/),
 );
 
@@ -45,7 +49,7 @@ const STOPWORDS_EN = new Set(
     'your his its our their this that these those what which who whom whose when where why how can could ' +
     'should would will shall may might must not no yes so than too very just also only there here up down ' +
     'out over under again further once all any both each few more most other some such own same s t don ' +
-    'please tell explain'
+    'please tell explain many much located called named mean means need'
   ).split(/\s+/),
 );
 

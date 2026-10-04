@@ -39,7 +39,7 @@ class ExpoZimModule : Module() {
     }
 
     AsyncFunction("listContent") {
-      val root = ZimRegistry.contentRoot(context) ?: return@AsyncFunction emptyList<Map<String, Any>>()
+      val root = ZimRegistry.contentRoot(ready()) ?: return@AsyncFunction emptyList<Map<String, Any>>()
       listOf("zim", "models", "maps", "icu").flatMap { kind ->
         (File(root, kind).listFiles() ?: emptyArray()).filter { it.isFile }.sortedBy { it.name }.map {
           mapOf("kind" to kind, "name" to it.name, "path" to it.absolutePath, "sizeBytes" to it.length())

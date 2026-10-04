@@ -85,6 +85,35 @@ function fakeInference(text: string): { engine: InferenceEngine; generate: Retur
 
 const signal = new AbortController().signal;
 
+describe('runRag json mode', () => {
+  it('requests grammar-constrained JSON and validates support per sentence', async () => {
+    const knowledge = fakeKnowledge({ 'καθαριζω νερο': ['A/Νερό'] });
+    const inference = fakeInference(
+      JSON.stringify({
+        covered: true,
+        sentences: [
+          { text: 'Το πόσιμο νερό καθαρίζεται με βρασμό.', source: 'S1' },
+          { text: 'Η Πάτρα έχει λιμάνι.', source: 'S1' },
+        ],
+      }),
+    );
+    const result = await runRag('Πώς καθαρίζω νερό;', { knowledge, inference: inference.engine }, { signal });
+    const req = inference.generate.mock.calls[0]?.[0] as GenerateRequest;
+    expect(req.jsonSchema).toBeDefined();
+    expect(result.answer?.cited).toEqual(['S1']);
+    expect(result.answer?.text).toBe('Το πόσιμο νερό καθαρίζεται με βρασμό [S1]. Η Πάτρα έχει λιμάνι.');
+    expect(result.structured?.sentences.map((s) => s.kept)).toEqual([true, false]);
+  });
+
+  it('falls back to marker parsing when the JSON is cut off', async () => {
+    const knowledge = fakeKnowledge({ 'καθαριζω νερο': ['A/Νερό'] });
+    const inference = fakeInference('{"covered":true,"sentences":[{"text":"Το νερ');
+    const result = await runRag('Πώς καθαρίζω νερό;', { knowledge, inference: inference.engine }, { signal });
+    expect(result.structured).toBeNull();
+    expect(result.answer?.unverified).toBe(true);
+  });
+});
+
 describe('planQueries', () => {
   it('starts with the conjunctive query and adds longest single terms', () => {
     expect(planQueries(['α', 'καθαρισμοσ', 'νερου'], 3)).toEqual(['α καθαρισμοσ νερου', 'καθαρισμοσ', 'νερου']);
@@ -101,6 +130,7 @@ describe('runRag', () => {
     const result = await runRag('Πώς καθαρίζω νερό;', { knowledge, inference: inference.engine }, {
       signal,
       onEvent: (e) => events.push(e.type),
+      config: { answerFormat: 'text' },
     });
 
     expect(result.status).toBe('answered');
