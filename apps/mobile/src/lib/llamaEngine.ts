@@ -9,11 +9,13 @@ import type {
 } from '@skepi/contracts';
 import { initLlama, type LlamaContext } from 'llama.rn';
 
-/** InferenceEngine adapter over llama.rn (llama.cpp, CPU on Android). */
+/** InferenceEngine adapter over llama.rn (llama.cpp; CPU on Android unless a GPU/NPU experiment is on). */
 export class LlamaEngine implements InferenceEngine {
   private ctx: LlamaContext | null = null;
   private loaded: LoadedModel | null = null;
   private loading: Promise<LoadedModel> | null = null;
+  private loadedOpts: string | null = null;
+  private prewarmed: string | null = null;
 
   get current(): LoadedModel | null {
     return this.loaded;
@@ -22,8 +24,6 @@ export class LlamaEngine implements InferenceEngine {
   get tokenizer(): LlamaContext | null {
     return this.ctx;
   }
-
-  private loadedOpts: string | null = null;
 
   async load(model: InstalledModel, opts: LoadOptions): Promise<LoadedModel> {
     const key = JSON.stringify(opts);
@@ -45,14 +45,19 @@ export class LlamaEngine implements InferenceEngine {
           ? { cpu_mask: opts.cpuAffinity.join(','), cpu_strict: true }
           : {}),
         ...(opts.flashAttention === undefined ? {} : { flash_attn_type: opts.flashAttention ? 'on' : 'off' }),
+        ...(opts.devices && opts.devices.length > 0 ? { devices: [...opts.devices] } : {}),
       });
       this.ctx = ctx;
       this.loadedOpts = key;
+      this.prewarmed = null;
       this.loaded = {
         modelId: model.id,
         contextSize: opts.contextSize,
         loadMs: Date.now() - start,
         description: `${ctx.model.desc} · lib ${ctx.androidLib ?? 'n/a'}`,
+        gpu: ctx.gpu,
+        devices: ctx.devices ?? [],
+        reasonNoGpu: ctx.reasonNoGPU,
       };
       return this.loaded;
     })();
@@ -61,6 +66,29 @@ export class LlamaEngine implements InferenceEngine {
     } finally {
       this.loading = null;
     }
+  }
+
+  /**
+   * Prefills the fixed system prompt once per loaded model. llama.rn keeps the KV cache of the last
+   * request and reuses its longest common token prefix, so every later question starts after the
+   * system prompt. Returns the prefill time (0 when already warm).
+   */
+  async prewarm(systemPrompt: string): Promise<number> {
+    const ctx = this.ctx;
+    if (!ctx || this.prewarmed === systemPrompt) return 0;
+    const start = Date.now();
+    await ctx.completion({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: '' },
+      ],
+      n_predict: 1,
+      temperature: 0,
+      enable_thinking: false,
+      add_generation_prompt: true,
+    });
+    this.prewarmed = systemPrompt;
+    return Date.now() - start;
   }
 
   async generate(req: GenerateRequest, onToken: (t: string) => void, signal: AbortSignal): Promise<GenerateResult> {
@@ -101,7 +129,11 @@ export class LlamaEngine implements InferenceEngine {
             : 'stop';
       return {
         text: res.text,
-        promptTokens: res.timings.prompt_n,
+        // tokens_evaluated = whole prompt; timings.prompt_n = prompt tokens actually decoded this
+        // request. The difference was served from the KV cache (llama.rn's tokens_cached is n_past
+        // after generation, not the reused prefix).
+        promptTokens: res.tokens_evaluated,
+        cachedPromptTokens: Math.max(0, res.tokens_evaluated - res.timings.prompt_n),
         generatedTokens: res.timings.predicted_n,
         timeToFirstTokenMs: first.at === null ? null : first.at - start,
         tokensPerSecond: Number.isFinite(res.timings.predicted_per_second) ? res.timings.predicted_per_second : null,
@@ -117,6 +149,7 @@ export class LlamaEngine implements InferenceEngine {
     this.ctx = null;
     this.loaded = null;
     this.loadedOpts = null;
+    this.prewarmed = null;
     if (ctx) await ctx.release();
   }
 }

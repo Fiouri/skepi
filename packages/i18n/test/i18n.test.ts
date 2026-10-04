@@ -80,4 +80,17 @@ describe('catalogs', () => {
     );
     expect(el.ask.noSourceDetail({ reason: 'below_threshold', coverage: '0.25' })).toContain('0.25');
   });
+
+  it('AI answer labels are the fixed architecture wording', () => {
+    expect(en.ask.aiLabel).toBe('AI summary — check the source');
+    expect(en.ask.unverifiedAiLabel).toBe('Unverified AI summary — check the source');
+    expect(el.ask.aiLabel).toBe('Σύνοψη AI — έλεγξε την πηγή');
+    expect(el.ask.unverifiedAiLabel).toBe('Μη επαληθευμένη σύνοψη AI — έλεγξε την πηγή');
+  });
+
+  it('formats source chips with and without a section', () => {
+    expect(en.ask.sourceLabel({ id: 'S1', title: 'Paris', heading: '' })).toBe('[S1] Paris');
+    expect(en.ask.sourceLabel({ id: 'S2', title: 'Water', heading: 'Boiling' })).toBe('[S2] Water — Boiling');
+    expect(en.ask.medicalNotice('112')).toContain('call 112');
+  });
 });

@@ -1,59 +1,98 @@
-import { runRag, type EmergencyMatch, type RagResult, type RagSource } from '@skepi/core';
+import {
+  EMERGENCY_NUMBERS_GR,
+  retrieve,
+  summarise,
+  type EmergencyMatch,
+  type Layer1Passage,
+  type MedicalIntent,
+  type RagSource,
+  type RetrievalResult,
+  type SummaryResult,
+} from '@skepi/core';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { EmergencyCardSlot } from '../../components/EmergencyCards';
 import { Button, ContentGate, styles } from '../../components/ui';
-import { knowledge, llama, useActiveProfile } from '../../lib/content';
+import { ensureModel, knowledge, llama, ragConfigFor, useActiveProfile } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
 
 type Phase = 'idle' | 'loading-model' | 'retrieving' | 'generating' | 'done' | 'error';
 
+interface Metrics {
+  sourcesVisibleMs: number | null;
+  loadMs: number | null;
+  prewarmMs: number | null;
+}
+
+const NO_METRICS: Metrics = { sourcesVisibleMs: null, loadMs: null, prewarmMs: null };
+
 export default function AskScreen() {
   const router = useRouter();
   const t = useMessages();
-  const { profile, model } = useActiveProfile();
+  const active = useActiveProfile();
+  const { profile, model } = active;
   const [question, setQuestion] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [emergency, setEmergency] = useState<EmergencyMatch | null>(null);
-  const [streamed, setStreamed] = useState('');
+  const [medical, setMedical] = useState<MedicalIntent | null>(null);
   const [sources, setSources] = useState<RagSource[]>([]);
-  const [result, setResult] = useState<RagResult | null>(null);
+  const [retrieval, setRetrieved] = useState<RetrievalResult | null>(null);
+  const [streamed, setStreamed] = useState<{ text: string; source: string }[]>([]);
+  const [summary, setSummary] = useState<SummaryResult | null>(null);
+  const [metrics, setMetrics] = useState<Metrics>(NO_METRICS);
   const [error, setError] = useState<string | null>(null);
-  const [loadMs, setLoadMs] = useState<number | null>(null);
   const controller = useRef<AbortController | null>(null);
+  const tappedAt = useRef<number | null>(null);
 
   const busy = phase === 'loading-model' || phase === 'retrieving' || phase === 'generating';
 
-  const ask = async (): Promise<void> => {
-    if (busy || question.trim().length === 0) return;
+  // "Sources visible": from the tap to the first frame that shows them (after React commits).
+  useEffect(() => {
+    if (sources.length === 0 || tappedAt.current === null) return;
+    const start = tappedAt.current;
+    tappedAt.current = null;
+    const frame = requestAnimationFrame(() => {
+      setMetrics((m) => ({ ...m, sourcesVisibleMs: performance.now() - start }));
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [sources]);
+
+  const reset = (): void => {
+    setEmergency(null);
+    setMedical(null);
+    setSources([]);
+    setRetrieved(null);
+    setStreamed([]);
+    setSummary(null);
+    setMetrics(NO_METRICS);
+    setError(null);
+  };
+
+  const runSummary = async (r: RetrievalResult, abort: AbortController): Promise<void> => {
+    setPhase('loading-model');
+    const ready = await ensureModel(active);
+    if (!ready) return;
+    setMetrics((m) => ({ ...m, loadMs: ready.loaded.loadMs, prewarmMs: ready.prewarmMs }));
+    if (abort.signal.aborted) return;
+    setPhase('generating');
+    const s = await summarise(r, llama, {
+      signal: abort.signal,
+      config: ragConfigFor(profile),
+      onEvent: (e) => {
+        if (e.type === 'sentence') setStreamed((list) => [...list, { text: e.text, source: e.source }]);
+      },
+    });
+    setSummary(s);
+  };
+
+  const withController = async (work: (abort: AbortController) => Promise<void>): Promise<void> => {
     const abort = new AbortController();
     controller.current = abort;
-    setEmergency(null);
-    setStreamed('');
-    setSources([]);
-    setResult(null);
-    setError(null);
     try {
-      let inference = null;
-      if (model) {
-        setPhase('loading-model');
-        const loaded = await llama.load(model, profile.load);
-        setLoadMs(loaded.loadMs);
-        inference = llama;
-      }
-      setPhase('retrieving');
-      const res = await runRag(question, { knowledge, inference }, {
-        signal: abort.signal,
-        config: { budgetTokens: profile.budgetTokens },
-        onEvent: (e) => {
-          if (e.type === 'emergency') setEmergency(e.match);
-          else if (e.type === 'context') {
-            setSources(e.sources);
-            setPhase('generating');
-          } else if (e.type === 'token') setStreamed((s) => s + e.text);
-        },
-      });
-      setResult(res);
+      await work(abort);
       setPhase('done');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -63,11 +102,50 @@ export default function AskScreen() {
     }
   };
 
-  const openSource = (s: RagSource): void => {
-    router.push({ pathname: '/article', params: { archiveId: s.archiveId, path: s.path, title: s.title } });
+  const ask = (): void => {
+    if (busy || question.trim().length === 0) return;
+    reset();
+    tappedAt.current = performance.now();
+    setPhase('retrieving');
+    void withController(async (abort) => {
+      const r = await retrieve(question, knowledge, {
+        signal: abort.signal,
+        config: ragConfigFor(profile),
+        onEvent: (e) => {
+          if (e.type === 'emergency') setEmergency(e.match);
+          else if (e.type === 'medical') setMedical(e.intent);
+          else if (e.type === 'context') setSources(e.sources);
+        },
+      });
+      setRetrieved(r);
+      // T2+: the AI summary follows Layer 1 automatically, except on medical intent (tap only).
+      if (r.status === 'ready' && model && profile.summaryMode === 'auto' && !r.medical) await runSummary(r, abort);
+    });
   };
 
-  const cited = new Set(result?.answer?.cited ?? []);
+  const summariseOnDemand = (): void => {
+    if (busy || retrieval?.status !== 'ready') return;
+    const r = retrieval;
+    void withController((abort) => runSummary(r, abort));
+  };
+
+  const open = (p: { archiveId: string; path: string; title: string; anchor: string | null }): void => {
+    router.push({
+      pathname: '/article',
+      params: { archiveId: p.archiveId, path: p.path, title: p.title, ...(p.anchor ? { anchor: p.anchor } : {}) },
+    });
+  };
+
+  const openSource = (id: string): void => {
+    const s = sources.find((x) => x.id === id);
+    const passage = retrieval?.layer1?.passages.find((p) => p.sourceId === id);
+    if (s) open({ archiveId: s.archiveId, path: s.path, title: s.title, anchor: passage?.anchor ?? null });
+  };
+
+  const shownSentences = summary?.status === 'shown' ? (summary.validation?.kept ?? []) : streamed;
+  const unverified = (summary?.label ?? (medical ? 'unverified-ai-summary' : 'ai-summary')) === 'unverified-ai-summary';
+  const canSummarise = retrieval?.status === 'ready' && model !== null && summary === null && !busy;
+  const emergencyNumber = emergency?.numbers.general ?? EMERGENCY_NUMBERS_GR.general;
 
   return (
     <ContentGate>
@@ -81,17 +159,14 @@ export default function AskScreen() {
           multiline
         />
         <View style={styles.row}>
-          <Button testID="ask-submit" label={t.ask.submit} onPress={() => void ask()} disabled={busy} />
+          <Button testID="ask-submit" label={t.ask.submit} onPress={ask} disabled={busy} />
           <Button testID="ask-stop" label={t.ask.stop} tone="danger" onPress={() => controller.current?.abort()} disabled={!busy} />
           <Button
             testID="ask-clear"
             label={t.ask.clear}
             onPress={() => {
               setQuestion('');
-              setResult(null);
-              setStreamed('');
-              setSources([]);
-              setEmergency(null);
+              reset();
               setPhase('idle');
             }}
             disabled={busy}
@@ -114,77 +189,101 @@ export default function AskScreen() {
             <Text style={styles.muted}>{t.ask.emergencyTopics(emergency.topics.join(', '))}</Text>
           </View>
         )}
+        {medical && !emergency && (
+          <View style={styles.banner} testID="medical-notice">
+            <Text style={styles.bannerText}>{t.ask.medicalNotice(emergencyNumber)}</Text>
+          </View>
+        )}
+        {emergency && <EmergencyCardSlot topics={emergency.topics} />}
 
-        {result?.status === 'no_source' && (
+        {retrieval?.status === 'no_source' && (
           <View style={styles.banner}>
             <Text style={styles.bannerText} testID="no-source">
               {t.ask.noSource}
             </Text>
             <Text style={styles.muted}>
               {t.ask.noSourceDetail({
-                reason: result.noSourceReason ?? '–',
-                coverage: result.best?.coverage.toFixed(2) ?? '–',
+                reason: retrieval.noSourceReason ?? '–',
+                coverage: retrieval.best?.coverage.toFixed(2) ?? '–',
               })}
             </Text>
           </View>
         )}
 
-        {phase === 'generating' && streamed.length > 0 && (
-          <Text style={styles.muted} testID="answer-progress">
-            {t.ask.writing(streamed.length)}
-          </Text>
-        )}
-        {result?.answer && !result.answer.notCovered && (
-          <Text style={styles.text} testID="answer-text" selectable>
-            {result.answer.text}
-          </Text>
-        )}
-        {result?.answer?.unverified && (
-          <Text style={styles.error} testID="answer-unverified">
-            {t.ask.unverified}
-          </Text>
-        )}
-        {result?.answer?.notCovered && (
-          <Text style={styles.muted} testID="answer-not-covered">
-            {t.ask.notCovered}
-          </Text>
-        )}
-
-        {sources.length > 0 && (
-          <View style={{ gap: 6 }}>
-            <Text style={styles.title}>{t.ask.sources}</Text>
-            <View style={styles.row}>
-              {sources
-                .filter((s) => !result?.answer || cited.has(s.id))
-                .map((s) => (
-                  <Pressable key={s.id} testID={`citation-${s.id}`} style={styles.chip} onPress={() => {
-                      openSource(s);
-                    }}>
-                    <Text style={styles.chipText}>
-                      [{s.id}] {s.title}
-                    </Text>
-                  </Pressable>
-                ))}
-            </View>
+        {retrieval?.layer1 && retrieval.layer1.passages.length > 0 && (
+          <View style={{ gap: 8 }} testID="layer1">
+            <Text style={styles.title}>{t.ask.fromSources}</Text>
+            {retrieval.layer1.passages.map((p, i) => (
+              <Passage
+                key={p.sourceId}
+                passage={p}
+                index={i}
+                label={t.ask.sourceLabel({ id: p.sourceId, title: p.title, heading: p.heading })}
+                onOpen={() => {
+                  open(p);
+                }}
+              />
+            ))}
           </View>
         )}
 
-        {result && (
+        {(phase === 'generating' || shownSentences.length > 0) && (
+          <View style={styles.summary} testID="ai-summary">
+            <Text style={styles.summaryLabel} testID="ai-label">
+              {unverified ? t.ask.unverifiedAiLabel : t.ask.aiLabel}
+            </Text>
+            {phase === 'generating' && shownSentences.length === 0 && (
+              <Text style={styles.muted} testID="answer-progress">
+                {t.ask.writing}
+              </Text>
+            )}
+            {shownSentences.map((s, i) => (
+              <View key={`${s.source}-${i}`} style={styles.row}>
+                <Text style={[styles.text, { flexShrink: 1 }]} selectable testID={`answer-sentence-${i}`}>
+                  {s.text}
+                </Text>
+                <Pressable
+                  testID={`citation-${s.source}`}
+                  style={styles.chip}
+                  onPress={() => {
+                    openSource(s.source);
+                  }}
+                >
+                  <Text style={styles.chipText}>[{s.source}]</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+        {summary && summary.status !== 'shown' && (
+          <Text style={styles.muted} testID="summary-hidden">
+            {summary.hiddenReason === 'not_covered' ? t.ask.summaryNotCovered : t.ask.summaryHidden}
+          </Text>
+        )}
+
+        {canSummarise && (profile.summaryMode === 'on-demand' || medical !== null) && (
+          <Button testID="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} onPress={summariseOnDemand} />
+        )}
+
+        {retrieval && (
           <Text style={styles.mono} testID="ask-metrics">
             {[
-              `status=${result.status}`,
-              `retrieval=${result.timings.retrievalMs}ms extract=${result.timings.extractMs}ms rank=${result.timings.rankMs}ms`,
-              loadMs !== null ? `modelLoad=${loadMs}ms` : null,
-              result.generation
-                ? `ttft=${result.generation.timeToFirstTokenMs ?? '–'}ms tok/s=${result.generation.tokensPerSecond?.toFixed(1) ?? '–'} prompt=${result.generation.promptTokens} gen=${result.generation.generatedTokens} stop=${result.generation.stopReason}`
+              `status=${retrieval.status} lang=${retrieval.lang} medical=${retrieval.medical ? 'yes' : 'no'}`,
+              `layer1=${retrieval.timings.layer1Ms}ms sourcesVisible=${metrics.sourcesVisibleMs?.toFixed(0) ?? '–'}ms`,
+              `retrieval=${retrieval.timings.retrievalMs}ms extract=${retrieval.timings.extractMs}ms rank=${retrieval.timings.rankMs}ms`,
+              retrieval.budget
+                ? `budget=${retrieval.budget.tier}/${retrieval.budget.lang} ${retrieval.budget.chars} chars ~${retrieval.budget.tokens} tok, sources=${retrieval.sources.length}`
                 : null,
-              result.answer
-                ? `cited=${result.answer.cited.join(',') || '-'} invalid=${result.answer.invalid.join(',') || '-'} unsupported=${result.answer.unsupported.join(',') || '-'}`
+              metrics.loadMs !== null ? `modelLoad=${metrics.loadMs}ms prewarm=${metrics.prewarmMs ?? 0}ms` : null,
+              summary
+                ? `ttft=${summary.generation.timeToFirstTokenMs ?? '–'}ms tok/s=${summary.generation.tokensPerSecond?.toFixed(1) ?? '–'} prompt=${summary.generation.promptTokens} cached=${summary.generation.cachedPromptTokens} gen=${summary.generation.generatedTokens} stop=${summary.generation.stopReason}`
                 : null,
-              result.structured
-                ? `support=${result.structured.sentences.map((x) => `${x.source}:${x.support === null ? '–' : x.support.toFixed(2)}`).join(' ')}`
-                : null,
-              `keywords=${result.keywords.join(' ')}`,
+              summary?.validation
+                ? `summary=${summary.status} kept=${summary.validation.kept.length}/${summary.validation.sentences.length} cited=${summary.validation.cited.join(',') || '-'} rejected=${summary.validation.sentences.filter((s) => !s.kept).map((s) => s.reason ?? 'not-covered').join(',') || '-'}`
+                : summary
+                  ? `summary=${summary.status} (${summary.hiddenReason ?? ''})`
+                  : null,
+              `keywords=${retrieval.keywords.join(' ')}`,
             ]
               .filter(Boolean)
               .join('\n')}
@@ -193,5 +292,23 @@ export default function AskScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
       </ScrollView>
     </ContentGate>
+  );
+}
+
+function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; index: number; onOpen: () => void; label: string }) {
+  return (
+    <View style={styles.passage} testID={`layer1-passage-${index}`}>
+      <Pressable testID={`layer1-source-${passage.sourceId}`} style={styles.chip} onPress={onOpen}>
+        <Text style={styles.chipText}>{label}</Text>
+      </Pressable>
+      <Text style={styles.text} selectable>
+        {passage.sentences.map((s, i) => (
+          <Text key={i} style={s.highlighted ? styles.highlight : undefined}>
+            {i > 0 ? ' ' : ''}
+            {s.text}
+          </Text>
+        ))}
+      </Text>
+    </View>
   );
 }

@@ -12,6 +12,8 @@ export const colors = {
   danger: '#b91c1c',
   dangerBg: '#fee2e2',
   chip: '#dbeafe',
+  highlight: '#fef08a',
+  summaryBg: '#f3f4f6',
 };
 
 export function Button({
@@ -101,4 +103,8 @@ export const styles = StyleSheet.create({
   banner: { backgroundColor: colors.dangerBg, padding: 12, borderRadius: 8, gap: 4 },
   bannerText: { color: colors.danger, fontWeight: '700', fontSize: 15 },
   mono: { fontFamily: 'monospace', fontSize: 12, color: colors.text },
+  passage: { gap: 6, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  highlight: { backgroundColor: colors.highlight, fontWeight: '600' },
+  summary: { backgroundColor: colors.summaryBg, padding: 12, borderRadius: 8, gap: 8 },
+  summaryLabel: { color: colors.muted, fontSize: 13, fontWeight: '700' },
 });

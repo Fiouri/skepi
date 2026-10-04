@@ -8,6 +8,8 @@ export function ZimArticleView(props: ZimArticleViewProps) {
   return <NativeView {...props} />;
 }
 
-export function zimUrl(archiveId: string, path: string): string {
-  return `zim://${archiveId}/${path.split('/').map(encodeURIComponent).join('/')}`;
+/** `zim://<archiveId>/<path>[#anchor]`; the fragment scrolls to a section and never reaches the native handler. */
+export function zimUrl(archiveId: string, path: string, anchor?: string): string {
+  const base = `zim://${archiveId}/${path.split('/').map(encodeURIComponent).join('/')}`;
+  return anchor ? `${base}#${encodeURIComponent(anchor)}` : base;
 }

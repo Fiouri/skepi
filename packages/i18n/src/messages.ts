@@ -38,11 +38,23 @@ export interface Messages {
     emergencyCall: (number: string) => string;
     emergencyServices: (n: { ambulance: string; fire: string; police: string }) => string;
     emergencyTopics: (topics: string) => string;
+    /** Shown first on medical intent, before Layer 1 (emergency cards join it in Phase 1d). */
+    medicalNotice: (number: string) => string;
     noSource: string;
     noSourceDetail: (p: { reason: string; coverage: string }) => string;
-    writing: (chars: number) => string;
-    unverified: string;
-    notCovered: string;
+    /** Layer 1 heading: verbatim passages from the sources. */
+    fromSources: string;
+    /** Citation chip / passage link: "[S1] Title — Section". */
+    sourceLabel: (p: { id: string; title: string; heading: string }) => string;
+    summarise: string;
+    summariseMedical: string;
+    writing: string;
+    /** Fixed label on every AI answer. */
+    aiLabel: string;
+    /** Fixed label on AI answers to medical questions. */
+    unverifiedAiLabel: string;
+    summaryHidden: string;
+    summaryNotCovered: string;
     sources: string;
     simulationActive: string;
   };
@@ -59,7 +71,19 @@ export interface Messages {
     developer: string;
     t1Simulation: string;
     t1SimulationHint: string;
-    profile: (p: { tier: string; mode: string; model: string; threads: number; contextSize: number; budgetTokens: number }) => string;
+    profile: (p: {
+      tier: string;
+      mode: string;
+      model: string;
+      threads: number;
+      contextSize: number;
+      budget: string;
+      summary: string;
+      backend: string;
+    }) => string;
+    backend: string;
+    backendHint: string;
+    backendOption: Record<'cpu' | 'opencl' | 'hexagon', string>;
     gate: (p: { result: 'pass' | 'fail' | 'none'; name: string; value: string; limit: number }) => string;
   };
 }

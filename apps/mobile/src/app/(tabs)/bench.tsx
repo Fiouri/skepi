@@ -1,21 +1,50 @@
+import type { InferenceBackend, RagSource } from '@skepi/core';
 import { useKeepAwake } from 'expo-keep-awake';
-import { useState } from 'react';
-import { ScrollView, Switch, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { Button, ContentGate, styles } from '../../components/ui';
 import { runBench, type BenchReport } from '../../lib/bench';
 import { useActiveProfile, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
+
+const BACKENDS: readonly InferenceBackend[] = ['cpu', 'opencl', 'hexagon'];
 
 export default function BenchScreen() {
   useKeepAwake();
   const t = useMessages();
   const simulateT1 = useContent((s) => s.simulateT1);
   const setSimulateT1 = useContent((s) => s.setSimulateT1);
+  const backend = useContent((s) => s.backend);
+  const setBackend = useContent((s) => s.setBackend);
   const { profile } = useActiveProfile();
   const [running, setRunning] = useState(false);
   const [lines, setLines] = useState<string[]>([]);
   const [report, setReport] = useState<BenchReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Render probe for "sources visible": the bench shows the sources here, like the Ask screen does,
+  // and the time of the first frame after React commits them is the measurement.
+  const [probe, setProbe] = useState<RagSource[]>([]);
+  const pending = useRef<((at: number) => void) | null>(null);
+  useEffect(() => {
+    const resolve = pending.current;
+    if (!resolve) return;
+    pending.current = null;
+    const frame = requestAnimationFrame(() => {
+      resolve(performance.now());
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [probe]);
+  const renderSources = useCallback(
+    (sources: RagSource[]) =>
+      new Promise<number>((resolve) => {
+        pending.current = resolve;
+        setProbe(sources);
+      }),
+    [],
+  );
 
   const start = async (): Promise<void> => {
     setRunning(true);
@@ -27,7 +56,7 @@ export default function BenchScreen() {
         (line) => {
           setLines((prev) => [...prev, line]);
         },
-        { simulateT1 },
+        { simulateT1, backend, renderSources },
       );
       setReport(r);
     } catch (e) {
@@ -55,6 +84,25 @@ export default function BenchScreen() {
             <Text style={styles.text}>{t.bench.t1Simulation}</Text>
           </View>
           <Text style={styles.muted}>{t.bench.t1SimulationHint}</Text>
+          <Text style={styles.text}>{t.bench.backend}</Text>
+          <View style={styles.row}>
+            {BACKENDS.map((b) => (
+              <Pressable
+                key={b}
+                testID={`dev-backend-${b}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: backend === b, disabled: running }}
+                disabled={running}
+                style={[styles.chip, backend === b ? { borderWidth: 2 } : null]}
+                onPress={() => {
+                  setBackend(b);
+                }}
+              >
+                <Text style={styles.chipText}>{t.bench.backendOption[b]}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.muted}>{t.bench.backendHint}</Text>
           <Text style={styles.mono} testID="bench-profile">
             {t.bench.profile({
               tier:
@@ -65,7 +113,9 @@ export default function BenchScreen() {
               model: profile.modelId ?? '–',
               threads: profile.load.threads,
               contextSize: profile.load.contextSize,
-              budgetTokens: profile.budgetTokens,
+              budget: profile.budgetTier,
+              summary: profile.summaryMode,
+              backend: profile.backend,
             })}
           </Text>
         </View>
@@ -75,6 +125,15 @@ export default function BenchScreen() {
             {t.bench.status[status]}
           </Text>
         </View>
+        {probe.length > 0 && (
+          <View testID="bench-probe">
+            {probe.map((s) => (
+              <Text key={s.id} style={styles.chipText}>
+                [{s.id}] {s.title}
+              </Text>
+            ))}
+          </View>
+        )}
         {report && (
           <View style={{ gap: 4 }} testID="bench-gates">
             {Object.entries(report.gates).map(([name, g]) => (

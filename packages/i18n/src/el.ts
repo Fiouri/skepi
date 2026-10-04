@@ -45,11 +45,18 @@ export const el: Messages = {
     emergencyServices: ({ ambulance, fire, police }) =>
       `Ασθενοφόρο ${ambulance} · Πυροσβεστική ${fire} · Αστυνομία ${police}`,
     emergencyTopics: (topics) => `Θέματα: ${topics}`,
+    medicalNotice: (number) => `Ιατρική ερώτηση. Σε έκτακτη ανάγκη κάλεσε ${number}. Διάβασε πρώτα τις πηγές.`,
     noSource: 'Δεν βρέθηκε σχετική πηγή',
     noSourceDetail: ({ reason, coverage }) => `Λόγος: ${reason} · κάλυψη ${coverage} · χωρίς παραγωγή απάντησης`,
-    writing: (chars) => `Γράφεται… (${chars} χαρακτήρες JSON)`,
-    unverified: 'Χωρίς επαλήθευση (καμία έγκυρη παραπομπή)',
-    notCovered: 'Το μοντέλο δήλωσε ότι οι πηγές δεν καλύπτουν την ερώτηση.',
+    fromSources: 'Από τις πηγές',
+    sourceLabel: ({ id, title, heading }) => `[${id}] ${heading ? `${title} — ${heading}` : title}`,
+    summarise: 'Σύνοψη με AI',
+    summariseMedical: 'Εμφάνιση μη επαληθευμένης σύνοψης AI',
+    writing: 'Γράφεται η σύνοψη AI…',
+    aiLabel: 'Σύνοψη AI — έλεγξε την πηγή',
+    unverifiedAiLabel: 'Μη επαληθευμένη σύνοψη AI — έλεγξε την πηγή',
+    summaryHidden: 'Καμία σύνοψη AI: καμία πρότασή της δεν στηριζόταν στις πηγές.',
+    summaryNotCovered: 'Καμία σύνοψη AI: το AI δεν βρήκε απάντηση σε αυτές τις πηγές.',
     sources: 'Πηγές',
     simulationActive: 'Η προσομοίωση T1 είναι ενεργή',
   },
@@ -66,9 +73,12 @@ export const el: Messages = {
     developer: 'Προγραμματιστής',
     t1Simulation: 'Προσομοίωση T1',
     t1SimulationHint:
-      'Επιβάλλει το προφίλ T1 (μοντέλο T1, 2 νήματα, context 2048, προϋπολογισμός T1) στο Ρώτα και στο bench.',
-    profile: ({ tier, mode, model, threads, contextSize, budgetTokens }) =>
-      `Κατηγορία ${tier} · λειτουργία ${mode} · ${model} · ${threads} νήματα · n_ctx ${contextSize} · προϋπολογισμός ${budgetTokens} tokens`,
+      'Επιβάλλει το προφίλ T1 (μοντέλο T1, 2 νήματα, context 2048, προϋπολογισμός T1, σύνοψη AI κατ’ απαίτηση) στο Ρώτα και στο bench.',
+    profile: ({ tier, mode, model, threads, contextSize, budget, summary, backend }) =>
+      `Κατηγορία ${tier} · λειτουργία ${mode} · ${model} · ${threads} νήματα · n_ctx ${contextSize} · προϋπολογισμός ${budget} · σύνοψη ${summary} · ${backend}`,
+    backend: 'Backend εκτέλεσης (πείραμα)',
+    backendHint: 'GPU/NPU μέσω llama.rn, μόνο για μετρήσεις. Προεπιλογή η CPU· χρειάζεται build με ενεργό το πείραμα.',
+    backendOption: { cpu: 'CPU', opencl: 'GPU (OpenCL)', hexagon: 'NPU (Hexagon)' },
     gate: ({ result, name, value, limit }) =>
       `${result === 'none' ? '–' : result === 'pass' ? 'PASS' : 'FAIL'} ${name}: ${value} (όριο < ${limit})`,
   },

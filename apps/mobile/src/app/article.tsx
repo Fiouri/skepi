@@ -7,8 +7,11 @@ import { useMessages } from '../lib/i18n';
 
 export default function ArticleScreen() {
   const t = useMessages();
-  const params = useLocalSearchParams<{ archiveId: string; path: string; title?: string }>();
-  const url = useMemo(() => zimUrl(params.archiveId, params.path), [params.archiveId, params.path]);
+  const params = useLocalSearchParams<{ archiveId: string; path: string; title?: string; anchor?: string }>();
+  const url = useMemo(
+    () => zimUrl(params.archiveId, params.path, params.anchor),
+    [params.archiveId, params.path, params.anchor],
+  );
   const startedAt = useRef(performance.now());
   const [openMs, setOpenMs] = useState<number | null>(null);
   const [blocked, setBlocked] = useState<number | null>(null);
