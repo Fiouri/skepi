@@ -75,12 +75,6 @@ export default function BenchScreen() {
             {t.bench.status[status]}
           </Text>
         </View>
-        {lines.map((l, i) => (
-          <Text key={i} style={styles.mono}>
-            {l}
-          </Text>
-        ))}
-        {error && <Text style={styles.error}>{error}</Text>}
         {report && (
           <View style={{ gap: 4 }} testID="bench-gates">
             {Object.entries(report.gates).map(([name, g]) => (
@@ -97,6 +91,12 @@ export default function BenchScreen() {
             ))}
           </View>
         )}
+        {lines.map((l, i) => (
+          <Text key={i} style={styles.mono}>
+            {l}
+          </Text>
+        ))}
+        {error && <Text style={styles.error}>{error}</Text>}
       </ScrollView>
     </ContentGate>
   );

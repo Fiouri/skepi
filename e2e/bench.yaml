@@ -1,0 +1,46 @@
+# Bench in normal mode, then in T1-simulation mode (developer setting on the Bench tab).
+# Each run writes bench/bench-<mode>-<timestamp>.json under the app's external files dir.
+# Run: maestro test e2e/bench.yaml -e APP_ID=org.skepi.app   (airplane mode, content provisioned)
+appId: ${APP_ID}
+name: SKEPI bench (normal + T1 simulation)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: tab-bench
+    timeout: 30000
+- tapOn:
+    id: tab-bench
+- extendedWaitUntil:
+    visible:
+      id: bench-run
+    timeout: 30000
+
+# 1. Normal mode
+- tapOn:
+    id: bench-run
+- extendedWaitUntil:
+    visible:
+      id: bench-gates
+    timeout: 900000
+- takeScreenshot: e2e/out/bench-normal
+
+# 2. T1 simulation
+- tapOn:
+    id: dev-t1-simulation
+- assertVisible: ".*mode t1-simulation.*"
+- tapOn:
+    id: bench-run
+- extendedWaitUntil:
+    notVisible:
+      id: bench-gates
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: bench-gates
+    timeout: 900000
+- takeScreenshot: e2e/out/bench-t1-simulation
