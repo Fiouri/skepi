@@ -1,0 +1,364 @@
+{
+  "schema": 1,
+  "createdAt": "2026-10-04T02:17:19.456Z",
+  "promptVersion": "rag-t1-v3-json",
+  "device": {
+    "manufacturer": "samsung",
+    "model": "SM-S911B",
+    "device": "dm1q",
+    "soc": "SM8550",
+    "sdkInt": 36,
+    "release": "16"
+  },
+  "cpu": {
+    "cores": 8,
+    "performanceCores": 5,
+    "performanceCoreIds": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "maxFreqKhz": [
+      2016000,
+      2016000,
+      2016000,
+      2803200,
+      2803200,
+      2803200,
+      2803200,
+      3360000
+    ],
+    "abi": "arm64-v8a"
+  },
+  "snapshotBefore": {
+    "totalRamMb": 7072,
+    "freeRamMb": 3420,
+    "freeDiskMb": 37263,
+    "batteryPct": 100,
+    "charging": true,
+    "thermal": "nominal"
+  },
+  "runtime": {
+    "contentDir": "/storage/emulated/0/Android/data/org.skepi.app/files",
+    "icuDataDir": null,
+    "nativeInitMs": 12
+  },
+  "archives": [
+    {
+      "archiveId": "fef7bff0-40eb-7f1d-09e1-9c0de646f461",
+      "name": "wikipedia_el_top",
+      "title": "Το καλύτερο της Βικιπαίδειας",
+      "articleCount": 102609,
+      "sizeBytes": 117988988,
+      "openMs": 23.494792,
+      "hasFulltextIndex": true
+    }
+  ],
+  "suggest": {
+    "total": {
+      "count": 20,
+      "min": 2.911354999989271,
+      "p50": 5.741926999762654,
+      "p95": 13.23968799971044,
+      "max": 20.508646000176668,
+      "mean": 7.203755299840123
+    },
+    "native": {
+      "count": 20,
+      "min": 2.56724,
+      "p50": 5.374583,
+      "p95": 12.866302,
+      "max": 20.0625,
+      "mean": 6.827221400000001
+    },
+    "results": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10
+    ]
+  },
+  "fulltext": {
+    "total": {
+      "count": 20,
+      "min": 1.8455210011452436,
+      "p50": 3.974634999409318,
+      "p95": 7.765261000022292,
+      "max": 8.337657000869513,
+      "mean": 4.854437399841845
+    },
+    "native": {
+      "count": 20,
+      "min": 1.598959,
+      "p50": 3.663802,
+      "p95": 7.357396,
+      "max": 8.001146,
+      "mean": 4.5301147
+    },
+    "results": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      2,
+      8,
+      8
+    ]
+  },
+  "articleHtml": {
+    "total": {
+      "count": 10,
+      "min": 2.9896869994699955,
+      "p50": 6.547500001266599,
+      "p95": 12.51151099987328,
+      "max": 12.51151099987328,
+      "mean": 7.547979300282895
+    },
+    "native": {
+      "count": 10,
+      "min": 2.654531,
+      "p50": 5.951146,
+      "p95": 11.896354,
+      "max": 11.896354,
+      "mean": 6.970073000000001
+    },
+    "bytes": [
+      17436,
+      30259,
+      15923,
+      36957,
+      9540,
+      5985,
+      5439,
+      17511,
+      13237,
+      13425
+    ]
+  },
+  "plainText": {
+    "total": {
+      "count": 10,
+      "min": 3.67807300016284,
+      "p50": 5.895832998678088,
+      "p95": 22.445780999958515,
+      "max": 22.445780999958515,
+      "mean": 10.344880099780857
+    },
+    "native": {
+      "count": 10,
+      "min": 3.363438,
+      "p50": 5.629167,
+      "p95": 21.61401,
+      "max": 21.61401,
+      "mean": 9.9540938
+    },
+    "sections": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "prefillSweep": [
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores pinned",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": null,
+      "loadMs": 1868,
+      "promptTokens": 1175,
+      "ttftMs": 12621,
+      "promptTokensPerSecond": 93.0988035813327
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores unpinned",
+      "threads": 5,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 1520,
+      "promptTokens": 1175,
+      "ttftMs": 13551,
+      "promptTokensPerSecond": 86.70946793594568
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "top-4 pinned",
+      "threads": 4,
+      "affinity": [
+        7,
+        3,
+        4,
+        5
+      ],
+      "flashAttention": null,
+      "loadMs": 1212,
+      "promptTokens": 1175,
+      "ttftMs": 14679,
+      "promptTokensPerSecond": 80.04632468151782
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores pinned + flash-attn",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": true,
+      "loadMs": 1107,
+      "promptTokens": 1175,
+      "ttftMs": 13681,
+      "promptTokensPerSecond": 85.8855346831372
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "all cores unpinned",
+      "threads": 8,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 2090,
+      "promptTokens": 1175,
+      "ttftMs": 16741,
+      "promptTokensPerSecond": 70.18696613105548
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_0.gguf",
+      "label": "perf-cores pinned",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": null,
+      "loadMs": 1813,
+      "promptTokens": 1175,
+      "ttftMs": 10286,
+      "promptTokensPerSecond": 114.23293797394517
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_0.gguf",
+      "label": "perf-cores unpinned",
+      "threads": 5,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 828,
+      "promptTokens": 1175,
+      "ttftMs": 10376,
+      "promptTokensPerSecond": 113.24209714726291
+    }
+  ],
+  "model": {
+    "id": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "sizeBytes": 1117320736,
+    "threads": 5,
+    "contextSize": 2048,
+    "loadMs": 2334,
+    "description": "qwen2 1.5B Q4_K - Medium · lib rnllama_jni_v8_2_dotprod_i8mm",
+    "rag": {
+      "question": "Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;",
+      "status": "answered",
+      "sources": 4,
+      "promptTokens": 1175,
+      "generatedTokens": 399,
+      "ttftMs": 18389,
+      "tokensPerSecond": 17.638058031244384,
+      "cited": [],
+      "retrievalMs": 60,
+      "extractMs": 1
+    },
+    "tokenEstimate": {
+      "samples": 10,
+      "estimated": 1999,
+      "actual": 2033,
+      "ratio": 0.9832759468765372
+    }
+  },
+  "memory": {
+    "totalRamMb": 7072,
+    "availRamMb": 3142,
+    "lowMemory": false,
+    "thresholdMb": 390,
+    "peakRssMb": 3366,
+    "rssMb": 2117,
+    "nativeHeapMb": 1727
+  },
+  "gates": {
+    "suggestP95Ms": {
+      "value": 13.23968799971044,
+      "gate": 50,
+      "pass": true
+    },
+    "fulltextP95Ms": {
+      "value": 7.765261000022292,
+      "gate": 300,
+      "pass": true
+    },
+    "articleHtmlP95Ms": {
+      "value": 12.51151099987328,
+      "gate": 500,
+      "pass": true
+    },
+    "modelLoadMs": {
+      "value": 2334,
+      "gate": 10000,
+      "pass": true
+    },
+    "ttftMs": {
+      "value": 18389,
+      "gate": 4000,
+      "pass": false
+    }
+  },
+  "reportPath": null
+}

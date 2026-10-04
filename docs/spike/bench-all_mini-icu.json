@@ -1,0 +1,452 @@
+{
+  "schema": 1,
+  "createdAt": "2026-10-04T13:03:07.557Z",
+  "promptVersion": "rag-t1-v3-json",
+  "device": {
+    "manufacturer": "samsung",
+    "model": "SM-S911B",
+    "device": "dm1q",
+    "soc": "SM8550",
+    "sdkInt": 36,
+    "release": "16"
+  },
+  "cpu": {
+    "cores": 8,
+    "performanceCores": 5,
+    "performanceCoreIds": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "maxFreqKhz": [
+      2016000,
+      2016000,
+      2016000,
+      2803200,
+      2803200,
+      2803200,
+      2803200,
+      3360000
+    ],
+    "abi": "arm64-v8a"
+  },
+  "snapshotBefore": {
+    "totalRamMb": 7072,
+    "freeRamMb": 3631,
+    "freeDiskMb": 38223,
+    "batteryPct": 48,
+    "charging": true,
+    "thermal": "fair"
+  },
+  "runtime": {
+    "contentDir": "/storage/emulated/0/Android/data/org.skepi.app/files",
+    "icuDataDir": "/storage/emulated/0/Android/data/org.skepi.app/files/icu",
+    "nativeInitMs": 32
+  },
+  "archives": [
+    {
+      "archiveId": "6d7d4ed3-5846-63a6-2cb5-e4b5bf80cec9",
+      "name": "wikipedia_el_all",
+      "title": "Βικιπαίδεια",
+      "articleCount": 383824,
+      "sizeBytes": 549033151,
+      "openMs": 136.053906,
+      "hasFulltextIndex": true
+    }
+  ],
+  "suggest": {
+    "total": {
+      "count": 20,
+      "min": 4.717603996396065,
+      "p50": 9.810104995965958,
+      "p95": 23.407917000353336,
+      "max": 37.78578099608421,
+      "mean": 12.410937549546361
+    },
+    "native": {
+      "count": 20,
+      "min": 4.365052,
+      "p50": 9.437761,
+      "p95": 22.884011,
+      "max": 37.35901,
+      "mean": 12.03548185
+    },
+    "results": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10
+    ]
+  },
+  "fulltext": {
+    "total": {
+      "count": 20,
+      "min": 4.05010399967432,
+      "p50": 9.546979002654552,
+      "p95": 24.904165998101234,
+      "max": 25.515676997601986,
+      "mean": 11.704049450531603
+    },
+    "native": {
+      "count": 20,
+      "min": 3.747136,
+      "p50": 9.188438,
+      "p95": 24.562864,
+      "max": 25.090313,
+      "mean": 11.35782555
+    },
+    "results": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      6,
+      8,
+      8
+    ]
+  },
+  "articleHtml": {
+    "total": {
+      "count": 10,
+      "min": 2.3521870002150536,
+      "p50": 3.367448002099991,
+      "p95": 8.944947995245457,
+      "max": 8.944947995245457,
+      "mean": 4.57591129988432
+    },
+    "native": {
+      "count": 10,
+      "min": 1.910781,
+      "p50": 2.938385,
+      "p95": 8.391354,
+      "max": 8.391354,
+      "mean": 4.1558488
+    },
+    "bytes": [
+      24634,
+      20727,
+      12498,
+      15427,
+      9769,
+      9584,
+      9497,
+      11327,
+      16919,
+      13220
+    ]
+  },
+  "plainText": {
+    "total": {
+      "count": 10,
+      "min": 4.109531000256538,
+      "p50": 5.511614002287388,
+      "p95": 15.658854000270367,
+      "max": 15.658854000270367,
+      "mean": 6.8849425002932545
+    },
+    "native": {
+      "count": 10,
+      "min": 3.826354,
+      "p50": 5.253385,
+      "p95": 15.34099,
+      "max": 15.34099,
+      "mean": 6.591202899999999
+    },
+    "sections": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "accentProbe": [
+    {
+      "query": "Πάτρα",
+      "suggest": [
+        "Πάτρα",
+        "Μαρία_Πάτρα",
+        "Νέα_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Αυτοκινητόδρομος_Πάτρα_-_Πύργος_-_Τσακώνα",
+        "Σκάλες_Αγίου_Νικολάου_(Πάτρα)"
+      ],
+      "fulltextEstimated": 1315
+    },
+    {
+      "query": "πατρα",
+      "suggest": [
+        "Πάτρα",
+        "Μαρία_Πάτρα",
+        "Νέα_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Αυτοκινητόδρομος_Πάτρα_-_Πύργος_-_Τσακώνα",
+        "Σκάλες_Αγίου_Νικολάου_(Πάτρα)"
+      ],
+      "fulltextEstimated": 1315
+    },
+    {
+      "query": "ΠΑΤΡΑ",
+      "suggest": [
+        "Πάτρα",
+        "Μαρία_Πάτρα",
+        "Νέα_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Αυτοκινητόδρομος_Πάτρα_-_Πύργος_-_Τσακώνα",
+        "Σκάλες_Αγίου_Νικολάου_(Πάτρα)"
+      ],
+      "fulltextEstimated": 1315
+    },
+    {
+      "query": "σεισμός",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_Ιγιαπέλ_2015",
+        "Σεισμός_2004_Ινδικού_Ωκεανού"
+      ],
+      "fulltext": [
+        "Σεισμός_στη_Μιανμάρ_(2025)",
+        "Σεισμός_Σμύρνης_και_Σάμου_(2020)",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)"
+      ],
+      "fulltextEstimated": 205
+    },
+    {
+      "query": "σεισμος",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_Ιγιαπέλ_2015",
+        "Σεισμός_2004_Ινδικού_Ωκεανού"
+      ],
+      "fulltext": [
+        "Σεισμός_στη_Μιανμάρ_(2025)",
+        "Σεισμός_Σμύρνης_και_Σάμου_(2020)",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)"
+      ],
+      "fulltextEstimated": 205
+    },
+    {
+      "query": "ΣΕΙΣΜΟΣ",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_Ιγιαπέλ_2015",
+        "Σεισμός_2004_Ινδικού_Ωκεανού"
+      ],
+      "fulltext": [
+        "Σεισμός_στη_Μιανμάρ_(2025)",
+        "Σεισμός_Σμύρνης_και_Σάμου_(2020)",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)"
+      ],
+      "fulltextEstimated": 205
+    },
+    {
+      "query": "Αχαΐα",
+      "suggest": [
+        "Αχαΐα",
+        "Αχαΐα_(αποσαφήνιση)",
+        "Αχαΐα_Αρίας"
+      ],
+      "fulltext": [
+        "Αχαΐα_(αποσαφήνιση)",
+        "Κάτω_Αχαΐα",
+        "Άνω_Αχαΐα"
+      ],
+      "fulltextEstimated": 492
+    },
+    {
+      "query": "αχαια",
+      "suggest": [
+        "Αχαΐα",
+        "Αχαΐα_(αποσαφήνιση)",
+        "Αχαΐα_Αρίας"
+      ],
+      "fulltext": [
+        "Αχαΐα_(αποσαφήνιση)",
+        "Κάτω_Αχαΐα",
+        "Άνω_Αχαΐα"
+      ],
+      "fulltextEstimated": 492
+    }
+  ],
+  "prefillSweep": [
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores pinned",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": null,
+      "loadMs": 10760,
+      "promptTokens": 1312,
+      "ttftMs": 16023,
+      "promptTokensPerSecond": 81.88229420208451
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores unpinned",
+      "threads": 5,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 2286,
+      "promptTokens": 1312,
+      "ttftMs": 16407,
+      "promptTokensPerSecond": 79.9658682269763
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "top-4 pinned",
+      "threads": 4,
+      "affinity": [
+        7,
+        3,
+        4,
+        5
+      ],
+      "flashAttention": null,
+      "loadMs": 1495,
+      "promptTokens": 1312,
+      "ttftMs": 17356,
+      "promptTokensPerSecond": 75.59345471306753
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores pinned + flash-attn",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": true,
+      "loadMs": 1513,
+      "promptTokens": 1312,
+      "ttftMs": 16636,
+      "promptTokensPerSecond": 78.86511180572253
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "all cores unpinned",
+      "threads": 8,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 1770,
+      "promptTokens": 1312,
+      "ttftMs": 21215,
+      "promptTokensPerSecond": 61.84303558802734
+    }
+  ],
+  "model": {
+    "id": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "sizeBytes": 1117320736,
+    "threads": 5,
+    "contextSize": 2048,
+    "loadMs": 1304,
+    "description": "qwen2 1.5B Q4_K - Medium · lib rnllama_jni_v8_2_dotprod_i8mm",
+    "rag": {
+      "question": "Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;",
+      "status": "answered",
+      "sources": 6,
+      "promptTokens": 1312,
+      "generatedTokens": 247,
+      "ttftMs": 16979,
+      "tokensPerSecond": 16.144897777631943,
+      "cited": [
+        "S1"
+      ],
+      "retrievalMs": 40,
+      "extractMs": 2
+    },
+    "tokenEstimate": {
+      "samples": 10,
+      "estimated": 1984,
+      "actual": 2047,
+      "ratio": 0.9692232535417684
+    }
+  },
+  "memory": {
+    "totalRamMb": 7072,
+    "availRamMb": 2939,
+    "lowMemory": false,
+    "thresholdMb": 390,
+    "peakRssMb": 3381,
+    "rssMb": 2198,
+    "nativeHeapMb": 1724
+  },
+  "gates": {
+    "suggestP95Ms": {
+      "value": 23.407917000353336,
+      "gate": 50,
+      "pass": true
+    },
+    "fulltextP95Ms": {
+      "value": 24.904165998101234,
+      "gate": 300,
+      "pass": true
+    },
+    "articleHtmlP95Ms": {
+      "value": 8.944947995245457,
+      "gate": 500,
+      "pass": true
+    },
+    "modelLoadMs": {
+      "value": 1304,
+      "gate": 10000,
+      "pass": true
+    },
+    "ttftMs": {
+      "value": 16979,
+      "gate": 4000,
+      "pass": false
+    }
+  },
+  "reportPath": null
+}
