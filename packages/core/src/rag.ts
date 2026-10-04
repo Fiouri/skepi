@@ -15,7 +15,7 @@ import {
   validateStructured,
   type StructuredValidation,
 } from './structured';
-import { detectLanguage, extractKeywords, type Lang } from './text';
+import { contentTerms, detectLanguage, extractKeywords, toQueryTerm, type Lang } from './text';
 import { makeTokenEstimator, tokenizerProfile } from './tokens';
 import { checkSentence, MIN_BIGRAM_SUPPORT } from './validate';
 
@@ -24,6 +24,9 @@ export interface RagConfig {
   fulltextTopK: number;
   /** Maximum number of Xapian queries per question (1 conjunctive + per-keyword fallbacks). */
   maxQueries: number;
+  /** Title-suggestion queries per question (all keywords + adjacent pairs) and hits kept from each. */
+  maxSuggestions: number;
+  suggestTopK: number;
   /** No-source threshold: the best chunk must contain this fraction of the query terms… */
   minCoverage: number;
   /** …and reach at least this BM25 score. */
@@ -43,6 +46,8 @@ export interface RagConfig {
 export const DEFAULT_RAG_CONFIG: RagConfig = {
   fulltextTopK: 8,
   maxQueries: 5,
+  maxSuggestions: 3,
+  suggestTopK: 3,
   minCoverage: 0.6,
   minScore: 0.5,
   tier: 'T1',
@@ -118,9 +123,10 @@ function isAborted(signal: AbortSignal): boolean {
 /** Conjunctive query first (libzim uses OP_AND), then single-keyword fallbacks, longest first. */
 export function planQueries(keywords: readonly string[], maxQueries: number): string[] {
   if (keywords.length === 0) return [];
-  const queries = [keywords.join(' ')];
-  if (keywords.length > 1) {
-    const singles = [...keywords].sort((a, b) => b.length - a.length);
+  const terms = keywords.map(toQueryTerm);
+  const queries = [terms.join(' ')];
+  if (terms.length > 1) {
+    const singles = [...terms].sort((a, b) => b.length - a.length);
     for (const k of singles) {
       if (queries.length >= maxQueries) break;
       queries.push(k);
@@ -129,23 +135,37 @@ export function planQueries(keywords: readonly string[], maxQueries: number): st
   return queries;
 }
 
+/**
+ * Title-suggestion queries: all keywords, then adjacent keyword pairs. "What is DNA?" or "How tall is
+ * Mount Everest?" are about the article whose title is in the question; full-text ranking alone
+ * often buries it under longer articles that mention every term.
+ */
+export function planSuggestions(keywords: readonly string[], maxSuggestions: number): string[] {
+  if (keywords.length === 0 || maxSuggestions <= 0) return [];
+  const terms = keywords.map(toQueryTerm);
+  const out = [terms.join(' ')];
+  for (let i = 0; i + 1 < terms.length && out.length < maxSuggestions; i += 1) {
+    const pair = `${terms[i] ?? ''} ${terms[i + 1] ?? ''}`;
+    if (!out.includes(pair)) out.push(pair);
+  }
+  return out;
+}
+
 async function search(
   knowledge: KnowledgeEngine,
   keywords: readonly string[],
   cfg: RagConfig,
   archiveIds: readonly string[] | undefined,
 ): Promise<SearchHit[]> {
-  const queries = planQueries(keywords, cfg.maxQueries);
+  const scope = archiveIds ? { archiveIds } : {};
   const lists: SearchHit[][] = [];
-  for (const q of queries) {
-    const hits = await knowledge.search(q, {
-      mode: 'fulltext',
-      limit: cfg.fulltextTopK,
-      ...(archiveIds ? { archiveIds } : {}),
-    });
-    lists.push(hits);
-    // A conjunctive query that already fills top-K needs no fallbacks.
-    if (lists.length === 1 && hits.length >= cfg.fulltextTopK) break;
+  // Every list goes into the fusion: a conjunctive query that fills top-K with articles that merely
+  // mention all terms must not hide the article a single keyword or the title points to.
+  for (const q of planQueries(keywords, cfg.maxQueries)) {
+    lists.push(await knowledge.search(q, { mode: 'fulltext', limit: cfg.fulltextTopK, ...scope }));
+  }
+  for (const q of planSuggestions(keywords, cfg.maxSuggestions)) {
+    lists.push(await knowledge.search(q, { mode: 'suggest', limit: cfg.suggestTopK, ...scope }));
   }
   return reciprocalRankFusion(lists).slice(0, cfg.fulltextTopK);
 }
@@ -155,15 +175,34 @@ async function extract(knowledge: KnowledgeEngine, hits: readonly SearchHit[]): 
   return settled.flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []));
 }
 
+/** Weight of the title match in the chunk score (BM25 is ~0–10 over a small candidate set). */
+export const TITLE_BOOST = 1.5;
+
+/** Share of the article title's content terms that the question contains (1 = the title is in the question). */
+function titleOverlap(title: string, queryStems: ReadonlySet<string>): number {
+  const terms = [...new Set(contentTerms(title))];
+  if (terms.length === 0) return 0;
+  return terms.filter((t) => queryStems.has(t)).length / terms.length;
+}
+
+/**
+ * BM25 over the candidate chunks plus a title bonus. BM25 alone collapses when every candidate
+ * contains the only query term ("What is DNA?": IDF → 0), and it cannot tell the DNA article from
+ * an article that mentions DNA often.
+ */
 export function rankChunks(keywords: readonly string[], chunks: readonly Chunk[]): ScoredChunk[] {
   const byId = new Map(chunks.map((c) => [c.id, c]));
+  const queryStems = new Set(keywords.flatMap((k) => contentTerms(k)));
   return rankBm25(
     keywords,
     chunks.map((c) => ({ id: c.id, text: `${c.articleTitle} ${c.heading} ${c.text}` })),
-  ).flatMap((r) => {
-    const chunk = byId.get(r.id);
-    return chunk ? [{ chunk, score: r.score, coverage: r.coverage }] : [];
-  });
+  )
+    .flatMap((r) => {
+      const chunk = byId.get(r.id);
+      if (!chunk || r.matchedTerms === 0) return chunk ? [{ chunk, score: 0, coverage: 0 }] : [];
+      return [{ chunk, score: r.score + TITLE_BOOST * titleOverlap(chunk.articleTitle, queryStems), coverage: r.coverage }];
+    })
+    .sort((a, b) => b.score - a.score || b.coverage - a.coverage);
 }
 
 export function toSources(selected: readonly ScoredChunk[]): RagSource[] {

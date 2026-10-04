@@ -34,10 +34,12 @@ export { buildPrompt, PROMPT_VERSION, renderSources, SYSTEM_PROMPT, type PromptS
 export {
   DEFAULT_RAG_CONFIG,
   planQueries,
+  planSuggestions,
   rankChunks,
   retrieve,
   runRag,
   summarise,
+  TITLE_BOOST,
   toSources,
   type NoSourceReason,
   type RagConfig,
@@ -78,6 +80,7 @@ export {
   splitSentences,
   stem,
   tokenize,
+  toQueryTerm,
   type Lang,
 } from './text';
 export {

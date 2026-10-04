@@ -8,7 +8,8 @@ import type {
   SearchOptions,
 } from '@skepi/contracts';
 import { describe, expect, it, vi } from 'vitest';
-import { planQueries, retrieve, runRag, summarise, type RagEvent } from '../src/rag';
+import type { Chunk } from '../src/chunk';
+import { planQueries, planSuggestions, rankChunks, retrieve, runRag, summarise, type RagEvent } from '../src/rag';
 import { SYSTEM_PROMPT } from '../src/prompt';
 
 const ARTICLES: Record<string, ArticleText> = {
@@ -87,6 +88,51 @@ describe('planQueries', () => {
     expect(planQueries(['water'], 5)).toEqual(['water']);
     expect(planQueries([], 5)).toEqual([]);
   });
+
+  it('restores the Greek final sigma that folding removed (the ZIM index keeps ς)', () => {
+    expect(planQueries(['αριστοτελησ'], 5)).toEqual(['αριστοτελης']);
+    expect(planQueries(['σεισμοσ', 'πατρα'], 5)).toEqual(['σεισμος πατρα', 'σεισμος', 'πατρα']);
+  });
+});
+
+describe('planSuggestions', () => {
+  it('asks the title index for all keywords, then adjacent pairs', () => {
+    expect(planSuggestions(['tall', 'mount', 'everest'], 3)).toEqual(['tall mount everest', 'tall mount', 'mount everest']);
+    expect(planSuggestions(['dna'], 3)).toEqual(['dna']);
+    expect(planSuggestions([], 3)).toEqual([]);
+    expect(planSuggestions(['a', 'b'], 0)).toEqual([]);
+  });
+});
+
+describe('rankChunks', () => {
+  const chunk = (title: string, text: string, index: number): Chunk => ({
+    id: `en/${title}#${index}`,
+    archiveId: 'en',
+    path: title,
+    articleTitle: title,
+    heading: '',
+    text,
+    tokens: 10,
+    index,
+  });
+
+  it('puts the article named by the question first even when every candidate has the term', () => {
+    const ranked = rankChunks(
+      ['dna'],
+      [
+        chunk('Genetics', 'Genetics studies genes, DNA and DNA replication, and DNA repair in DNA molecules.', 0),
+        chunk('DNA', 'Deoxyribonucleic acid is a polymer of two chains.', 1),
+        chunk('RNA', 'RNA is transcribed from DNA.', 2),
+      ],
+    );
+    expect(ranked[0]?.chunk.articleTitle).toBe('DNA');
+    expect(ranked[0]?.score).toBeGreaterThan(1);
+  });
+
+  it('gives no title bonus to chunks without any query term', () => {
+    const ranked = rankChunks(['everest'], [chunk('Everest', 'A mountain.', 0), chunk('K2', 'Another mountain.', 1)]);
+    expect(ranked.find((r) => r.chunk.articleTitle === 'K2')?.score).toBe(0);
+  });
 });
 
 describe('retrieve (Layer 1)', () => {
@@ -133,6 +179,26 @@ describe('retrieve (Layer 1)', () => {
   it('skips articles whose text extraction fails', async () => {
     const r = await retrieve(WATER_Q, fakeKnowledge({ 'long boil water': ['Missing', 'Water_purification'] }), { signal });
     expect(r.sources.map((s) => s.path)).toEqual(['Water_purification']);
+  });
+
+  it('queries full text and the title index, and fuses both', async () => {
+    const knowledge = fakeKnowledge(WATER_INDEX);
+    const modes: string[] = [];
+    const search = knowledge.search.bind(knowledge);
+    knowledge.search = (q, opts) => {
+      modes.push(`${opts.mode}:${q}`);
+      return search(q, opts);
+    };
+    await retrieve(WATER_Q, knowledge, { signal });
+    expect(modes).toEqual([
+      'fulltext:long boil water',
+      'fulltext:water',
+      'fulltext:long',
+      'fulltext:boil',
+      'suggest:long boil water',
+      'suggest:long boil',
+      'suggest:boil water',
+    ]);
   });
 
   it('stops when aborted', async () => {

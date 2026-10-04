@@ -88,6 +88,15 @@ export function stem(token: string): string {
   return out.length > MIN_STEM + 1 && out.endsWith('e') ? out.slice(0, -1) : out;
 }
 
+/**
+ * A folded keyword as a search-engine term. Folding maps final ς to σ for matching, but the ZIM's
+ * Xapian index keeps ς (it folds case and accents only): "αριστοτελησ" finds nothing, "αριστοτελης"
+ * finds the article.
+ */
+export function toQueryTerm(keyword: string): string {
+  return GREEK_LETTER.test(keyword) ? keyword.replace(/σ$/u, 'ς') : keyword;
+}
+
 /** Query terms for retrieval: folded, stopwords removed, deduplicated, in order. */
 export function extractKeywords(query: string): string[] {
   const seen = new Set<string>();

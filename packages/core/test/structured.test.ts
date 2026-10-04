@@ -25,11 +25,12 @@ describe('answerLimits / answerJsonSchema', () => {
 
   it('restricts source ids to the ids in the prompt and bounds the output', () => {
     const schema = answerJsonSchema(['S1', 'S2'], { maxSentences: 3, maxSentenceChars: 120 }) as {
-      properties: { sentences: { maxItems: number; items: { properties: { text: { maxLength: number }; source: { enum: string[] } } } } };
+      properties: { sentences: { minItems: number; maxItems: number; items: { properties: { text: { maxLength: number }; source: { enum: string[] } } } } };
     };
     expect(schema.properties.sentences.items.properties.source.enum).toEqual(['S1', 'S2']);
     expect(schema.properties.sentences.items.properties.text.maxLength).toBe(120);
     expect(schema.properties.sentences.maxItems).toBe(3);
+    expect(schema.properties.sentences.minItems).toBe(1);
   });
 });
 

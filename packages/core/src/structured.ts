@@ -51,6 +51,9 @@ export function answerJsonSchema(
       covered: { type: 'boolean' },
       sentences: {
         type: 'array',
+        // At least one: with an optional array the 1.5B model often wrote `[` + whitespace + `]`
+        // even when covered was true (rag-eval). Sentences of a not-covered answer are ignored.
+        minItems: 1,
         maxItems: limits.maxSentences,
         items: {
           type: 'object',
