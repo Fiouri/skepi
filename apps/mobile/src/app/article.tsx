@@ -3,8 +3,10 @@ import { ExpoZim, ZimArticleView, zimUrl } from 'expo-zim';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { styles } from '../components/ui';
+import { useMessages } from '../lib/i18n';
 
 export default function ArticleScreen() {
+  const t = useMessages();
   const params = useLocalSearchParams<{ archiveId: string; path: string; title?: string }>();
   const url = useMemo(() => zimUrl(params.archiveId, params.path), [params.archiveId, params.path]);
   const startedAt = useRef(performance.now());
@@ -24,18 +26,18 @@ export default function ArticleScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Screen options={{ title: params.title ?? 'Άρθρο' }} />
+      <Stack.Screen options={{ title: params.title ?? t.article.title }} />
       <View style={[styles.row, { padding: 8 }]}>
         <Text style={styles.muted} testID="article-open-ms">
-          {openMs === null ? 'Φόρτωση…' : `Άνοιγμα: ${openMs.toFixed(0)} ms`}
+          {openMs === null ? t.common.loading : t.article.opened(openMs.toFixed(0))}
         </Text>
         <Text style={styles.muted} testID="blocked-count">
-          Blocked requests: {blocked ?? '…'}
+          {t.article.blockedRequests(blocked)}
         </Text>
       </View>
       {external && (
         <Text style={[styles.muted, { paddingHorizontal: 8 }]} testID="external-link">
-          Εξωτερικός σύνδεσμος (δεν ανοίγει): {external}
+          {t.article.externalLink(external)}
         </Text>
       )}
       <ZimArticleView

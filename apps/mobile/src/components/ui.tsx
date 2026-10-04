@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useContent } from '../lib/content';
+import { useMessages } from '../lib/i18n';
 
 export const colors = {
   bg: '#ffffff',
@@ -41,6 +42,7 @@ export function Button({
 
 /** Renders children only once content has been opened; shows status otherwise. */
 export function ContentGate({ children }: { children: ReactNode }) {
+  const t = useMessages();
   const status = useContent((s) => s.status);
   const error = useContent((s) => s.error);
   const archives = useContent((s) => s.archives);
@@ -48,7 +50,7 @@ export function ContentGate({ children }: { children: ReactNode }) {
     return (
       <View style={styles.center}>
         <ActivityIndicator />
-        <Text style={styles.muted}>Άνοιγμα περιεχομένου…</Text>
+        <Text style={styles.muted}>{t.content.opening}</Text>
       </View>
     );
   }
@@ -56,7 +58,7 @@ export function ContentGate({ children }: { children: ReactNode }) {
     return (
       <View style={styles.center}>
         <Text style={styles.error} testID="content-error">
-          Σφάλμα: {error}
+          {t.common.error(error ?? '')}
         </Text>
       </View>
     );
@@ -65,7 +67,7 @@ export function ContentGate({ children }: { children: ReactNode }) {
     return (
       <View style={styles.center}>
         <Text style={styles.muted} testID="content-missing">
-          Δεν βρέθηκε ZIM. Τρέξε scripts/provision.ps1.
+          {t.content.missing}
         </Text>
       </View>
     );

@@ -41,3 +41,16 @@ export {
 export { percentile, summarize, type LatencySummary } from './stats';
 export { detectLanguage, extractKeywords, foldText, isStopword, stem, tokenize, type Lang } from './text';
 export { estimateTokens, GREEK_TOKENS_PER_CHAR, OTHER_TOKENS_PER_CHAR } from './tokens';
+export {
+  detectMobileTier,
+  MOBILE_TIER_MIN_RAM_MB,
+  NORMAL_PROFILE,
+  pickModel,
+  resolveInferenceProfile,
+  T1_PROFILE,
+  type AvailableModel,
+  type CpuTopology,
+  type InferenceProfile,
+  type ProfileMode,
+  type Tier,
+} from './tier';

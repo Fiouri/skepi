@@ -1,4 +1,4 @@
-# Phase 0 spike E2E (Android, physical device, airplane mode).
+# Spike E2E (Android, physical device, airplane mode, English UI; content and questions are Greek).
 # search -> open article -> ask -> citation chip -> article -> unrelated question (no source) -> map
 # Run: e2e/run-spike.ps1 (sets MAESTRO_CLI_NO_ANALYTICS, collects logcat + blocked-request log).
 appId: org.skepi.app
@@ -20,6 +20,9 @@ onFlowComplete:
     visible:
       id: search-input
     timeout: 30000
+- assertVisible: "Search"
+- assertVisible: "Ask"
+- assertVisible: "Map"
 - tapOn:
     id: search-input
 - inputText: ${SEARCH_QUERY}
@@ -40,7 +43,7 @@ onFlowComplete:
     id: search-result-0
 - extendedWaitUntil:
     visible:
-      text: "Άνοιγμα: .*"
+      text: "Opened in .*"
     timeout: 15000
 - assertVisible:
     id: article-view
@@ -72,7 +75,7 @@ onFlowComplete:
     id: citation-S1
 - extendedWaitUntil:
     visible:
-      text: "Άνοιγμα: .*"
+      text: "Opened in .*"
     timeout: 15000
 - assertVisible: ${EXPECTED_ARTICLE}
 - assertVisible: "Blocked requests: 0"
@@ -94,7 +97,7 @@ onFlowComplete:
     timeout: 60000
 - assertNotVisible:
     id: answer-text
-- assertVisible: "Λόγος: .*δεν έγινε generation"
+- assertVisible: "Reason: .*no generation"
 - assertVisible: ${UNRELATED_QUESTION}
 - takeScreenshot: e2e/out/05-no-source
 
@@ -103,6 +106,6 @@ onFlowComplete:
     id: tab-map
 - extendedWaitUntil:
     visible:
-      text: "Χάρτης έτοιμος.*"
+      text: "Map ready.*"
     timeout: 60000
 - takeScreenshot: e2e/out/06-map

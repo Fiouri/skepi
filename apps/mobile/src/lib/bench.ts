@@ -1,7 +1,20 @@
 import type { LoadOptions } from '@skepi/contracts';
-import { buildPrompt, chunkArticle, detectLanguage, estimateTokens, PROMPT_VERSION, runRag, summarize, type LatencySummary } from '@skepi/core';
+import {
+  buildPrompt,
+  chunkArticle,
+  detectLanguage,
+  estimateTokens,
+  PROMPT_VERSION,
+  resolveInferenceProfile,
+  runRag,
+  summarize,
+  type LatencySummary,
+  type ProfileMode,
+  type Tier,
+} from '@skepi/core';
+import { ExpoDeviceProfile, type CpuInfo, type DeviceInfo, type MemoryInfo } from 'expo-device-profile';
 import { ExpoZim, type ZimArchiveInfo } from 'expo-zim';
-import { knowledge, llama, loadOptions, T1_CONTEXT, useContent } from './content';
+import { knowledge, llama, useContent } from './content';
 
 /** 20 fixed title prefixes typed into the suggestion box. */
 export const SUGGEST_QUERIES = [
@@ -26,8 +39,14 @@ export const GATES = {
   fulltextP95Ms: 300,
   articleOpenMs: 500,
   modelLoadMs: 10_000,
-  ttftMs: 4_000,
+  /** First AI token on T2 (architecture). The T1 target is set after measurement: no gate on T1. */
+  ttftT2Ms: 15_000,
 } as const;
+
+export interface BenchOptions {
+  /** Force the T1 profile (T1 model, 2 threads, n_ctx 2048, T1 budget) on any device. */
+  simulateT1: boolean;
+}
 
 export interface PrefillSample {
   model: string;
@@ -47,12 +66,23 @@ interface Timed {
 }
 
 export interface BenchReport {
-  schema: 1;
+  schema: 2;
   createdAt: string;
   promptVersion: string;
-  device: Awaited<ReturnType<typeof ExpoZim.getDeviceInfo>>;
-  cpu: Awaited<ReturnType<typeof ExpoZim.getCpuInfo>>;
-  snapshotBefore: Awaited<ReturnType<typeof ExpoZim.getDeviceSnapshot>>;
+  /** 't1-simulation' when the T1 profile was forced on this device. */
+  mode: ProfileMode;
+  profile: {
+    detectedTier: Tier;
+    effectiveTier: Tier;
+    modelId: string | null;
+    threads: number;
+    cpuAffinity: number[] | null;
+    contextSize: number;
+    budgetTokens: number;
+  };
+  device: DeviceInfo;
+  cpu: CpuInfo;
+  snapshotBefore: Awaited<ReturnType<typeof ExpoDeviceProfile.getSnapshot>>;
   runtime: Awaited<ReturnType<typeof ExpoZim.getRuntimeInfo>>;
   archives: Pick<ZimArchiveInfo, 'archiveId' | 'name' | 'title' | 'articleCount' | 'sizeBytes' | 'openMs' | 'hasFulltextIndex'>[];
   suggest: { total: LatencySummary; native: LatencySummary; results: number[] };
@@ -82,8 +112,8 @@ export interface BenchReport {
     };
     tokenEstimate: { samples: number; estimated: number; actual: number; ratio: number };
   };
-  memory: Awaited<ReturnType<typeof ExpoZim.getMemoryInfo>>;
-  gates: Record<string, { value: number | null; gate: number; pass: boolean | null }>;
+  memory: MemoryInfo;
+  gates: Record<string, { value: number | null; gate: number | null; pass: boolean | null }>;
   reportPath: string | null;
 }
 
@@ -97,21 +127,35 @@ function split(samples: Timed[]): { total: LatencySummary; native: LatencySummar
   return { total: summarize(samples.map((s) => s.totalMs)), native: summarize(samples.map((s) => s.nativeMs)) };
 }
 
-function gate(value: number | null, limit: number): { value: number | null; gate: number; pass: boolean | null } {
-  return { value, gate: limit, pass: value === null ? null : value < limit };
+function gate(
+  value: number | null,
+  limit: number | null,
+): { value: number | null; gate: number | null; pass: boolean | null } {
+  return { value, gate: limit, pass: value === null || limit === null ? null : value < limit };
 }
 
-export async function runBench(log: (line: string) => void): Promise<BenchReport> {
-  const { archives, model, models, cpu } = useContent.getState();
+export async function runBench(log: (line: string) => void, options: BenchOptions): Promise<BenchReport> {
+  const { archives, models } = useContent.getState();
   if (archives.length === 0) throw new Error('No ZIM archive open');
 
   const [device, cpuInfo, snapshotBefore, runtime] = await Promise.all([
-    ExpoZim.getDeviceInfo(),
-    ExpoZim.getCpuInfo(),
-    ExpoZim.getDeviceSnapshot(),
+    ExpoDeviceProfile.getDeviceInfo(),
+    ExpoDeviceProfile.getCpuInfo(),
+    ExpoDeviceProfile.getSnapshot(),
     ExpoZim.getRuntimeInfo(),
   ]);
+  const profile = resolveInferenceProfile({
+    totalRamMb: snapshotBefore.totalRamMb,
+    cpu: cpuInfo,
+    models,
+    simulateT1: options.simulateT1,
+  });
+  const model = models.find((m) => m.id === profile.modelId) ?? null;
   log(`device ${device.manufacturer} ${device.model} (${device.soc}), cores ${cpuInfo.cores}/${cpuInfo.performanceCores} perf`);
+  log(
+    `mode ${profile.mode}: tier ${profile.detectedTier} -> ${profile.effectiveTier}, model ${profile.modelId ?? 'none'}, ` +
+      `${profile.load.threads} threads, n_ctx ${profile.load.contextSize}, budget ${profile.budgetTokens} tokens`,
+  );
   log(`ICU data: ${runtime.icuDataDir ?? 'none'}`);
 
   // Warm-up (first Xapian open is not representative of steady state).
@@ -174,22 +218,32 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
   if (model) {
     // Prefill (time to first token) dominates on CPU: measure thread/affinity/flash-attn variants
     // on the real RAG prompt and keep the fastest for the end-to-end run.
-    const ragSources = await runRag(BENCH_RAG_QUESTION, { knowledge, inference: null }, { signal: new AbortController().signal });
+    const ragConfig = { budgetTokens: profile.budgetTokens };
+    const ragSources = await runRag(
+      BENCH_RAG_QUESTION,
+      { knowledge, inference: null },
+      { signal: new AbortController().signal, config: ragConfig },
+    );
     const messages = buildPrompt(BENCH_RAG_QUESTION, ragSources.sources, detectLanguage(BENCH_RAG_QUESTION), 'json');
-    const base = loadOptions(cpu ?? cpuInfo);
+    const base = profile.load;
     const byFreq = cpuInfo.maxFreqKhz.map((f, id) => ({ f, id })).sort((a, b) => b.f - a.f).map((x) => x.id);
-    const variants: { label: string; opts: LoadOptions }[] = [
-      { label: 'perf-cores pinned', opts: base },
-      { label: 'perf-cores unpinned', opts: { ...base, cpuAffinity: [] } },
-      { label: 'top-4 pinned', opts: { ...base, threads: 4, cpuAffinity: byFreq.slice(0, 4) } },
-      { label: 'perf-cores pinned + flash-attn', opts: { ...base, flashAttention: true } },
-      { label: 'all cores unpinned', opts: { ...base, threads: cpuInfo.cores, cpuAffinity: [] } },
-    ];
+    // T1 simulation measures the forced profile only; a thread/affinity sweep would defeat it.
+    const variants: { label: string; opts: LoadOptions }[] =
+      profile.mode === 't1-simulation'
+        ? [{ label: 't1-simulation', opts: base }]
+        : [
+            { label: 'perf-cores pinned', opts: base },
+            { label: 'perf-cores unpinned', opts: { ...base, cpuAffinity: [] } },
+            { label: 'top-4 pinned', opts: { ...base, threads: 4, cpuAffinity: byFreq.slice(0, 4) } },
+            { label: 'perf-cores pinned + flash-attn', opts: { ...base, flashAttention: true } },
+            { label: 'all cores unpinned', opts: { ...base, threads: cpuInfo.cores, cpuAffinity: [] } },
+          ];
     let best: { opts: LoadOptions; ttft: number } | null = null;
-    // Full sweep on the default model, best-known config on every other GGUF (quantisation compare).
+    // Full sweep on the profile's model, best-known config on every other GGUF (quantisation compare).
+    const others = profile.mode === 't1-simulation' ? [] : models.filter((m) => m.id !== model.id);
     const runs = [
       ...variants.map((v) => ({ m: model, v })),
-      ...models.filter((m) => m.id !== model.id).flatMap((m) => [variants[0], variants[1]].flatMap((v) => (v ? [{ m, v }] : []))),
+      ...others.flatMap((m) => [variants[0], variants[1]].flatMap((v) => (v ? [{ m, v }] : []))),
     ];
     for (const { m, v } of runs) {
       await llama.unload();
@@ -226,13 +280,17 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
       }
     }
 
-    const rag = await runRag(BENCH_RAG_QUESTION, { knowledge, inference: llama }, { signal: new AbortController().signal });
+    const rag = await runRag(
+      BENCH_RAG_QUESTION,
+      { knowledge, inference: llama },
+      { signal: new AbortController().signal, config: ragConfig },
+    );
     log(`rag ${rag.status}: ttft ${rag.generation?.timeToFirstTokenMs ?? '–'} ms, ${rag.generation?.tokensPerSecond?.toFixed(1) ?? '–'} tok/s`);
     modelReport = {
       id: model.id,
       sizeBytes: model.sizeBytes,
       threads: opts.threads,
-      contextSize: T1_CONTEXT,
+      contextSize: opts.contextSize,
       loadMs: loaded.loadMs,
       description: loaded.description,
       rag: {
@@ -253,16 +311,26 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
     log('no GGUF: model metrics skipped');
   }
 
-  const memory = await ExpoZim.getMemoryInfo();
+  const memory = await ExpoDeviceProfile.getMemoryInfo();
   log(`peak RSS ${memory.peakRssMb} MB`);
 
   const suggestStats = split(suggest);
   const fulltextStats = split(fulltext);
   const htmlStats = split(html);
   const report: BenchReport = {
-    schema: 1,
+    schema: 2,
     createdAt: new Date().toISOString(),
     promptVersion: PROMPT_VERSION,
+    mode: profile.mode,
+    profile: {
+      detectedTier: profile.detectedTier,
+      effectiveTier: profile.effectiveTier,
+      modelId: profile.modelId,
+      threads: profile.load.threads,
+      cpuAffinity: profile.load.cpuAffinity && profile.load.cpuAffinity.length > 0 ? [...profile.load.cpuAffinity] : null,
+      contextSize: profile.load.contextSize,
+      budgetTokens: profile.budgetTokens,
+    },
     device,
     cpu: cpuInfo,
     snapshotBefore,
@@ -289,13 +357,13 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
       fulltextP95Ms: gate(fulltextStats.total.p95, GATES.fulltextP95Ms),
       articleHtmlP95Ms: gate(htmlStats.total.p95, GATES.articleOpenMs),
       modelLoadMs: gate(modelReport?.loadMs ?? null, GATES.modelLoadMs),
-      ttftMs: gate(modelReport?.rag.ttftMs ?? null, GATES.ttftMs),
+      ttftMs: gate(modelReport?.rag.ttftMs ?? null, profile.effectiveTier === 'T2' ? GATES.ttftT2Ms : null),
     },
     reportPath: null,
   };
   const json = JSON.stringify(report, null, 2);
   const stamp = report.createdAt.replace(/[:.]/g, '-');
-  await ExpoZim.writeContentFile(`bench/bench-${stamp}.json`, json);
+  await ExpoZim.writeContentFile(`bench/bench-${report.mode}-${stamp}.json`, json);
   report.reportPath = await ExpoZim.writeContentFile('bench/latest.json', json);
   log(`written ${report.reportPath}`);
   return report;

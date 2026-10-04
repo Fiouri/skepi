@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO). This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -81,7 +81,7 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /core              Domain, RAG orchestrator, safety layer, catalog/verify, pack manager
   /contracts         TS interfaces: KnowledgeEngine, InferenceEngine, ContentStore, TransferService, DeviceProfile
   /db                SQL migrations + typed queries (shared mobile/desktop)
-  /i18n              English (default) / Greek strings
+  /i18n              English (default) / Greek strings, typed catalogs + locale resolution
   /emergency-cards   Curated static emergency cards (Markdown + sources), English master + translations
   /ui-tokens         Colours, typography, blackout theme
 /modules
@@ -153,7 +153,13 @@ The LLM is optional, loads only when needed, and its size is chosen automaticall
 | T2 | 8–12 GB RAM | ~3–4B, Q4_0 | 4096 | Extractive answer + automatic AI summary, optional embedding rerank |
 | T3 | Desktop with GPU or 16 GB+ | ~7–9B, Q4/Q5 | 8192 | Longer syntheses, more articles per answer |
 
-**Test devices.** Current reference: Galaxy S23 (8 GB, T2). All T1 gates stay **pending** until a 4 GB device is available. Until then, the app has a **T1-simulation mode** (T1 model, 2 threads, context 2048, T1 budget) used on the S23 to catch large regressions early; a 4 GB Android emulator covers functional (not performance) checks.
+**Tier detection** (`packages/core`, `detectMobileTier`) uses the RAM visible to Android, which is always below the marketed size: < 3300 MB → T0, < 6500 MB → T1, otherwise T2 (T3 is desktop-only).
+
+**Test devices.** Current reference: Galaxy S23 (8 GB, T2). All T1 gates stay **pending** until a 4 GB device is available. Until then, the app has a **T1-simulation mode** used on the S23 to catch large regressions early; a 4 GB Android emulator covers functional (not performance) checks.
+
+- T1-simulation forces the T1 profile on any device: T1 model (Qwen2.5-1.5B **Q4_0** preferred, Q4_K_M fallback), **2 unpinned threads** (pinning to big cores would hide T1 latency), n_ctx 2048, T1 context budget. It is a developer setting (Bench tab, in memory until `packages/db` lands) and applies to Ask and the bench; the bench skips its thread sweep in this mode.
+- The bench JSON (schema 2) records `mode` (`normal` | `t1-simulation`) and the applied profile (detected/effective tier, model, threads, affinity, n_ctx, budget).
+- Context budgets are still token-based in core (`TIER_BUDGET_TOKENS`, T1 = 800); the per-language character budgets arrive with the Phase 1 RAG work. Normal mode keeps the Phase 0 settings on every tier until then.
 
 **Model selection.** Default family: small Qwen models. The exact model is chosen by `/tools/rag-eval` (English primary set, Greek secondary set), not by reputation. rag-eval also reports **tokens per character** per language: a tokenizer that is efficient for a language directly cuts latency. A new model ships only if it does not regress citation precision or refusal-when-no-source.
 
@@ -199,9 +205,10 @@ All knowledge lives in ZIM files read by libkiwix over libzim. Search uses the X
 - The viewer loads only from a custom scheme (`zim://<archiveId>/<path>`), served by native handlers: `shouldInterceptRequest` on Android, `WKURLSchemeHandler` on iOS.
 - Every http(s), file or intent request is blocked. External links are shown as text marked "external" and never open automatically.
 - JavaScript is off by default. If a pack needs it (video, maths), it is enabled per pack with a warning.
-- Every response carries a CSP header: `default-src 'none'; img-src zim: data:; style-src zim: 'unsafe-inline'; font-src zim:; media-src zim:`.
+- Every response, including 403/404, carries a CSP header: `default-src 'none'; img-src zim: data:; style-src zim: 'unsafe-inline'; font-src zim:; media-src zim:`.
+- The viewer is `SealedWebView` (no Expo types, so it is testable alone): `loadUrl`, `loadData`, `loadDataWithBaseURL` and `postUrl` accept only valid `zim://` URLs, `addJavascriptInterface` throws, non-zim navigations are logged and reported as external links, Safe Browsing and file/content access are off.
 - Blackout theme injects dark CSS with pure-black background for OLED.
-- Because this is our own code (not a library), its guarantees are covered by instrumentation tests: other schemes blocked, JS disabled, CSP present on every response, path traversal (`zim://…/../`) rejected.
+- Because this is our own code (not a library), its guarantees are covered by instrumentation tests (`modules/expo-zim/android/src/androidTest`, `SealingTest`, on a 36 KB CC0 fixture ZIM): other schemes blocked and logged, JS disabled and no JS interface, CSP present on every response, path traversal (`zim://…/../`, percent-encoded, double-encoded and backslash variants) rejected, Safe Browsing and file/content access off.
 
 **Text for RAG**
 
@@ -389,7 +396,7 @@ The biggest risk is a malicious file (ZIM, GGUF, PMTiles) reaching a C++ parser.
 - Android components `exported=false` except the launcher; network security config without cleartext, except the local APK server.
 - Tauri with narrow capabilities: only needed commands, no shell, fs scope limited to the content folder.
 - `SECURITY.md` describes private vulnerability reporting via GitHub private advisories.
-- **Release signing:** the Expo `debug.keystore` used in Phase 0 is for development only. Release builds use a dedicated keystore kept outside the repo, read via `~/.gradle/gradle.properties`, generated once by the maintainer with `keytool`, backed up with its password in a password manager.
+- **Release signing:** the Expo `debug.keystore` used in Phase 0 is for development only. Release builds use a dedicated keystore kept outside the repo, read via `~/.gradle/gradle.properties` (`SKEPI_RELEASE_STORE_FILE`, `SKEPI_RELEASE_STORE_PASSWORD`, `SKEPI_RELEASE_KEY_ALIAS`, `SKEPI_RELEASE_KEY_PASSWORD`), generated once by the maintainer with `keytool`, backed up with its password in a password manager. Wired by the config plugin `apps/mobile/plugins/withReleaseSigning.js` (never by editing generated Gradle files). A release build without these properties **fails**; the only escape hatch is `-PskepiDebugSign=true` for local E2E, with a loud warning. Procedure and fingerprint: `docs/release-signing.md`.
 
 ## Privacy
 
@@ -425,7 +432,7 @@ Targets are measured on a T1 reference device (4 GB Android). A PR that regresse
 - libzim cluster cache is capped per tier.
 - One article viewer per screen, not one per tab.
 
-**App size:** ICU data is excluded (ADR: identical results for English and Greek with and without it; saves 32 MB). Any new locale must be re-tested without ICU before shipping. Only 3 of 7 llama.rn library variants ship; native libraries are compressed. App Bundle with ABI splits, arm64 primary.
+**App size:** ICU data is excluded (ADR: identical results for English and Greek with and without it; saves 32 MB). Any new locale must be re-tested without ICU before shipping. Only 3 of 7 llama.rn library variants ship; native libraries are compressed. Release builds run R8 (minify, no resource shrinking) with keep rules for `org.kiwix.**`, `com.rnllama.**`, MapLibre and the Expo modules (`apps/mobile/plugins/proguard-rules.skepi.pro`). App Bundle with ABI splits, arm64 primary.
 
 **Blackout mode**
 
@@ -489,6 +496,8 @@ Two moments of use: **preparation** (online; the user chooses and downloads) and
 - **Notes:** plain text, encrypted, optionally linked to a map place.
 
 **Accessibility:** dynamic type and touch targets ≥ 48 dp; WCAG AA contrast in both themes; TalkBack/VoiceOver labels everywhere; emergency cards read aloud with the OS TTS.
+
+**Language:** every UI string lives in `packages/i18n` (English master, Greek; a missing key is a type error). The app follows the device's first preferred language: Greek → Greek, anything else → English. Android 13+ per-app language is supported (`localeConfig` with `en`, `el`, via expo-localization).
 
 ## Data model and storage
 
@@ -618,6 +627,7 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
 
 1. **Phase 0 · Android spike — DONE, GO.** libkiwix (official Maven package) · llama.rn · PMTiles map · native viewer. Report: `docs/spike-report.md`.
    - Gate result: search, article, map and APK size passed; first-token latency failed (12–18 s vs 4 s), addressed by the two-layer answer and revised targets.
+   - **Phase 1a · foundation and security hardening — DONE.** Release keystore and fail-closed signing · viewer sealing instrumentation tests · `modules/expo-device-profile` · `packages/i18n` (English default, Greek) · T1-simulation mode · R8 · still no INTERNET permission (downloads arrive in Phase 1c).
 2. **Phase 1 · Android MVP (English-first).**
    - Release keystore outside the repo (first task).
    - Two-layer answers (Layer 1 extractive, Layer 2 AI) with char-based budgets, Q4_0, shorter prompt, KV-cache reuse; GPU/NPU backend experiment.

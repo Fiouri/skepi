@@ -1,10 +1,6 @@
 import { NativeModule, requireNativeModule } from 'expo';
-import type { DeviceSnapshot } from '@skepi/contracts';
 import type {
   BlockedRequest,
-  CpuInfo,
-  DeviceInfo,
-  MemoryInfo,
   ZimArchiveInfo,
   ZimArticleHtml,
   ZimContentFile,
@@ -24,10 +20,6 @@ declare class ExpoZimNativeModule extends NativeModule {
   getPlainText(archiveId: string, path: string): Promise<ZimPlainText>;
   getBlockedRequests(): Promise<BlockedRequest[]>;
   clearBlockedRequests(): Promise<void>;
-  getMemoryInfo(): Promise<MemoryInfo>;
-  getCpuInfo(): Promise<CpuInfo>;
-  getDeviceInfo(): Promise<DeviceInfo>;
-  getDeviceSnapshot(): Promise<DeviceSnapshot>;
   writeContentFile(relativePath: string, text: string): Promise<string>;
 }
 

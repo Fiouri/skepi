@@ -1,4 +1,4 @@
-package org.skepi.zim
+package org.skepi.deviceprofile
 
 import android.app.ActivityManager
 import android.content.Context
@@ -11,10 +11,10 @@ import android.os.StatFs
 import java.io.File
 
 /**
- * Spike-only device probes (RAM, CPU clusters, battery, thermal, disk). Will move to
- * modules/expo-device-profile in Phase 1.
+ * Device probes (RAM, CPU clusters, battery, thermal, free storage). [snapshot] implements the
+ * DeviceProfile contract in packages/contracts; the rest feeds tier selection and the bench.
  */
-internal object DeviceInfo {
+internal object DeviceProbes {
   private const val MB = 1024L * 1024L
 
   fun memory(context: Context): Map<String, Any> {
@@ -88,7 +88,8 @@ internal object DeviceInfo {
     val scale = battery?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
     val plugged = (battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0
     val pct = if (level >= 0 && scale > 0) level * 100.0 / scale else -1.0
-    val root = ZimRegistry.contentRoot(context) ?: context.filesDir
+    // Content lives in app-specific external storage (see expo-zim); fall back to internal storage.
+    val root = context.getExternalFilesDir(null) ?: context.filesDir
     val freeDiskMb = StatFs(root.path).availableBytes / MB
     return mapOf(
       "totalRamMb" to mem.totalMem / MB,

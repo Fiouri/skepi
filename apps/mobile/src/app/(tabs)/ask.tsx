@@ -3,14 +3,15 @@ import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Button, ContentGate, styles } from '../../components/ui';
-import { knowledge, llama, loadOptions, useContent } from '../../lib/content';
+import { knowledge, llama, useActiveProfile } from '../../lib/content';
+import { useMessages } from '../../lib/i18n';
 
 type Phase = 'idle' | 'loading-model' | 'retrieving' | 'generating' | 'done' | 'error';
 
 export default function AskScreen() {
   const router = useRouter();
-  const model = useContent((s) => s.model);
-  const cpu = useContent((s) => s.cpu);
+  const t = useMessages();
+  const { profile, model } = useActiveProfile();
   const [question, setQuestion] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [emergency, setEmergency] = useState<EmergencyMatch | null>(null);
@@ -36,13 +37,14 @@ export default function AskScreen() {
       let inference = null;
       if (model) {
         setPhase('loading-model');
-        const loaded = await llama.load(model, loadOptions(cpu));
+        const loaded = await llama.load(model, profile.load);
         setLoadMs(loaded.loadMs);
         inference = llama;
       }
       setPhase('retrieving');
       const res = await runRag(question, { knowledge, inference }, {
         signal: abort.signal,
+        config: { budgetTokens: profile.budgetTokens },
         onEvent: (e) => {
           if (e.type === 'emergency') setEmergency(e.match);
           else if (e.type === 'context') {
@@ -75,15 +77,15 @@ export default function AskScreen() {
           style={styles.input}
           value={question}
           onChangeText={setQuestion}
-          placeholder="Ρώτα κάτι (απαντά μόνο από πηγές)"
+          placeholder={t.ask.placeholder}
           multiline
         />
         <View style={styles.row}>
-          <Button testID="ask-submit" label="Ρώτα" onPress={() => void ask()} disabled={busy} />
-          <Button testID="ask-stop" label="Διακοπή" tone="danger" onPress={() => controller.current?.abort()} disabled={!busy} />
+          <Button testID="ask-submit" label={t.ask.submit} onPress={() => void ask()} disabled={busy} />
+          <Button testID="ask-stop" label={t.ask.stop} tone="danger" onPress={() => controller.current?.abort()} disabled={!busy} />
           <Button
             testID="ask-clear"
-            label="Καθαρισμός"
+            label={t.ask.clear}
             onPress={() => {
               setQuestion('');
               setResult(null);
@@ -95,35 +97,41 @@ export default function AskScreen() {
             disabled={busy}
           />
           <Text style={styles.muted} testID="ask-phase">
-            {phase}
+            {t.ask.phase[phase]}
           </Text>
         </View>
-        {!model && <Text style={styles.muted}>Δεν βρέθηκε GGUF: μόνο αναζήτηση πηγών.</Text>}
+        {!model && <Text style={styles.muted}>{t.ask.noModel}</Text>}
+        {profile.mode === 't1-simulation' && (
+          <Text style={styles.muted} testID="ask-t1-simulation">
+            {t.ask.simulationActive}
+          </Text>
+        )}
 
         {emergency && (
           <View style={styles.banner} testID="emergency-banner">
-            <Text style={styles.bannerText}>Έκτακτη ανάγκη; Κάλεσε {emergency.numbers.general}</Text>
-            <Text style={styles.text}>
-              ΕΚΑΒ {emergency.numbers.ambulance} · Πυροσβεστική {emergency.numbers.fire} · Αστυνομία {emergency.numbers.police}
-            </Text>
-            <Text style={styles.muted}>Θέματα: {emergency.topics.join(', ')}</Text>
+            <Text style={styles.bannerText}>{t.ask.emergencyCall(emergency.numbers.general)}</Text>
+            <Text style={styles.text}>{t.ask.emergencyServices(emergency.numbers)}</Text>
+            <Text style={styles.muted}>{t.ask.emergencyTopics(emergency.topics.join(', '))}</Text>
           </View>
         )}
 
         {result?.status === 'no_source' && (
           <View style={styles.banner}>
             <Text style={styles.bannerText} testID="no-source">
-              Δεν βρέθηκε σχετική πηγή
+              {t.ask.noSource}
             </Text>
             <Text style={styles.muted}>
-              Λόγος: {result.noSourceReason} · coverage {result.best?.coverage.toFixed(2) ?? '–'} · δεν έγινε generation
+              {t.ask.noSourceDetail({
+                reason: result.noSourceReason ?? '–',
+                coverage: result.best?.coverage.toFixed(2) ?? '–',
+              })}
             </Text>
           </View>
         )}
 
         {phase === 'generating' && streamed.length > 0 && (
           <Text style={styles.muted} testID="answer-progress">
-            Γράφεται… ({streamed.length} χαρακτήρες JSON)
+            {t.ask.writing(streamed.length)}
           </Text>
         )}
         {result?.answer && !result.answer.notCovered && (
@@ -133,18 +141,18 @@ export default function AskScreen() {
         )}
         {result?.answer?.unverified && (
           <Text style={styles.error} testID="answer-unverified">
-            Χωρίς επαλήθευση (καμία έγκυρη παραπομπή)
+            {t.ask.unverified}
           </Text>
         )}
         {result?.answer?.notCovered && (
           <Text style={styles.muted} testID="answer-not-covered">
-            Το μοντέλο δήλωσε ότι οι πηγές δεν καλύπτουν την ερώτηση.
+            {t.ask.notCovered}
           </Text>
         )}
 
         {sources.length > 0 && (
           <View style={{ gap: 6 }}>
-            <Text style={styles.title}>Πηγές</Text>
+            <Text style={styles.title}>{t.ask.sources}</Text>
             <View style={styles.row}>
               {sources
                 .filter((s) => !result?.answer || cited.has(s.id))

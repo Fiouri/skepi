@@ -29,6 +29,15 @@
     "plugins": [
       "expo-router",
       "@maplibre/maplibre-react-native",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": [
+            "en",
+            "el"
+          ]
+        }
+      ],
       "./plugins/withSkepiAndroid"
     ],
     "experiments": {

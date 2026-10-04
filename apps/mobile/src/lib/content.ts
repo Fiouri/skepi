@@ -1,17 +1,12 @@
-import type { InstalledModel, LoadOptions } from '@skepi/contracts';
-import { TIER_BUDGET_TOKENS } from '@skepi/core';
-import { createZimKnowledgeEngine, ExpoZim, type CpuInfo, type ZimArchiveInfo, type ZimContentFile, type ZimRuntimeInfo } from 'expo-zim';
+import type { InstalledModel } from '@skepi/contracts';
+import { resolveInferenceProfile, type InferenceProfile } from '@skepi/core';
+import { ExpoDeviceProfile, type CpuInfo } from 'expo-device-profile';
+import { createZimKnowledgeEngine, ExpoZim, type ZimArchiveInfo, type ZimContentFile, type ZimRuntimeInfo } from 'expo-zim';
 import { create } from 'zustand';
 import { LlamaEngine } from './llamaEngine';
 
 export const knowledge = createZimKnowledgeEngine();
 export const llama = new LlamaEngine();
-
-/** T1 inference settings from docs/architecture.md (CPU, mmap on, mlock off). */
-export const T1_CONTEXT = 2048;
-export const T1_BUDGET = TIER_BUDGET_TOKENS.T1;
-/** Default model for Ask; other GGUFs in models/ are only compared by the bench. */
-export const PREFERRED_MODEL = 'qwen2.5-1.5b-instruct-q4_k_m.gguf';
 
 interface ContentState {
   status: 'idle' | 'loading' | 'ready' | 'error';
@@ -19,10 +14,13 @@ interface ContentState {
   runtime: ZimRuntimeInfo | null;
   files: ZimContentFile[];
   archives: ZimArchiveInfo[];
-  model: InstalledModel | null;
   models: InstalledModel[];
   pmtilesPath: string | null;
   cpu: CpuInfo | null;
+  totalRamMb: number;
+  /** Developer setting: force the T1 profile on any device (in memory; resets on restart). */
+  simulateT1: boolean;
+  setSimulateT1: (on: boolean) => void;
   bootstrap: () => Promise<void>;
 }
 
@@ -32,16 +30,27 @@ export const useContent = create<ContentState>((set, get) => ({
   runtime: null,
   files: [],
   archives: [],
-  model: null,
   models: [],
   pmtilesPath: null,
   cpu: null,
+  totalRamMb: 0,
+  simulateT1: false,
+  setSimulateT1: (on) => {
+    if (get().simulateT1 === on) return;
+    set({ simulateT1: on });
+    // The loaded model may not match the new profile; the next request reloads it.
+    void llama.unload();
+  },
   bootstrap: async () => {
     if (get().status === 'loading' || get().status === 'ready') return;
     set({ status: 'loading', error: null });
     try {
       const runtime = await ExpoZim.getRuntimeInfo();
-      const [files, cpu] = await Promise.all([ExpoZim.listContent(), ExpoZim.getCpuInfo()]);
+      const [files, cpu, snapshot] = await Promise.all([
+        ExpoZim.listContent(),
+        ExpoDeviceProfile.getCpuInfo(),
+        ExpoDeviceProfile.getSnapshot(),
+      ]);
       const archives: ZimArchiveInfo[] = [];
       for (const f of files.filter((x) => x.kind === 'zim')) {
         archives.push(await ExpoZim.openArchive(f.path));
@@ -49,7 +58,6 @@ export const useContent = create<ContentState>((set, get) => ({
       const models = files
         .filter((x) => x.kind === 'models' && x.name.endsWith('.gguf'))
         .map((x) => ({ id: x.name, path: x.path, sizeBytes: x.sizeBytes }));
-      const preferred = models.find((m) => m.id === PREFERRED_MODEL) ?? models[0] ?? null;
       const pmtiles = files.find((x) => x.kind === 'maps' && x.name.endsWith('.pmtiles'));
       set({
         status: 'ready',
@@ -57,7 +65,7 @@ export const useContent = create<ContentState>((set, get) => ({
         files,
         archives,
         cpu,
-        model: preferred,
+        totalRamMb: snapshot.totalRamMb,
         models,
         pmtilesPath: pmtiles?.path ?? null,
       });
@@ -67,13 +75,31 @@ export const useContent = create<ContentState>((set, get) => ({
   },
 }));
 
-export function loadOptions(cpu: CpuInfo | null): LoadOptions {
-  return {
-    contextSize: T1_CONTEXT,
-    threads: Math.max(1, cpu?.performanceCores ?? 4),
-    useMmap: true,
-    useMlock: false,
-    gpuLayers: 0,
-    ...(cpu ? { cpuAffinity: cpu.performanceCoreIds } : {}),
-  };
+export interface ActiveProfile {
+  profile: InferenceProfile;
+  model: InstalledModel | null;
+}
+
+function toActive(state: Pick<ContentState, 'cpu' | 'models' | 'totalRamMb' | 'simulateT1'>): ActiveProfile {
+  const profile = resolveInferenceProfile({
+    totalRamMb: state.totalRamMb,
+    cpu: state.cpu,
+    models: state.models,
+    simulateT1: state.simulateT1,
+  });
+  return { profile, model: state.models.find((m) => m.id === profile.modelId) ?? null };
+}
+
+/** Inference profile for the current device and developer settings (outside React). */
+export function activeProfile(): ActiveProfile {
+  return toActive(useContent.getState());
+}
+
+/** Inference profile for the current device and developer settings. */
+export function useActiveProfile(): ActiveProfile {
+  const cpu = useContent((s) => s.cpu);
+  const models = useContent((s) => s.models);
+  const totalRamMb = useContent((s) => s.totalRamMb);
+  const simulateT1 = useContent((s) => s.simulateT1);
+  return toActive({ cpu, models, totalRamMb, simulateT1 });
 }

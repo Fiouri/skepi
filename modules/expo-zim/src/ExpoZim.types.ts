@@ -75,33 +75,6 @@ export interface BlockedRequest {
   atMs: number;
 }
 
-export interface MemoryInfo {
-  totalRamMb: number;
-  availRamMb: number;
-  lowMemory: boolean;
-  thresholdMb: number;
-  peakRssMb: number;
-  rssMb: number;
-  nativeHeapMb: number;
-}
-
-export interface CpuInfo {
-  cores: number;
-  performanceCores: number;
-  performanceCoreIds: number[];
-  maxFreqKhz: number[];
-  abi: string;
-}
-
-export interface DeviceInfo {
-  manufacturer: string;
-  model: string;
-  device: string;
-  soc: string;
-  sdkInt: number;
-  release: string;
-}
-
 export interface UrlEventPayload {
   url: string;
 }

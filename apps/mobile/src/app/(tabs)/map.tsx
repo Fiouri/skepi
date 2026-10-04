@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import baseStyle from '../../../assets/map/style.json';
 import { styles } from '../../components/ui';
 import { llama, useContent } from '../../lib/content';
+import { useMessages } from '../../lib/i18n';
 
 // Patras / Achaia
 const PATRAS: [number, number] = [21.7346, 38.2466];
@@ -18,6 +19,7 @@ function offlineStyle(pmtilesPath: string): StyleSpecification {
 }
 
 export default function MapScreen() {
+  const t = useMessages();
   const pmtilesPath = useContent((s) => s.pmtilesPath);
   const status = useContent((s) => s.status);
   const [renderMs, setRenderMs] = useState<number | null>(null);
@@ -39,7 +41,7 @@ export default function MapScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.muted} testID="map-missing">
-          Δεν βρέθηκε .pmtiles στο maps/.
+          {t.map.missing}
         </Text>
       </View>
     );
@@ -63,10 +65,10 @@ export default function MapScreen() {
       </Map>
       <Text style={[styles.muted, { padding: 6 }]} testID="map-status">
         {failed
-          ? 'Αποτυχία φόρτωσης χάρτη'
+          ? t.map.failed
           : renderMs === null
-            ? 'Φόρτωση χάρτη…'
-            : `Χάρτης έτοιμος (${renderMs.toFixed(0)} ms) · offline PMTiles`}
+            ? t.map.loading
+            : t.map.ready(renderMs.toFixed(0))}
       </Text>
     </View>
   );

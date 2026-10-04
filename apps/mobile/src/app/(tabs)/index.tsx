@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { Button, ContentGate, styles } from '../../components/ui';
 import { knowledge } from '../../lib/content';
+import { useMessages } from '../../lib/i18n';
 
 interface Timing {
   kind: 'suggest' | 'fulltext';
@@ -14,6 +15,7 @@ interface Timing {
 
 export default function SearchScreen() {
   const router = useRouter();
+  const t = useMessages();
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [timing, setTiming] = useState<Timing | null>(null);
@@ -59,15 +61,20 @@ export default function SearchScreen() {
           value={query}
           onChangeText={onChange}
           onSubmitEditing={() => void run(query, 'fulltext')}
-          placeholder="Αναζήτηση άρθρων"
+          placeholder={t.search.placeholder}
           returnKeyType="search"
           autoCorrect={false}
         />
         <View style={styles.row}>
-          <Button testID="search-fulltext" label="Full-text" onPress={() => void run(query, 'fulltext')} />
+          <Button testID="search-fulltext" label={t.search.fullText} onPress={() => void run(query, 'fulltext')} />
           {timing && (
             <Text style={styles.muted} testID="search-timing">
-              {timing.kind}: {timing.count} αποτελέσματα · {timing.totalMs.toFixed(1)} ms (native {timing.nativeMs.toFixed(1)} ms)
+              {t.search.timing({
+                kind: timing.kind,
+                count: timing.count,
+                totalMs: timing.totalMs.toFixed(1),
+                nativeMs: timing.nativeMs.toFixed(1),
+              })}
             </Text>
           )}
         </View>

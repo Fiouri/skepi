@@ -1,0 +1,20 @@
+# Greek locale check: run-spike.ps1 sets the app locale to el-GR (per-app language, Android 13+)
+# before this flow and resets it afterwards. The UI must be Greek; nothing else changes.
+appId: org.skepi.app
+name: SKEPI Greek UI (offline)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 30000
+- assertVisible: "Αναζήτηση"
+- assertVisible: "Ρώτα"
+- assertVisible: "Χάρτης"
+- assertVisible: "Πλήρες κείμενο"
+- assertNotVisible: "Full-text"
+- takeScreenshot: e2e/out/07-greek-ui

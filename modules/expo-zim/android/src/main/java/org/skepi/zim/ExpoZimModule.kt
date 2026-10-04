@@ -203,14 +203,6 @@ class ExpoZimModule : Module() {
       ZimRegistry.clearBlocked()
     }
 
-    AsyncFunction("getMemoryInfo") { DeviceInfo.memory(context) }
-
-    AsyncFunction("getCpuInfo") { DeviceInfo.cpu() }
-
-    AsyncFunction("getDeviceInfo") { DeviceInfo.device() }
-
-    AsyncFunction("getDeviceSnapshot") { DeviceInfo.snapshot(context) }
-
     /** Writes a UTF-8 file under the content dir (bench reports). Returns the absolute path. */
     AsyncFunction("writeContentFile") { relativePath: String, text: String ->
       val root = ZimRegistry.contentRoot(context)?.canonicalFile
