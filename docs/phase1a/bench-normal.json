@@ -1,0 +1,497 @@
+{
+  "schema": 2,
+  "createdAt": "2026-10-04T15:52:28.630Z",
+  "promptVersion": "rag-t1-v3-json",
+  "mode": "normal",
+  "profile": {
+    "detectedTier": "T2",
+    "effectiveTier": "T2",
+    "modelId": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "threads": 5,
+    "cpuAffinity": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "contextSize": 2048,
+    "budgetTokens": 800
+  },
+  "device": {
+    "manufacturer": "samsung",
+    "model": "SM-S911B",
+    "device": "dm1q",
+    "soc": "SM8550",
+    "sdkInt": 36,
+    "release": "16"
+  },
+  "cpu": {
+    "cores": 8,
+    "performanceCores": 5,
+    "performanceCoreIds": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "maxFreqKhz": [
+      2016000,
+      2016000,
+      2016000,
+      2803200,
+      2803200,
+      2803200,
+      2803200,
+      3360000
+    ],
+    "abi": "arm64-v8a"
+  },
+  "snapshotBefore": {
+    "totalRamMb": 7072,
+    "freeRamMb": 3581,
+    "freeDiskMb": 37526,
+    "batteryPct": 97,
+    "charging": true,
+    "thermal": "nominal"
+  },
+  "runtime": {
+    "contentDir": "/storage/emulated/0/Android/data/org.skepi.app/files",
+    "icuDataDir": null,
+    "nativeInitMs": 13
+  },
+  "archives": [
+    {
+      "archiveId": "fef7bff0-40eb-7f1d-09e1-9c0de646f461",
+      "name": "wikipedia_el_top",
+      "title": "Το καλύτερο της Βικιπαίδειας",
+      "articleCount": 102609,
+      "sizeBytes": 117988988,
+      "openMs": 66.146302,
+      "hasFulltextIndex": true
+    }
+  ],
+  "suggest": {
+    "total": {
+      "count": 20,
+      "min": 4.218541003763676,
+      "p50": 6.958957999944687,
+      "p95": 14.692239001393318,
+      "max": 23.10249999910593,
+      "mean": 8.654614650458097
+    },
+    "native": {
+      "count": 20,
+      "min": 3.88401,
+      "p50": 6.604271,
+      "p95": 14.320573,
+      "max": 22.498021,
+      "mean": 8.2473933
+    },
+    "results": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10
+    ]
+  },
+  "fulltext": {
+    "total": {
+      "count": 20,
+      "min": 1.6056770011782646,
+      "p50": 4.250363998115063,
+      "p95": 7.505884997546673,
+      "max": 7.515312001109123,
+      "mean": 4.623333349451423
+    },
+    "native": {
+      "count": 20,
+      "min": 1.366042,
+      "p50": 3.930677,
+      "p95": 7.124271,
+      "max": 7.173073,
+      "mean": 4.287395849999999
+    },
+    "results": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      2,
+      8,
+      8
+    ]
+  },
+  "articleHtml": {
+    "total": {
+      "count": 10,
+      "min": 3.0864580050110817,
+      "p50": 6.112708002328873,
+      "p95": 8.783906996250153,
+      "max": 8.783906996250153,
+      "mean": 6.110255300998688
+    },
+    "native": {
+      "count": 10,
+      "min": 2.722604,
+      "p50": 5.788698,
+      "p95": 8.237084,
+      "max": 8.237084,
+      "mean": 5.5832448
+    },
+    "bytes": [
+      17436,
+      30259,
+      15923,
+      36957,
+      9540,
+      5985,
+      5439,
+      17511,
+      13237,
+      13425
+    ]
+  },
+  "plainText": {
+    "total": {
+      "count": 10,
+      "min": 3.3530209958553314,
+      "p50": 5.142082996666431,
+      "p95": 20.23651000112295,
+      "max": 20.23651000112295,
+      "mean": 8.985577999055385
+    },
+    "native": {
+      "count": 10,
+      "min": 3.053854,
+      "p50": 4.8825,
+      "p95": 19.908386,
+      "max": 19.908386,
+      "mean": 8.635853999999998
+    },
+    "sections": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "accentProbe": [
+    {
+      "query": "Πάτρα",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "πατρα",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "ΠΑΤΡΑ",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "σεισμός",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999"
+      ],
+      "fulltextEstimated": 59
+    },
+    {
+      "query": "σεισμος",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999"
+      ],
+      "fulltextEstimated": 59
+    },
+    {
+      "query": "ΣΕΙΣΜΟΣ",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999"
+      ],
+      "fulltextEstimated": 59
+    },
+    {
+      "query": "Αχαΐα",
+      "suggest": [
+        "Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κάτω_Αχαΐα"
+      ],
+      "fulltext": [
+        "Κάτω_Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κατάλογος_βουνών_της_Ελλάδας"
+      ],
+      "fulltextEstimated": 54
+    },
+    {
+      "query": "αχαια",
+      "suggest": [
+        "Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κάτω_Αχαΐα"
+      ],
+      "fulltext": [
+        "Κάτω_Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κατάλογος_βουνών_της_Ελλάδας"
+      ],
+      "fulltextEstimated": 54
+    }
+  ],
+  "prefillSweep": [
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores pinned",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": null,
+      "loadMs": 14534,
+      "promptTokens": 1175,
+      "ttftMs": 13305,
+      "promptTokensPerSecond": 88.31266441187525
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores unpinned",
+      "threads": 5,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 1450,
+      "promptTokens": 1175,
+      "ttftMs": 13612,
+      "promptTokensPerSecond": 86.32089332941523
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "top-4 pinned",
+      "threads": 4,
+      "affinity": [
+        7,
+        3,
+        4,
+        5
+      ],
+      "flashAttention": null,
+      "loadMs": 1258,
+      "promptTokens": 1175,
+      "ttftMs": 14985,
+      "promptTokensPerSecond": 78.41174507841174
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "perf-cores pinned + flash-attn",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": true,
+      "loadMs": 1275,
+      "promptTokens": 1175,
+      "ttftMs": 13710,
+      "promptTokensPerSecond": 85.70386579139316
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "label": "all cores unpinned",
+      "threads": 8,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 1681,
+      "promptTokens": 1175,
+      "ttftMs": 15927,
+      "promptTokensPerSecond": 73.77409430526778
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_0.gguf",
+      "label": "perf-cores pinned",
+      "threads": 5,
+      "affinity": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "flashAttention": null,
+      "loadMs": 1570,
+      "promptTokens": 1175,
+      "ttftMs": 10285,
+      "promptTokensPerSecond": 114.24404472532815
+    },
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_0.gguf",
+      "label": "perf-cores unpinned",
+      "threads": 5,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 1266,
+      "promptTokens": 1175,
+      "ttftMs": 10463,
+      "promptTokensPerSecond": 112.3004874319029
+    }
+  ],
+  "model": {
+    "id": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "sizeBytes": 1117320736,
+    "threads": 5,
+    "contextSize": 2048,
+    "loadMs": 1855,
+    "description": "qwen2 1.5B Q4_K - Medium · lib rnllama_jni_v8_2_dotprod_i8mm",
+    "rag": {
+      "question": "Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;",
+      "status": "answered",
+      "sources": 4,
+      "promptTokens": 1175,
+      "generatedTokens": 249,
+      "ttftMs": 14710,
+      "tokensPerSecond": 17.69787467715594,
+      "cited": [
+        "S1",
+        "S2"
+      ],
+      "retrievalMs": 26,
+      "extractMs": 1
+    },
+    "tokenEstimate": {
+      "samples": 10,
+      "estimated": 1999,
+      "actual": 2033,
+      "ratio": 0.9832759468765372
+    }
+  },
+  "memory": {
+    "totalRamMb": 7072,
+    "availRamMb": 3061,
+    "lowMemory": false,
+    "thresholdMb": 390,
+    "peakRssMb": 3352,
+    "rssMb": 2157,
+    "nativeHeapMb": 1727
+  },
+  "gates": {
+    "suggestP95Ms": {
+      "value": 14.692239001393318,
+      "gate": 50,
+      "pass": true
+    },
+    "fulltextP95Ms": {
+      "value": 7.505884997546673,
+      "gate": 300,
+      "pass": true
+    },
+    "articleHtmlP95Ms": {
+      "value": 8.783906996250153,
+      "gate": 500,
+      "pass": true
+    },
+    "modelLoadMs": {
+      "value": 1855,
+      "gate": 10000,
+      "pass": true
+    },
+    "ttftMs": {
+      "value": 14710,
+      "gate": 15000,
+      "pass": true
+    }
+  },
+  "reportPath": null
+}

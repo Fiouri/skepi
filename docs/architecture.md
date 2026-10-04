@@ -413,18 +413,18 @@ Nothing leaves the device: no account, backend, analytics or third-party crash r
 
 Targets are measured on a T1 reference device (4 GB Android). A PR that regresses a target by more than 10% does not merge. Until a T1 device is available, T1 targets are **pending** and tracked on the S23 (T2) plus T1-simulation mode.
 
-| Metric | Target | Phase 0 result (S23, T2) |
-| --- | --- | --- |
-| Cold start to search, no model | < 2 s (T1) | not measured |
-| Title suggestions, p95 | < 50 ms (T1) | 9–15 ms ✓ |
-| Full-text search, p95 | < 300 ms (T1) | 8–19 ms ✓ (103k and 384k articles) |
-| Article open | < 500 ms (T1) | 321 ms ✓ |
-| Map render | — | 327 ms ✓ |
-| Layer 1 (extractive) answer | < 1 s (T1) | new in Phase 1 |
-| Sources visible | < 2 s (T1) | new in Phase 1 |
-| First AI token | < 15 s (T2); T1 set after measurement | 12–18 s ✗ (old gate 4 s, Greek, Q4_K_M) |
-| Model load | < 10 s (T1) | not reported |
-| APK per ABI (arm64) | < 80 MB | 55.3 MB ✓ (from 146.5 MB) |
+| Metric | Target | Phase 0 result (S23, T2) | Phase 1a (S23: normal / T1-simulation) |
+| --- | --- | --- | --- |
+| Cold start to search, no model | < 2 s (T1) | not measured | not measured |
+| Title suggestions, p95 | < 50 ms (T1) | 9–15 ms ✓ | 14.7 / 15.7 ms ✓ |
+| Full-text search, p95 | < 300 ms (T1) | 8–19 ms ✓ (103k and 384k articles) | 7.5 / 9.1 ms ✓ |
+| Article open | < 500 ms (T1) | 321 ms ✓ | 151–383 ms in E2E ✓ |
+| Map render | — | 327 ms ✓ | 258 ms |
+| Layer 1 (extractive) answer | < 1 s (T1) | new in Phase 1 | — |
+| Sources visible | < 2 s (T1) | new in Phase 1 | — |
+| First AI token | < 15 s (T2); T1 set after measurement | 12–18 s ✗ (old gate 4 s, Greek, Q4_K_M) | 14.7–16.0 s (borderline) / 16.9 s |
+| Model load | < 10 s (T1) | not reported | 1.9 / 0.8 s ✓ |
+| APK per ABI (arm64) | < 80 MB | 55.3 MB ✓ (from 146.5 MB) | 45.9 MB ✓ (R8; dex 15.1 → 6.6 MB) |
 
 **Memory**
 
@@ -586,7 +586,7 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 | App Store / TestFlight | iOS build | Apple Developer Program (annual fee); same account notarises macOS |
 | Windows | Tauri MSI/NSIS, winget | Without a code-signing certificate SmartScreen warns |
 
-**CI (GitHub Actions):** Linux (core, lint, eval, Android build), macOS (iOS, macOS), Windows (Tauri). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback.
+**CI (GitHub Actions):** Linux (core, lint, eval, Android build), macOS (iOS, macOS), Windows (Tauri). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-spike.ps1` take `-AppId` (release by default).
 
 **Distribution note:** sideloaded APKs trigger Google Play Protect prompts on install; Play Store and F-Droid are the user-facing channels.
 
@@ -627,7 +627,7 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
 
 1. **Phase 0 · Android spike — DONE, GO.** libkiwix (official Maven package) · llama.rn · PMTiles map · native viewer. Report: `docs/spike-report.md`.
    - Gate result: search, article, map and APK size passed; first-token latency failed (12–18 s vs 4 s), addressed by the two-layer answer and revised targets.
-   - **Phase 1a · foundation and security hardening — DONE.** Release keystore and fail-closed signing · viewer sealing instrumentation tests · `modules/expo-device-profile` · `packages/i18n` (English default, Greek) · T1-simulation mode · R8 · still no INTERNET permission (downloads arrive in Phase 1c).
+   - **Phase 1a · foundation and security hardening — DONE.** Release keystore and fail-closed signing · viewer sealing instrumentation tests · `modules/expo-device-profile` · `packages/i18n` (English default, Greek) · T1-simulation mode · R8 · still no INTERNET permission (downloads arrive in Phase 1c). Report: `docs/phase1a/README.md`.
 2. **Phase 1 · Android MVP (English-first).**
    - Release keystore outside the repo (first task).
    - Two-layer answers (Layer 1 extractive, Layer 2 AI) with char-based budgets, Q4_0, shorter prompt, KV-cache reuse; GPU/NPU backend experiment.

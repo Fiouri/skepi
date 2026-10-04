@@ -1,0 +1,401 @@
+{
+  "schema": 2,
+  "createdAt": "2026-10-04T15:53:24.015Z",
+  "promptVersion": "rag-t1-v3-json",
+  "mode": "t1-simulation",
+  "profile": {
+    "detectedTier": "T2",
+    "effectiveTier": "T1",
+    "modelId": "qwen2.5-1.5b-instruct-q4_0.gguf",
+    "threads": 2,
+    "cpuAffinity": null,
+    "contextSize": 2048,
+    "budgetTokens": 800
+  },
+  "device": {
+    "manufacturer": "samsung",
+    "model": "SM-S911B",
+    "device": "dm1q",
+    "soc": "SM8550",
+    "sdkInt": 36,
+    "release": "16"
+  },
+  "cpu": {
+    "cores": 8,
+    "performanceCores": 5,
+    "performanceCoreIds": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "maxFreqKhz": [
+      2016000,
+      2016000,
+      2016000,
+      2803200,
+      2803200,
+      2803200,
+      2803200,
+      3360000
+    ],
+    "abi": "arm64-v8a"
+  },
+  "snapshotBefore": {
+    "totalRamMb": 7072,
+    "freeRamMb": 4000,
+    "freeDiskMb": 37511,
+    "batteryPct": 96,
+    "charging": true,
+    "thermal": "fair"
+  },
+  "runtime": {
+    "contentDir": "/storage/emulated/0/Android/data/org.skepi.app/files",
+    "icuDataDir": null,
+    "nativeInitMs": 13
+  },
+  "archives": [
+    {
+      "archiveId": "fef7bff0-40eb-7f1d-09e1-9c0de646f461",
+      "name": "wikipedia_el_top",
+      "title": "Το καλύτερο της Βικιπαίδειας",
+      "articleCount": 102609,
+      "sizeBytes": 117988988,
+      "openMs": 66.146302,
+      "hasFulltextIndex": true
+    }
+  ],
+  "suggest": {
+    "total": {
+      "count": 20,
+      "min": 6.133124999701977,
+      "p50": 8.35666699707508,
+      "p95": 15.72614599764347,
+      "max": 22.43640600144863,
+      "mean": 9.8829739484936
+    },
+    "native": {
+      "count": 20,
+      "min": 5.816927,
+      "p50": 7.939427,
+      "p95": 15.394323,
+      "max": 22.056666,
+      "mean": 9.5333308
+    },
+    "results": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10
+    ]
+  },
+  "fulltext": {
+    "total": {
+      "count": 20,
+      "min": 2.2753129974007607,
+      "p50": 5.952082999050617,
+      "p95": 9.138229005038738,
+      "max": 10.191302001476288,
+      "mean": 6.285361800715327
+    },
+    "native": {
+      "count": 20,
+      "min": 2.056615,
+      "p50": 5.644375,
+      "p95": 8.856823,
+      "max": 9.855313,
+      "mean": 5.976882849999999
+    },
+    "results": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      2,
+      8,
+      8
+    ]
+  },
+  "articleHtml": {
+    "total": {
+      "count": 10,
+      "min": 4.101458005607128,
+      "p50": 7.939740002155304,
+      "p95": 12.42578199505806,
+      "max": 12.42578199505806,
+      "mean": 8.015067800134421
+    },
+    "native": {
+      "count": 10,
+      "min": 3.798697,
+      "p50": 7.611979,
+      "p95": 11.943593,
+      "max": 11.943593,
+      "mean": 7.6275675000000005
+    },
+    "bytes": [
+      17436,
+      30259,
+      15923,
+      36957,
+      9540,
+      5985,
+      5439,
+      17511,
+      13237,
+      13425
+    ]
+  },
+  "plainText": {
+    "total": {
+      "count": 10,
+      "min": 4.101458005607128,
+      "p50": 7.939740002155304,
+      "p95": 12.42578199505806,
+      "max": 12.42578199505806,
+      "mean": 8.015067800134421
+    },
+    "native": {
+      "count": 10,
+      "min": 3.798697,
+      "p50": 7.611979,
+      "p95": 11.943593,
+      "max": 11.943593,
+      "mean": 7.6275675000000005
+    },
+    "sections": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "accentProbe": [
+    {
+      "query": "Πάτρα",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "πατρα",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "ΠΑΤΡΑ",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "σεισμός",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999"
+      ],
+      "fulltextEstimated": 59
+    },
+    {
+      "query": "σεισμος",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999"
+      ],
+      "fulltextEstimated": 59
+    },
+    {
+      "query": "ΣΕΙΣΜΟΣ",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999"
+      ],
+      "fulltextEstimated": 59
+    },
+    {
+      "query": "Αχαΐα",
+      "suggest": [
+        "Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κάτω_Αχαΐα"
+      ],
+      "fulltext": [
+        "Κάτω_Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κατάλογος_βουνών_της_Ελλάδας"
+      ],
+      "fulltextEstimated": 54
+    },
+    {
+      "query": "αχαια",
+      "suggest": [
+        "Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κάτω_Αχαΐα"
+      ],
+      "fulltext": [
+        "Κάτω_Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κατάλογος_βουνών_της_Ελλάδας"
+      ],
+      "fulltextEstimated": 54
+    }
+  ],
+  "prefillSweep": [
+    {
+      "model": "qwen2.5-1.5b-instruct-q4_0.gguf",
+      "label": "t1-simulation",
+      "threads": 2,
+      "affinity": null,
+      "flashAttention": null,
+      "loadMs": 770,
+      "promptTokens": 1175,
+      "ttftMs": 16157,
+      "promptTokensPerSecond": 72.72389676301295
+    }
+  ],
+  "model": {
+    "id": "qwen2.5-1.5b-instruct-q4_0.gguf",
+    "sizeBytes": 1066227232,
+    "threads": 2,
+    "contextSize": 2048,
+    "loadMs": 840,
+    "description": "qwen2 1.5B Q4_0 · lib rnllama_jni_v8_2_dotprod_i8mm",
+    "rag": {
+      "question": "Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;",
+      "status": "answered",
+      "sources": 4,
+      "promptTokens": 1175,
+      "generatedTokens": 189,
+      "ttftMs": 16941,
+      "tokensPerSecond": 12.23603981154168,
+      "cited": [
+        "S1"
+      ],
+      "retrievalMs": 5,
+      "extractMs": 0
+    },
+    "tokenEstimate": {
+      "samples": 10,
+      "estimated": 1999,
+      "actual": 2033,
+      "ratio": 0.9832759468765372
+    }
+  },
+  "memory": {
+    "totalRamMb": 7072,
+    "availRamMb": 2931,
+    "lowMemory": false,
+    "thresholdMb": 390,
+    "peakRssMb": 3352,
+    "rssMb": 2096,
+    "nativeHeapMb": 1599
+  },
+  "gates": {
+    "suggestP95Ms": {
+      "value": 15.72614599764347,
+      "gate": 50,
+      "pass": true
+    },
+    "fulltextP95Ms": {
+      "value": 9.138229005038738,
+      "gate": 300,
+      "pass": true
+    },
+    "articleHtmlP95Ms": {
+      "value": 12.42578199505806,
+      "gate": 500,
+      "pass": true
+    },
+    "modelLoadMs": {
+      "value": 840,
+      "gate": 10000,
+      "pass": true
+    },
+    "ttftMs": {
+      "value": 16941,
+      "gate": null,
+      "pass": null
+    }
+  },
+  "reportPath": null
+}
