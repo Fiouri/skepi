@@ -1,0 +1,67 @@
+{
+  "en": [
+    {
+      "pack": "en_top_mini",
+      "paths": [
+        "Canberra",
+        "Australian_Capital_Territory",
+        "Australia",
+        "Sydney",
+        "Earthquake",
+        "Plate_tectonics",
+        "Seismology",
+        "Mount_Everest",
+        "Himalayas",
+        "Great_Barrier_Reef",
+        "Coral_reef",
+        "Queensland",
+        "Eiffel_Tower",
+        "Paris",
+        "Neil_Armstrong",
+        "Apollo_11",
+        "Moon",
+        "Dehydration",
+        "Oral_rehydration_therapy",
+        "Cholera",
+        "Diarrhea",
+        "Water_purification",
+        "Boiling",
+        "Albert_Einstein",
+        "Penicillin",
+        "Alexander_Fleming",
+        "Ibuprofen",
+        "Dog",
+        "Wi-Fi",
+        "FIFA_World_Cup",
+        "Laptop",
+        "Personal_identification_number",
+        "Debit_card",
+        "Snakebite",
+        "Rabies"
+      ]
+    },
+    {
+      "pack": "en_medicine_mini",
+      "paths": [
+        "Portable_water_purification"
+      ]
+    }
+  ],
+  "el": [
+    {
+      "pack": "el_top_mini",
+      "paths": [
+        "Πάτρα",
+        "Περιφερειακή_Ενότητα_Αχαΐας",
+        "Πελοπόννησος",
+        "Σεισμός",
+        "Σεισμολογία",
+        "Αριστοτέλης",
+        "Πλάτων",
+        "Αθήνα",
+        "Παγκόσμιο_Κύπελλο_Ποδοσφαίρου",
+        "Ηφαίστειο"
+      ]
+    }
+  ]
+}

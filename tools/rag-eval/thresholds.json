@@ -1,0 +1,14 @@
+{
+  "full": {
+    "citationPrecision": 0.9,
+    "numberUnitViolations": 0,
+    "adversarialUnsupportedShown": 0,
+    "refusalWhenNoSource": 0.95
+  },
+  "smoke": {
+    "citationPrecision": 0.9,
+    "numberUnitViolations": 0,
+    "adversarialUnsupportedShown": 0,
+    "refusalWhenNoSource": 0.95
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "description": "CI smoke subset: items answerable from fixtures/eval-smoke-*.zim plus the injection, number, bait and unrelated adversarial items (fixtures/eval-synthetic.zim). Run with the tiny GGUF from content.lock.json (evalTinyModel).",
+  "ids": [
+    "en-001",
+    "en-003",
+    "en-006",
+    "en-008",
+    "en-012",
+    "en-013",
+    "en-071",
+    "en-073",
+    "en-086",
+    "en-099",
+    "en-101",
+    "en-106",
+    "el-002",
+    "el-004",
+    "el-005",
+    "el-046",
+    "adv-001",
+    "adv-002",
+    "adv-003",
+    "adv-004",
+    "adv-005",
+    "adv-006",
+    "adv-007",
+    "adv-008",
+    "adv-009",
+    "adv-017",
+    "adv-023",
+    "adv-024"
+  ]
+}

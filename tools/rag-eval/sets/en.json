@@ -1,0 +1,1082 @@
+{
+  "name": "en",
+  "description": "English primary set: general-knowledge questions answerable from wikipedia_en_top_mini, medical/survival questions answerable from wikipedia_en_medicine_mini (WikiMed), and personal or future questions no pack can answer. Expected articles are any one of the listed titles.",
+  "items": [
+    {
+      "id": "en-001",
+      "lang": "en",
+      "question": "What is the capital of Australia?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Canberra"
+      ]
+    },
+    {
+      "id": "en-002",
+      "lang": "en",
+      "question": "Who wrote Romeo and Juliet?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Romeo and Juliet",
+        "William Shakespeare"
+      ]
+    },
+    {
+      "id": "en-003",
+      "lang": "en",
+      "question": "What causes earthquakes?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Earthquake"
+      ]
+    },
+    {
+      "id": "en-004",
+      "lang": "en",
+      "question": "How does photosynthesis work?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Photosynthesis"
+      ]
+    },
+    {
+      "id": "en-005",
+      "lang": "en",
+      "question": "When did World War II end?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "World War II"
+      ]
+    },
+    {
+      "id": "en-006",
+      "lang": "en",
+      "question": "How tall is Mount Everest?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Mount Everest"
+      ]
+    },
+    {
+      "id": "en-007",
+      "lang": "en",
+      "question": "What is the speed of light?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Speed of light"
+      ]
+    },
+    {
+      "id": "en-008",
+      "lang": "en",
+      "question": "Where is the Great Barrier Reef?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Great Barrier Reef"
+      ]
+    },
+    {
+      "id": "en-009",
+      "lang": "en",
+      "question": "Who painted the Mona Lisa?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Mona Lisa",
+        "Leonardo da Vinci"
+      ]
+    },
+    {
+      "id": "en-010",
+      "lang": "en",
+      "question": "What is the largest planet in the Solar System?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Jupiter",
+        "Solar System"
+      ]
+    },
+    {
+      "id": "en-011",
+      "lang": "en",
+      "question": "What is DNA?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "DNA"
+      ]
+    },
+    {
+      "id": "en-012",
+      "lang": "en",
+      "question": "Who was the first person to walk on the Moon?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Neil Armstrong",
+        "Apollo 11"
+      ]
+    },
+    {
+      "id": "en-013",
+      "lang": "en",
+      "question": "When was the Eiffel Tower built?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Eiffel Tower"
+      ]
+    },
+    {
+      "id": "en-014",
+      "lang": "en",
+      "question": "What is the longest river in Africa?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Nile"
+      ]
+    },
+    {
+      "id": "en-015",
+      "lang": "en",
+      "question": "Who developed the theory of general relativity?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "General relativity",
+        "Albert Einstein"
+      ]
+    },
+    {
+      "id": "en-016",
+      "lang": "en",
+      "question": "What is the population of Tokyo?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Tokyo"
+      ]
+    },
+    {
+      "id": "en-017",
+      "lang": "en",
+      "question": "What language is spoken in Brazil?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Brazil",
+        "Portuguese language"
+      ]
+    },
+    {
+      "id": "en-018",
+      "lang": "en",
+      "question": "What is the chemical symbol for gold?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Gold"
+      ]
+    },
+    {
+      "id": "en-019",
+      "lang": "en",
+      "question": "Who was Napoleon?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Napoleon"
+      ]
+    },
+    {
+      "id": "en-020",
+      "lang": "en",
+      "question": "What is the Amazon rainforest?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Amazon rainforest"
+      ]
+    },
+    {
+      "id": "en-021",
+      "lang": "en",
+      "question": "What is the currency of Japan?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Japanese yen",
+        "Japan"
+      ]
+    },
+    {
+      "id": "en-022",
+      "lang": "en",
+      "question": "How many bones are in the adult human skeleton?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Human skeleton"
+      ]
+    },
+    {
+      "id": "en-023",
+      "lang": "en",
+      "question": "What does the heart do?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Heart"
+      ]
+    },
+    {
+      "id": "en-024",
+      "lang": "en",
+      "question": "Who invented the telephone?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Telephone",
+        "Alexander Graham Bell"
+      ]
+    },
+    {
+      "id": "en-025",
+      "lang": "en",
+      "question": "What is the Sahara?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Sahara"
+      ]
+    },
+    {
+      "id": "en-026",
+      "lang": "en",
+      "question": "What is a black hole?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Black hole"
+      ]
+    },
+    {
+      "id": "en-027",
+      "lang": "en",
+      "question": "Who was Cleopatra?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Cleopatra"
+      ]
+    },
+    {
+      "id": "en-028",
+      "lang": "en",
+      "question": "What is the capital of Canada?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ottawa",
+        "Canada"
+      ]
+    },
+    {
+      "id": "en-029",
+      "lang": "en",
+      "question": "What is the tallest building in the world?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Burj Khalifa"
+      ]
+    },
+    {
+      "id": "en-030",
+      "lang": "en",
+      "question": "Who discovered penicillin?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Penicillin",
+        "Alexander Fleming"
+      ]
+    },
+    {
+      "id": "en-031",
+      "lang": "en",
+      "question": "What is the Great Wall of China?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Great Wall of China"
+      ]
+    },
+    {
+      "id": "en-032",
+      "lang": "en",
+      "question": "When did the French Revolution begin?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "French Revolution"
+      ]
+    },
+    {
+      "id": "en-033",
+      "lang": "en",
+      "question": "What is the largest ocean on Earth?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Pacific Ocean"
+      ]
+    },
+    {
+      "id": "en-034",
+      "lang": "en",
+      "question": "What is the population of India?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "India"
+      ]
+    },
+    {
+      "id": "en-035",
+      "lang": "en",
+      "question": "Who wrote the Odyssey?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Odyssey",
+        "Homer"
+      ]
+    },
+    {
+      "id": "en-036",
+      "lang": "en",
+      "question": "What is a volcano?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Volcano"
+      ]
+    },
+    {
+      "id": "en-037",
+      "lang": "en",
+      "question": "What is climate change?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Climate change"
+      ]
+    },
+    {
+      "id": "en-038",
+      "lang": "en",
+      "question": "Who was Martin Luther King Jr.?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Martin Luther King Jr."
+      ]
+    },
+    {
+      "id": "en-039",
+      "lang": "en",
+      "question": "What is the Internet?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Internet"
+      ]
+    },
+    {
+      "id": "en-040",
+      "lang": "en",
+      "question": "What is the smallest country in the world?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Vatican City"
+      ]
+    },
+    {
+      "id": "en-041",
+      "lang": "en",
+      "question": "What is deforestation?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Deforestation"
+      ]
+    },
+    {
+      "id": "en-042",
+      "lang": "en",
+      "question": "Who was Ludwig van Beethoven?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ludwig van Beethoven"
+      ]
+    },
+    {
+      "id": "en-043",
+      "lang": "en",
+      "question": "What is the Statue of Liberty?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Statue of Liberty"
+      ]
+    },
+    {
+      "id": "en-044",
+      "lang": "en",
+      "question": "What is the capital of Egypt?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Cairo",
+        "Egypt"
+      ]
+    },
+    {
+      "id": "en-045",
+      "lang": "en",
+      "question": "When did the Titanic sink?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Titanic",
+        "Sinking of the Titanic"
+      ]
+    },
+    {
+      "id": "en-046",
+      "lang": "en",
+      "question": "What is an atom?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Atom"
+      ]
+    },
+    {
+      "id": "en-047",
+      "lang": "en",
+      "question": "Who was Julius Caesar?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Julius Caesar"
+      ]
+    },
+    {
+      "id": "en-048",
+      "lang": "en",
+      "question": "What is electricity?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Electricity"
+      ]
+    },
+    {
+      "id": "en-049",
+      "lang": "en",
+      "question": "How far is the Moon from Earth?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Moon"
+      ]
+    },
+    {
+      "id": "en-050",
+      "lang": "en",
+      "question": "What is Bitcoin?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Bitcoin"
+      ]
+    },
+    {
+      "id": "en-051",
+      "lang": "en",
+      "question": "What are the Olympic Games?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Olympic Games"
+      ]
+    },
+    {
+      "id": "en-052",
+      "lang": "en",
+      "question": "Where is Machu Picchu?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Machu Picchu"
+      ]
+    },
+    {
+      "id": "en-053",
+      "lang": "en",
+      "question": "What is gravity?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Gravity"
+      ]
+    },
+    {
+      "id": "en-054",
+      "lang": "en",
+      "question": "Who was Mahatma Gandhi?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Mahatma Gandhi"
+      ]
+    },
+    {
+      "id": "en-055",
+      "lang": "en",
+      "question": "What is the Roman Colosseum?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Colosseum"
+      ]
+    },
+    {
+      "id": "en-056",
+      "lang": "en",
+      "question": "Who was Isaac Newton?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Isaac Newton"
+      ]
+    },
+    {
+      "id": "en-057",
+      "lang": "en",
+      "question": "What is the Milky Way?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Milky Way"
+      ]
+    },
+    {
+      "id": "en-058",
+      "lang": "en",
+      "question": "What is the population of Greece?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Greece"
+      ]
+    },
+    {
+      "id": "en-059",
+      "lang": "en",
+      "question": "What is the capital of Germany?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Berlin",
+        "Germany"
+      ]
+    },
+    {
+      "id": "en-060",
+      "lang": "en",
+      "question": "Who was Charles Darwin?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Charles Darwin"
+      ]
+    },
+    {
+      "id": "en-061",
+      "lang": "en",
+      "question": "What is evolution?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Evolution"
+      ]
+    },
+    {
+      "id": "en-062",
+      "lang": "en",
+      "question": "What is the Mediterranean Sea?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Mediterranean Sea"
+      ]
+    },
+    {
+      "id": "en-063",
+      "lang": "en",
+      "question": "When did the Berlin Wall fall?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Berlin Wall",
+        "Fall of the Berlin Wall"
+      ]
+    },
+    {
+      "id": "en-064",
+      "lang": "en",
+      "question": "What is a tsunami?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Tsunami"
+      ]
+    },
+    {
+      "id": "en-065",
+      "lang": "en",
+      "question": "What is the ozone layer?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ozone layer"
+      ]
+    },
+    {
+      "id": "en-066",
+      "lang": "en",
+      "question": "Who was Aristotle?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Aristotle"
+      ]
+    },
+    {
+      "id": "en-067",
+      "lang": "en",
+      "question": "What is the Pythagorean theorem?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Pythagorean theorem"
+      ]
+    },
+    {
+      "id": "en-068",
+      "lang": "en",
+      "question": "What is a hurricane?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Tropical cyclone"
+      ]
+    },
+    {
+      "id": "en-069",
+      "lang": "en",
+      "question": "What is Antarctica?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Antarctica"
+      ]
+    },
+    {
+      "id": "en-070",
+      "lang": "en",
+      "question": "What is solar energy?",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Solar energy"
+      ]
+    },
+    {
+      "id": "en-071",
+      "lang": "en",
+      "question": "What are the symptoms of dehydration?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Dehydration"
+      ]
+    },
+    {
+      "id": "en-072",
+      "lang": "en",
+      "question": "What is oral rehydration therapy?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Oral rehydration therapy"
+      ]
+    },
+    {
+      "id": "en-073",
+      "lang": "en",
+      "question": "What is cholera?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Cholera"
+      ]
+    },
+    {
+      "id": "en-074",
+      "lang": "en",
+      "question": "How is malaria transmitted?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Malaria"
+      ]
+    },
+    {
+      "id": "en-075",
+      "lang": "en",
+      "question": "What are the symptoms of hypothermia?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Hypothermia"
+      ]
+    },
+    {
+      "id": "en-076",
+      "lang": "en",
+      "question": "What is first aid?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "First aid"
+      ]
+    },
+    {
+      "id": "en-077",
+      "lang": "en",
+      "question": "What is cardiopulmonary resuscitation?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Cardiopulmonary resuscitation"
+      ]
+    },
+    {
+      "id": "en-078",
+      "lang": "en",
+      "question": "What is paracetamol used for?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Paracetamol"
+      ]
+    },
+    {
+      "id": "en-079",
+      "lang": "en",
+      "question": "What causes tetanus?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Tetanus"
+      ]
+    },
+    {
+      "id": "en-080",
+      "lang": "en",
+      "question": "What are the symptoms of heat stroke?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Heat stroke"
+      ]
+    },
+    {
+      "id": "en-081",
+      "lang": "en",
+      "question": "What is a tourniquet?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Tourniquet"
+      ]
+    },
+    {
+      "id": "en-082",
+      "lang": "en",
+      "question": "What is anaphylaxis?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Anaphylaxis"
+      ]
+    },
+    {
+      "id": "en-083",
+      "lang": "en",
+      "question": "What causes diarrhea?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Diarrhea"
+      ]
+    },
+    {
+      "id": "en-084",
+      "lang": "en",
+      "question": "What is rabies?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Rabies"
+      ]
+    },
+    {
+      "id": "en-085",
+      "lang": "en",
+      "question": "What is sepsis?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Sepsis"
+      ]
+    },
+    {
+      "id": "en-086",
+      "lang": "en",
+      "question": "How is drinking water purified?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Water purification",
+        "Portable water purification"
+      ]
+    },
+    {
+      "id": "en-087",
+      "lang": "en",
+      "question": "What is frostbite?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Frostbite"
+      ]
+    },
+    {
+      "id": "en-088",
+      "lang": "en",
+      "question": "What is a concussion?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Concussion"
+      ]
+    },
+    {
+      "id": "en-089",
+      "lang": "en",
+      "question": "What does insulin do?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Insulin"
+      ]
+    },
+    {
+      "id": "en-090",
+      "lang": "en",
+      "question": "What is asthma?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Asthma"
+      ]
+    },
+    {
+      "id": "en-091",
+      "lang": "en",
+      "question": "What causes a stroke?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Stroke"
+      ]
+    },
+    {
+      "id": "en-092",
+      "lang": "en",
+      "question": "What is a fever?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Fever"
+      ]
+    },
+    {
+      "id": "en-093",
+      "lang": "en",
+      "question": "What is ibuprofen?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Ibuprofen"
+      ]
+    },
+    {
+      "id": "en-094",
+      "lang": "en",
+      "question": "What is a bone fracture?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Bone fracture"
+      ]
+    },
+    {
+      "id": "en-095",
+      "lang": "en",
+      "question": "How is a snakebite treated?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Snakebite"
+      ]
+    },
+    {
+      "id": "en-096",
+      "lang": "en",
+      "question": "What is carbon monoxide poisoning?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Carbon monoxide poisoning"
+      ]
+    },
+    {
+      "id": "en-097",
+      "lang": "en",
+      "question": "What is tuberculosis?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Tuberculosis"
+      ]
+    },
+    {
+      "id": "en-098",
+      "lang": "en",
+      "question": "What causes burns?",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Burn"
+      ]
+    },
+    {
+      "id": "en-099",
+      "lang": "en",
+      "question": "What is my neighbour's Wi-Fi password?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-100",
+      "lang": "en",
+      "question": "What will the weather be in Patras tomorrow morning?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-101",
+      "lang": "en",
+      "question": "Who won the 2034 FIFA World Cup final?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-102",
+      "lang": "en",
+      "question": "What is my grandmother's recipe for truffle souffle?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-103",
+      "lang": "en",
+      "question": "How many unread emails do I have?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-104",
+      "lang": "en",
+      "question": "What is the phone number of the pizza place on my street?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-105",
+      "lang": "en",
+      "question": "Which lottery numbers will win next Saturday?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-106",
+      "lang": "en",
+      "question": "What is the name of my dog?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-107",
+      "lang": "en",
+      "question": "What did I eat for breakfast yesterday?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "en-108",
+      "lang": "en",
+      "question": "When is my next dentist appointment?",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    }
+  ]
+}

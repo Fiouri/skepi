@@ -1,26 +1,70 @@
 {
-  "schema": 1,
+  "schema": 2,
   "package": "org.skepi.app",
   "zim": {
-    "top_mini": {
+    "en_top_mini": {
+      "file": "wikipedia_en_top_mini_2026-09.zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim",
+      "sha256": "9e75b5f03b4ff61864772d811bd9715c9cdc27a429229abb779aaa3cc3aa8e05",
+      "lang": "en",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors",
+      "sha256Source": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim.sha256"
+    },
+    "en_medicine_mini": {
+      "file": "wikipedia_en_medicine_mini_2026-04.zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_mini_2026-04.zim",
+      "sha256": "55153075b0773ea9c04a3db295ec5898129434ab5cae087dcb7822f37a81f358",
+      "lang": "en",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors (WikiProject Medicine selection, Kiwix WikiMed)",
+      "sha256Source": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_mini_2026-04.zim.sha256"
+    },
+    "el_top_mini": {
       "file": "wikipedia_el_top_mini_2026-07.zim",
       "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_top_mini_2026-07.zim",
       "sha256": "369118ef0737561ef5624cc56546b52e6c2c244193b0e1c23a8cd58896044571",
-      "license": "CC-BY-SA-4.0"
+      "license": "CC-BY-SA-4.0",
+      "lang": "el",
+      "attribution": "Wikipedia contributors"
     },
-    "all_mini": {
+    "el_all_mini": {
       "file": "wikipedia_el_all_mini_2026-09.zim",
       "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_all_mini_2026-09.zim",
       "sha256": "03e741cbfaad2d3d7b7c81b4332d1d7f2d2f559f65e634f115a5e4869ef3f962",
-      "license": "CC-BY-SA-4.0"
+      "license": "CC-BY-SA-4.0",
+      "lang": "el",
+      "attribution": "Wikipedia contributors"
     }
   },
+  "zimDefault": [
+    "en_top_mini",
+    "en_medicine_mini",
+    "el_top_mini"
+  ],
   "model": {
+    "file": "qwen2.5-1.5b-instruct-q4_0.gguf",
+    "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_0.gguf",
+    "sha256": "dcd819ff094852c38faba6873d8ff0c9d51eadb2844539e52042ae5d647bbfdb",
+    "license": "Apache-2.0",
+    "licenseVerified": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF (license: apache-2.0, LICENSE file = Apache License 2.0)",
+    "note": "Default mobile quantisation (Phase 1b): ARM repacked Q4_0, 22% faster prefill than Q4_K_M on the S23"
+  },
+  "modelCompare": {
     "file": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
     "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf",
     "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
     "license": "Apache-2.0",
-    "licenseVerified": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF (license: apache-2.0, LICENSE file = Apache License 2.0)"
+    "licenseVerified": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF (license: apache-2.0, LICENSE file = Apache License 2.0)",
+    "note": "Comparison only (-WithCompareModel); fallback if Q4_0 is missing"
+  },
+  "evalTinyModel": {
+    "file": "qwen2.5-0.5b-instruct-q4_0.gguf",
+    "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/9217f5db79a29953eb74d5343926648285ec7e67/qwen2.5-0.5b-instruct-q4_0.gguf",
+    "sha256": "7671c0c304e6ce5a7fc577bcb12aba01e2c155cc2efd29b2213c95b18edaf6ed",
+    "sizeBytes": 428730208,
+    "license": "Apache-2.0",
+    "note": "tools/rag-eval CI smoke model (cached in CI); same tokenizer as the mobile model"
   },
   "map": {
     "file": "achaia-20261001.pmtiles",
@@ -42,12 +86,5 @@
     "zipSha256": "2657bd18c23b930ddf63f466192832cc083256515e07b5a5e7d79c5c1db058a1",
     "sha256": "9e9263659e630c6a6c8cbcc6d0caa726ecbf7c125e791089f9014543afaf2323",
     "note": "zip verified against the official SHASUM512.txt of ICU release-73-2"
-  },
-  "modelCompare": {
-    "file": "qwen2.5-1.5b-instruct-q4_0.gguf",
-    "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_0.gguf",
-    "sha256": "dcd819ff094852c38faba6873d8ff0c9d51eadb2844539e52042ae5d647bbfdb",
-    "license": "Apache-2.0",
-    "note": "Bench-only: ARM i8mm repacked Q4_0 vs Q4_K_M prefill comparison"
   }
 }

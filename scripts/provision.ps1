@@ -1,24 +1,25 @@
 <#
 .SYNOPSIS
-  Provisions a connected Android device with the Phase 0 spike content (ZIM, GGUF, PMTiles, optional ICU data).
+  Provisions a connected Android device with the bench/E2E content (ZIM packs, GGUF, PMTiles, optional ICU data).
 
 .DESCRIPTION
-  Downloads every artifact once into a local cache, verifies SHA-256 against scripts/content.lock.json,
+  Downloads every artifact once into a local cache, verifies SHA-256 against scripts/content.lock.json
+  (Kiwix ZIM hashes come from the official .sha256 next to each file, GGUF hashes from the Hugging Face LFS oid),
   builds the Achaia PMTiles extract with the pinned pmtiles CLI, and `adb push`es everything into the
   app-specific external files dir (/sdcard/Android/data/<package>/files/{zim,models,maps,icu}).
   Nothing is downloaded by the app itself. Compatible with Windows PowerShell 5.1 and PowerShell 7.
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1
-  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -ZimVariant all_mini -WithIcu
+  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1                 # English primary + Greek secondary
+  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -Packs el_all_mini -WithIcu
   powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -AppId org.skepi.app.dev   # debug build
 #>
 [CmdletBinding()]
 param(
-  [ValidateSet('top_mini', 'all_mini')]
-  [string]$ZimVariant = 'top_mini',
+  # ZIM packs from content.lock.json (zim.*); default: zimDefault (English packs first, Greek locale pack).
+  [string[]]$Packs = @(),
   [switch]$WithIcu,
-  # Also push the Q4_0 quantisation so the bench can compare prefill speed against Q4_K_M.
+  # Also push the Q4_K_M quantisation so the bench can compare prefill speed against the Q4_0 default.
   [switch]$WithCompareModel,
   [switch]$SkipModel,
   [switch]$SkipMap,
@@ -166,8 +167,13 @@ function Push-IfChanged([string]$Local, [string]$Kind) {
 }
 
 Write-Host '== Downloading / verifying content'
-$zim = $lock.zim.$ZimVariant
-$items = @(@{ Path = (Get-Verified $zim.url $zim.file $zim.sha256); Kind = 'zim' })
+if ($Packs.Count -eq 0) { $Packs = @($lock.zimDefault) }
+$items = @()
+foreach ($pack in $Packs) {
+  $zim = $lock.zim.$pack
+  if (-not $zim) { throw "Unknown pack '$pack'. Known: $(($lock.zim.PSObject.Properties | ForEach-Object Name) -join ', ')" }
+  $items += @{ Path = (Get-Verified $zim.url $zim.file $zim.sha256); Kind = 'zim' }
+}
 if (-not $SkipModel) {
   $items += @{ Path = (Get-Verified $lock.model.url $lock.model.file $lock.model.sha256); Kind = 'models' }
 }
@@ -202,9 +208,9 @@ if (-not $WithIcu) {
   # Keep the device state explicit: without -WithIcu no ICU data is present.
   Invoke-Adb shell "rm -f '$remoteRoot/icu/'*"
 }
-# Only one ZIM variant at a time so benchmarks are unambiguous.
+# Exactly the selected packs on the device, so benchmarks are unambiguous.
 foreach ($other in $lock.zim.PSObject.Properties) {
-  if ($other.Name -ne $ZimVariant) {
+  if ($Packs -notcontains $other.Name) {
     Invoke-Adb shell "rm -f '$remoteRoot/zim/$($other.Value.file)'"
   }
 }
@@ -212,4 +218,4 @@ if (-not $WithCompareModel) {
   Invoke-Adb shell "rm -f '$remoteRoot/models/$($lock.modelCompare.file)'"
 }
 Invoke-Adb shell am force-stop $package
-Write-Host "Provisioned $package ($ZimVariant, icu=$([bool]$WithIcu)). Remote: $remoteRoot"
+Write-Host "Provisioned $package ($($Packs -join ', '), icu=$([bool]$WithIcu)). Remote: $remoteRoot"

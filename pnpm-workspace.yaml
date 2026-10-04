@@ -2,6 +2,16 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'modules/*'
+  - 'tools/*'
 
 # React Native native autolinking is more reliable with a flat node_modules.
 nodeLinker: hoisted
+
+# tools/rag-eval runs llama.cpp on CPU only: skip node-llama-cpp's GPU binary packages (hundreds of MB).
+ignoredOptionalDependencies:
+  - '@node-llama-cpp/win-x64-cuda'
+  - '@node-llama-cpp/win-x64-cuda-ext'
+  - '@node-llama-cpp/win-x64-vulkan'
+  - '@node-llama-cpp/linux-x64-cuda'
+  - '@node-llama-cpp/linux-x64-cuda-ext'
+  - '@node-llama-cpp/linux-x64-vulkan'

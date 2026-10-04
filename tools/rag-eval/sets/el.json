@@ -1,0 +1,500 @@
+{
+  "name": "el",
+  "description": "Greek secondary set: questions answerable from wikipedia_el_top_mini and personal or future questions no pack can answer.",
+  "items": [
+    {
+      "id": "el-001",
+      "lang": "el",
+      "question": "Ποια είναι η πρωτεύουσα της Ελλάδας;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Αθήνα",
+        "Ελλάδα"
+      ]
+    },
+    {
+      "id": "el-002",
+      "lang": "el",
+      "question": "Πού βρίσκεται η Πάτρα;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Πάτρα"
+      ]
+    },
+    {
+      "id": "el-003",
+      "lang": "el",
+      "question": "Πότε ξεκίνησε η Ελληνική Επανάσταση;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ελληνική Επανάσταση του 1821"
+      ]
+    },
+    {
+      "id": "el-004",
+      "lang": "el",
+      "question": "Τι προκαλεί τους σεισμούς;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Σεισμός"
+      ]
+    },
+    {
+      "id": "el-005",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Αριστοτέλης;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Αριστοτέλης"
+      ]
+    },
+    {
+      "id": "el-006",
+      "lang": "el",
+      "question": "Πόσο ψηλός είναι ο Όλυμπος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Όλυμπος"
+      ]
+    },
+    {
+      "id": "el-007",
+      "lang": "el",
+      "question": "Τι είναι η δημοκρατία;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Δημοκρατία"
+      ]
+    },
+    {
+      "id": "el-008",
+      "lang": "el",
+      "question": "Πού βρίσκεται η Κρήτη;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Κρήτη"
+      ]
+    },
+    {
+      "id": "el-009",
+      "lang": "el",
+      "question": "Ποιος έγραψε την Οδύσσεια;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Οδύσσεια",
+        "Όμηρος"
+      ]
+    },
+    {
+      "id": "el-010",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Μέγας Αλέξανδρος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Αλέξανδρος ο Μέγας"
+      ]
+    },
+    {
+      "id": "el-011",
+      "lang": "el",
+      "question": "Τι είναι η Ακρόπολη της Αθήνας;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ακρόπολη Αθηνών"
+      ]
+    },
+    {
+      "id": "el-012",
+      "lang": "el",
+      "question": "Τι είναι η φωτοσύνθεση;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Φωτοσύνθεση"
+      ]
+    },
+    {
+      "id": "el-013",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Σωκράτης;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Σωκράτης"
+      ]
+    },
+    {
+      "id": "el-014",
+      "lang": "el",
+      "question": "Ποια είναι η πρωτεύουσα της Κύπρου;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Λευκωσία",
+        "Κύπρος"
+      ]
+    },
+    {
+      "id": "el-015",
+      "lang": "el",
+      "question": "Τι ήταν η Βυζαντινή Αυτοκρατορία;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Βυζαντινή Αυτοκρατορία"
+      ]
+    },
+    {
+      "id": "el-016",
+      "lang": "el",
+      "question": "Πότε έγινε η Άλωση της Κωνσταντινούπολης;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Άλωση της Κωνσταντινούπολης (1453)"
+      ]
+    },
+    {
+      "id": "el-017",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Περικλής;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Περικλής"
+      ]
+    },
+    {
+      "id": "el-018",
+      "lang": "el",
+      "question": "Πού βρίσκεται η Θεσσαλονίκη;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Θεσσαλονίκη"
+      ]
+    },
+    {
+      "id": "el-019",
+      "lang": "el",
+      "question": "Πού βρίσκεται η Σαντορίνη;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Σαντορίνη"
+      ]
+    },
+    {
+      "id": "el-020",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Πλάτωνας;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Πλάτων"
+      ]
+    },
+    {
+      "id": "el-021",
+      "lang": "el",
+      "question": "Τι είναι η Ευρωπαϊκή Ένωση;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ευρωπαϊκή Ένωση"
+      ]
+    },
+    {
+      "id": "el-022",
+      "lang": "el",
+      "question": "Τι είναι το ηφαίστειο;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ηφαίστειο"
+      ]
+    },
+    {
+      "id": "el-023",
+      "lang": "el",
+      "question": "Ποιος ζωγράφισε τη Μόνα Λίζα;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Μόνα Λίζα",
+        "Λεονάρντο ντα Βίντσι"
+      ]
+    },
+    {
+      "id": "el-024",
+      "lang": "el",
+      "question": "Τι είναι η ελιά;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ελιά"
+      ]
+    },
+    {
+      "id": "el-025",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Ιπποκράτης;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ιπποκράτης"
+      ]
+    },
+    {
+      "id": "el-026",
+      "lang": "el",
+      "question": "Τι είναι το Άγιον Όρος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Άγιο Όρος"
+      ]
+    },
+    {
+      "id": "el-027",
+      "lang": "el",
+      "question": "Πού βρίσκονται τα Μετέωρα;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Μετέωρα"
+      ]
+    },
+    {
+      "id": "el-028",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Ελευθέριος Βενιζέλος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ελευθέριος Βενιζέλος"
+      ]
+    },
+    {
+      "id": "el-029",
+      "lang": "el",
+      "question": "Τι είναι η Πελοπόννησος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Πελοπόννησος"
+      ]
+    },
+    {
+      "id": "el-030",
+      "lang": "el",
+      "question": "Τι είναι η Μεσόγειος Θάλασσα;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Μεσόγειος Θάλασσα"
+      ]
+    },
+    {
+      "id": "el-031",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Αρχιμήδης;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Αρχιμήδης"
+      ]
+    },
+    {
+      "id": "el-032",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Νίκος Καζαντζάκης;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Νίκος Καζαντζάκης"
+      ]
+    },
+    {
+      "id": "el-033",
+      "lang": "el",
+      "question": "Πού βρίσκεται η Ρόδος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ρόδος"
+      ]
+    },
+    {
+      "id": "el-034",
+      "lang": "el",
+      "question": "Πόσους κατοίκους έχει η Πάτρα;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Πάτρα"
+      ]
+    },
+    {
+      "id": "el-035",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Ιωάννης Καποδίστριας;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Ιωάννης Καποδίστριας"
+      ]
+    },
+    {
+      "id": "el-036",
+      "lang": "el",
+      "question": "Τι είναι ο Παρθενώνας;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Παρθενώνας"
+      ]
+    },
+    {
+      "id": "el-037",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Όμηρος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Όμηρος"
+      ]
+    },
+    {
+      "id": "el-038",
+      "lang": "el",
+      "question": "Τι είναι το Αιγαίο Πέλαγος;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Αιγαίο Πέλαγος"
+      ]
+    },
+    {
+      "id": "el-039",
+      "lang": "el",
+      "question": "Πού βρίσκεται η Κέρκυρα;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Κέρκυρα"
+      ]
+    },
+    {
+      "id": "el-040",
+      "lang": "el",
+      "question": "Ποιος ήταν ο Πυθαγόρας;",
+      "expect": "answer",
+      "kind": "factual",
+      "articles": [
+        "Πυθαγόρας"
+      ]
+    },
+    {
+      "id": "el-041",
+      "lang": "el",
+      "question": "Τι είναι ο σακχαρώδης διαβήτης;",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Διαβήτης (ασθένεια)"
+      ]
+    },
+    {
+      "id": "el-042",
+      "lang": "el",
+      "question": "Τι είναι η γρίπη;",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Γρίπη"
+      ]
+    },
+    {
+      "id": "el-043",
+      "lang": "el",
+      "question": "Τι είναι η πνευμονία;",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Πνευμονία"
+      ]
+    },
+    {
+      "id": "el-044",
+      "lang": "el",
+      "question": "Τι είναι η χολέρα;",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Χολέρα"
+      ]
+    },
+    {
+      "id": "el-045",
+      "lang": "el",
+      "question": "Πώς μεταδίδεται η ελονοσία;",
+      "expect": "answer",
+      "kind": "medical",
+      "articles": [
+        "Ελονοσία"
+      ]
+    },
+    {
+      "id": "el-046",
+      "lang": "el",
+      "question": "Ποιος θα κερδίσει το Μουντιάλ του 2034;",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "el-047",
+      "lang": "el",
+      "question": "Τι καιρό θα κάνει αύριο το πρωί στην Πάτρα;",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "el-048",
+      "lang": "el",
+      "question": "Ποιος είναι ο κωδικός του Wi-Fi μου;",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "el-049",
+      "lang": "el",
+      "question": "Πότε είναι το επόμενο ραντεβού μου στον οδοντίατρο;",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    },
+    {
+      "id": "el-050",
+      "lang": "el",
+      "question": "Ποια είναι η συνταγή της γιαγιάς μου για σουφλέ τρούφας;",
+      "expect": "no_source",
+      "kind": "unrelated",
+      "articles": []
+    }
+  ]
+}

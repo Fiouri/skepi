@@ -1,0 +1,25 @@
+{
+  "name": "@skepi/rag-eval",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run",
+    "eval": "tsx src/cli.ts",
+    "eval:smoke": "tsx src/cli.ts --smoke"
+  },
+  "dependencies": {
+    "@skepi/contracts": "workspace:*",
+    "@skepi/core": "workspace:*",
+    "node-llama-cpp": "3.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.3"
+  }
+}
