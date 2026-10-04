@@ -5,10 +5,13 @@
   1. e2e/spike.yaml with the app locale forced to en-US (English UI).
   2. e2e/locale-el.yaml with the app locale forced to el-GR (Greek UI).
   The per-app locale (Android 13+) is reset to "follow the system" afterwards.
+  -AppId selects the installed build: org.skepi.app (release, default) or org.skepi.app.dev (debug).
 #>
 [CmdletBinding()]
 param(
   [string]$Serial = '',
+  [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
+  [string]$AppId = 'org.skepi.app',
   [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat')
 )
 
@@ -24,7 +27,7 @@ $env:MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED = 'true'
 $adbArgs = @()
 if ($Serial) { $adbArgs += @('-s', $Serial) }
 
-$package = 'org.skepi.app'
+$package = $AppId
 
 function Set-AppLocale([string]$Locales) {
   $localeArgs = @('shell', 'cmd', 'locale', 'set-app-locales', $package)
@@ -34,9 +37,11 @@ function Set-AppLocale([string]$Locales) {
 }
 
 function Invoke-Flow([string]$Flow, [string]$Report) {
-  $maestroArgs = @('test', $Flow, '--format', 'junit', '--output', (Join-Path $out $Report))
+  # APP_ID is ASCII, so -e is safe here (Greek values stay in the flows' env blocks).
+  $maestroArgs = @('test', $Flow, '-e', "APP_ID=$package", '--format', 'junit', '--output', (Join-Path $out $Report), '--test-output-dir', $out)
   if ($Serial) { $maestroArgs = @('--device', $Serial) + $maestroArgs }
-  & $Maestro @maestroArgs
+  # Out-Host keeps Maestro's output out of the function's return value (the exit code only).
+  & $Maestro @maestroArgs | Out-Host
   return $LASTEXITCODE
 }
 

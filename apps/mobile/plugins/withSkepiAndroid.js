@@ -4,6 +4,7 @@
 // - Release manifest has no INTERNET permission: the app is offline by construction until Phase 1c.
 // - R8 minification for release with SKEPI keep rules (plugins/proguard-rules.skepi.pro).
 // - Release signing with the dedicated keystore (plugins/withReleaseSigning.js).
+// - Debug installs side-by-side with release: applicationId suffix ".dev", label "SKEPI Dev".
 const fs = require('fs');
 const path = require('path');
 const {
@@ -12,6 +13,7 @@ const {
   withAppBuildGradle,
   withDangerousMod,
   withGradleProperties,
+  withProjectBuildGradle,
 } = require('expo/config-plugins');
 const withReleaseSigning = require('./withReleaseSigning');
 
@@ -31,6 +33,8 @@ const withProperties = (config) =>
     setGradleProperty(cfg.modResults, 'expo.useLegacyPackaging', 'true');
     // R8 for release (read by the template's build.gradle). Resource shrinking stays off.
     setGradleProperty(cfg.modResults, 'android.enableMinifyInReleaseBuilds', 'true');
+    // D8 ran out of the template's 2 GB heap merging ~25 androidTest APKs in parallel.
+    setGradleProperty(cfg.modResults, 'org.gradle.jvmargs', '-Xmx4096m -XX:MaxMetaspaceSize=1024m');
     return cfg;
   });
 
@@ -80,6 +84,62 @@ ${rules}`);
       return cfg;
     },
   ]);
+
+// Debug = org.skepi.app.dev / "SKEPI Dev", so a dev build never replaces (or needs the signature of)
+// the release install. Release keeps the plain applicationId.
+const DEV_SUFFIX = '.dev';
+const DEV_LABEL = 'SKEPI Dev';
+const DEV_MARKER = '// skepi:dev-variant';
+const withDevVariant = (config) => {
+  config = withAppBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(DEV_MARKER)) return cfg;
+    cfg.modResults.contents += `
+${DEV_MARKER}
+android {
+    buildTypes {
+        debug {
+            applicationIdSuffix "${DEV_SUFFIX}"
+        }
+    }
+}
+`;
+    return cfg;
+  });
+  // The debug source set overrides main's app_name (a build-type resValue would lose to it).
+  return withDangerousMod(config, [
+    'android',
+    (cfg) => {
+      const dir = path.join(cfg.modRequest.platformProjectRoot, 'app', 'src', 'debug', 'res', 'values');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'strings.xml'),
+        `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">${DEV_LABEL}</string>
+</resources>
+`,
+      );
+      return cfg;
+    },
+  ]);
+};
+
+// libkiwix's AAR ships its own libc++_shared.so (same NDK ABI as react-android's). The app resolves
+// the clash itself, but every library's androidTest APK (root `connectedAndroidTest`) needs it too.
+const ANDROID_TEST_MARKER = '// skepi:android-test-packaging';
+const withAndroidTestPackaging = (config) =>
+  withProjectBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(ANDROID_TEST_MARKER)) return cfg;
+    cfg.modResults.contents += `
+${ANDROID_TEST_MARKER}
+subprojects { p ->
+    p.plugins.withId('com.android.library') {
+        p.android.packaging.jniLibs.pickFirsts += ['**/libc++_shared.so']
+    }
+}
+`;
+    return cfg;
+  });
 
 const SPLITS_MARKER = '// skepi:abi-split';
 const withAbiSplit = (config) =>
@@ -168,8 +228,10 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withReleaseSigning(
-    withKeepRules(
-      withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
+  withAndroidTestPackaging(withDevVariant(
+    withReleaseSigning(
+      withKeepRules(
+        withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
+      ),
     ),
-  );
+  ));

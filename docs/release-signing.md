@@ -41,7 +41,9 @@ GitHub Environment with required approval; the keystore is restored from a secre
 | Any property missing or keystore file missing | `assembleRelease` / `bundleRelease` **fail** at `skepiCheckReleaseSigning` with the list of missing properties |
 | `-PskepiDebugSign=true` | Signed with the Expo debug key, with a loud warning. Local E2E only; never distribute |
 
-Debug builds and `connectedAndroidTest` are unaffected.
+Debug builds and `connectedAndroidTest` are unaffected. Debug builds use the applicationId
+`org.skepi.app.dev` ("SKEPI Dev"), so they install next to a release-signed `org.skepi.app` instead of
+failing on the signature mismatch.
 
 ## 4. Backup rule
 

@@ -11,6 +11,7 @@
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\provision.ps1
   powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -ZimVariant all_mini -WithIcu
+  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -AppId org.skepi.app.dev   # debug build
 #>
 [CmdletBinding()]
 param(
@@ -23,6 +24,9 @@ param(
   [switch]$SkipMap,
   [switch]$DownloadOnly,
   [string]$Serial = '',
+  # Release by default; the debug build installs side-by-side as org.skepi.app.dev.
+  [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
+  [string]$AppId = '',
   [string]$CacheDir = (Join-Path $env:TEMP 'skepi\cache')
 )
 
@@ -31,7 +35,7 @@ $ErrorActionPreference = 'Stop'
 
 $lockPath = Join-Path $PSScriptRoot 'content.lock.json'
 $lock = Get-Content -Raw -Encoding UTF8 $lockPath | ConvertFrom-Json
-$package = $lock.package
+$package = if ($AppId) { $AppId } else { $lock.package }
 $remoteRoot = "/sdcard/Android/data/$package/files"
 
 New-Item -ItemType Directory -Force -Path $CacheDir | Out-Null

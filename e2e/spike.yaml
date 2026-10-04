@@ -1,7 +1,8 @@
 # Spike E2E (Android, physical device, airplane mode, English UI; content and questions are Greek).
 # search -> open article -> ask -> citation chip -> article -> unrelated question (no source) -> map
 # Run: e2e/run-spike.ps1 (sets MAESTRO_CLI_NO_ANALYTICS, collects logcat + blocked-request log).
-appId: org.skepi.app
+# APP_ID: org.skepi.app (release, default in run-spike.ps1) or org.skepi.app.dev (debug).
+appId: ${APP_ID}
 name: SKEPI spike (offline)
 env:
   SEARCH_QUERY: Πάτρα
