@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectMobileTier, pickModel, resolveInferenceProfile, T1_PROFILE, TIER_BUDGET_TOKENS } from '../src';
+import { detectMobileTier, pickModel, resolveInferenceProfile, T1_PROFILE } from '../src';
 
 const S23_CPU = { cores: 8, performanceCores: 5, performanceCoreIds: [3, 4, 5, 6, 7] };
 const MODELS = [
@@ -34,9 +34,17 @@ describe('pickModel', () => {
 });
 
 describe('resolveInferenceProfile', () => {
-  it('normal mode keeps Phase 0 settings on performance cores', () => {
+  it('normal mode on T2: Q4_0, performance cores, T2 budget, automatic summary, CPU', () => {
     const p = resolveInferenceProfile({ totalRamMb: 7072, cpu: S23_CPU, models: MODELS, simulateT1: false });
-    expect(p).toMatchObject({ mode: 'normal', detectedTier: 'T2', effectiveTier: 'T2', modelId: MODELS[0]?.id });
+    expect(p).toMatchObject({
+      mode: 'normal',
+      detectedTier: 'T2',
+      effectiveTier: 'T2',
+      budgetTier: 'T2',
+      summaryMode: 'auto',
+      backend: 'cpu',
+      modelId: 'qwen2.5-1.5b-instruct-q4_0.gguf',
+    });
     expect(p.load).toEqual({
       contextSize: 2048,
       threads: 5,
@@ -45,17 +53,34 @@ describe('resolveInferenceProfile', () => {
       useMlock: false,
       gpuLayers: 0,
     });
-    expect(p.budgetTokens).toBe(TIER_BUDGET_TOKENS.T1);
   });
 
-  it('T1 simulation forces the T1 model, 2 unpinned threads, n_ctx 2048 and the T1 budget', () => {
+  it('falls back to Q4_K_M when Q4_0 is not installed', () => {
+    const p = resolveInferenceProfile({ totalRamMb: 7072, cpu: S23_CPU, models: MODELS.slice(0, 1), simulateT1: false });
+    expect(p.modelId).toBe('qwen2.5-1.5b-instruct-q4_k_m.gguf');
+  });
+
+  it('the GPU/NPU experiment offloads all layers only when selected', () => {
+    const opencl = resolveInferenceProfile({ totalRamMb: 7072, cpu: S23_CPU, models: MODELS, simulateT1: false, backend: 'opencl' });
+    expect(opencl.load.gpuLayers).toBe(99);
+    expect(opencl.load.devices).toBeUndefined();
+    const htp = resolveInferenceProfile({ totalRamMb: 7072, cpu: S23_CPU, models: MODELS, simulateT1: false, backend: 'hexagon' });
+    expect(htp.load.devices).toEqual(['HTP*']);
+  });
+
+  it('T0 has no model and T1 asks before summarising', () => {
+    expect(resolveInferenceProfile({ totalRamMb: 2800, cpu: null, models: MODELS, simulateT1: false }).modelId).toBeNull();
+    expect(resolveInferenceProfile({ totalRamMb: 3600, cpu: null, models: MODELS, simulateT1: false }).summaryMode).toBe('on-demand');
+  });
+
+  it('T1 simulation forces the T1 model, 2 unpinned threads, n_ctx 2048, the T1 budget and on-demand summaries', () => {
     const p = resolveInferenceProfile({ totalRamMb: 7072, cpu: S23_CPU, models: MODELS, simulateT1: true });
     expect(p).toMatchObject({ mode: 't1-simulation', detectedTier: 'T2', effectiveTier: 'T1' });
     expect(p.modelId).toBe('qwen2.5-1.5b-instruct-q4_0.gguf');
     expect(p.load.threads).toBe(2);
     expect(p.load.contextSize).toBe(2048);
     expect(p.load.cpuAffinity).toEqual([]);
-    expect(p.budgetTokens).toBe(TIER_BUDGET_TOKENS.T1);
+    expect(p).toMatchObject({ budgetTier: 'T1', summaryMode: 'on-demand' });
   });
 
   it('T1 simulation never asks for more threads than cores', () => {

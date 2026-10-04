@@ -1,7 +1,15 @@
 export { analyze, rankBm25, DEFAULT_BM25, type Bm25Document, type Bm25Options, type Bm25Result } from './bm25';
-export { selectWithinBudget, TIER_BUDGET_TOKENS, type BudgetOptions, type ScoredChunk } from './budget';
+export {
+  CONTEXT_BUDGET_CHARS,
+  MAX_SOURCES,
+  resolveContextBudget,
+  selectWithinBudget,
+  type BudgetOptions,
+  type BudgetTier,
+  type ContextBudget,
+  type ScoredChunk,
+} from './budget';
 export { chunkArticle, DEFAULT_CHUNK_OPTIONS, type Chunk, type ChunkOptions } from './chunk';
-export { validateCitations, type ValidatedAnswer } from './citations';
 export {
   detectEmergency,
   EMERGENCY_NUMBERS_GR,
@@ -9,48 +17,110 @@ export {
   type EmergencyNumbers,
   type EmergencyTopic,
 } from './emergency';
-export { reciprocalRankFusion, RRF_K } from './fusion';
-export { buildPrompt, NOT_COVERED_MARKER, PROMPT_VERSION, renderSources, type AnswerFormat, type PromptSource } from './prompt';
 export {
-  answerJsonSchema,
-  MAX_ANSWER_SENTENCES,
-  MIN_SUPPORT,
-  parseStructuredAnswer,
-  supportScore,
-  validateStructured,
-  type CitedSource,
-  type StructuredAnswer,
-  type StructuredValidation,
-} from './structured';
+  buildLayer1,
+  DEFAULT_LAYER1_OPTIONS,
+  scoreSentence,
+  sectionAnchor,
+  type ExtractiveSource,
+  type Layer1Answer,
+  type Layer1Options,
+  type Layer1Passage,
+  type Layer1Sentence,
+} from './extractive';
+export { reciprocalRankFusion, RRF_K } from './fusion';
+export { detectMedicalIntent, MEDICAL_LEXICON, type MedicalIntent } from './medical';
+export { buildPrompt, PROMPT_VERSION, renderSources, SYSTEM_PROMPT, type PromptSource } from './prompt';
 export {
   DEFAULT_RAG_CONFIG,
   planQueries,
   rankChunks,
+  retrieve,
   runRag,
+  summarise,
   toSources,
   type NoSourceReason,
   type RagConfig,
-  type RagDeps,
   type RagEvent,
   type RagResult,
   type RagRunOptions,
   type RagSource,
-  type RagStatus,
-  type RagTimings,
+  type RetrievalResult,
+  type RetrievalStatus,
+  type RetrievalTimings,
+  type RetrieveOptions,
+  type SummariseOptions,
+  type SummaryHiddenReason,
+  type SummaryLabel,
+  type SummaryResult,
+  type SummaryStatus,
 } from './rag';
 export { percentile, summarize, type LatencySummary } from './stats';
-export { detectLanguage, extractKeywords, foldText, isStopword, stem, tokenize, type Lang } from './text';
-export { estimateTokens, GREEK_TOKENS_PER_CHAR, OTHER_TOKENS_PER_CHAR } from './tokens';
+export {
+  ANSWER_MAX_SENTENCES,
+  ANSWER_MAX_TOKENS,
+  answerJsonSchema,
+  answerLimits,
+  parseStructuredAnswer,
+  validateStructured,
+  type AnswerLimits,
+  type StructuredAnswer,
+  type StructuredValidation,
+  type ValidatedSentence,
+} from './structured';
+export {
+  contentTerms,
+  detectLanguage,
+  extractKeywords,
+  foldText,
+  isStopword,
+  questionTerms,
+  splitSentences,
+  stem,
+  tokenize,
+  type Lang,
+} from './text';
+export {
+  estimateTokens,
+  FALLBACK_TOKENIZER,
+  makeTokenEstimator,
+  QWEN25_TOKENIZER,
+  TOKENIZER_PROFILES,
+  tokenizerProfile,
+  type TokenEstimator,
+  type TokenizerProfile,
+} from './tokens';
 export {
   detectMobileTier,
+  MOBILE_MODELS,
   MOBILE_TIER_MIN_RAM_MB,
-  NORMAL_PROFILE,
   pickModel,
   resolveInferenceProfile,
   T1_PROFILE,
+  T2_PROFILE,
   type AvailableModel,
   type CpuTopology,
+  type InferenceBackend,
   type InferenceProfile,
   type ProfileMode,
+  type SummaryMode,
   type Tier,
 } from './tier';
+export {
+  bigramSupport,
+  checkSentence,
+  COHERENCE_WINDOW,
+  contentBigrams,
+  findNumbers,
+  findNumberUnits,
+  isCoherent,
+  isRelevant,
+  MIN_BIGRAM_SUPPORT,
+  numbersVerbatim,
+  numberUnitsVerbatim,
+  SOURCE_PAIR_WINDOW,
+  sourcePairs,
+  type CheckableSource,
+  type SentenceCheck,
+  type SentenceRejection,
+} from './validate';

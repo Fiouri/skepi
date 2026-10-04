@@ -1,5 +1,6 @@
 import type { ArticleText } from '@skepi/contracts';
-import { estimateTokens } from './tokens';
+import { splitSentences } from './text';
+import { estimateTokens, type TokenEstimator } from './tokens';
 
 export interface Chunk {
   /** Stable id: `<archiveId>/<path>#<index>`. */
@@ -14,38 +15,34 @@ export interface Chunk {
   index: number;
 }
 
+/**
+ * Chunk sizes are in characters, like the context budgets: a chunk of a few sentences is the unit
+ * Layer 1 shows and the unit the budget selects. `countTokens` only fills `Chunk.tokens` (the
+ * estimate used to check that the prompt fits n_ctx).
+ */
 export interface ChunkOptions {
-  targetTokens: number;
-  maxTokens: number;
-  /** A trailing piece smaller than this is merged into the previous chunk when it fits. */
-  minTailTokens: number;
-  countTokens: (text: string) => number;
+  targetChars: number;
+  maxChars: number;
+  /** A trailing piece shorter than this is merged into the previous chunk when it fits. */
+  minTailChars: number;
+  countTokens: TokenEstimator;
 }
 
+/** ~150 tokens in English, ~400 in Greek with Qwen2.5: small enough for 2–4 sources per budget. */
 export const DEFAULT_CHUNK_OPTIONS: ChunkOptions = {
-  targetTokens: 250,
-  maxTokens: 300,
-  minTailTokens: 60,
+  targetChars: 600,
+  maxChars: 800,
+  minTailChars: 150,
   countTokens: estimateTokens,
 };
 
-// Sentence end: . ! ? ; (the Greek question mark is ';' or U+037E) and the Greek ano teleia.
-const SENTENCE_SPLIT = /(?<=[.!?;;·])\s+/u;
-
-function splitSentences(text: string): string[] {
-  return text
-    .split(SENTENCE_SPLIT)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-}
-
-/** Splits an over-long sentence on word boundaries so that no piece exceeds maxTokens. */
+/** Splits an over-long sentence on word boundaries so that no piece exceeds maxChars. */
 function splitLong(sentence: string, opts: ChunkOptions): string[] {
   const pieces: string[] = [];
   let current = '';
   for (const word of sentence.split(/\s+/)) {
     const candidate = current.length === 0 ? word : `${current} ${word}`;
-    if (current.length > 0 && opts.countTokens(candidate) > opts.maxTokens) {
+    if (current.length > 0 && candidate.length > opts.maxChars) {
       pieces.push(current);
       current = word;
     } else {
@@ -58,13 +55,13 @@ function splitLong(sentence: string, opts: ChunkOptions): string[] {
 
 function chunkSectionText(text: string, opts: ChunkOptions): string[] {
   const units = splitSentences(text).flatMap((s) =>
-    opts.countTokens(s) > opts.maxTokens ? splitLong(s, opts) : [s],
+    s.length > opts.maxChars ? splitLong(s, opts) : [s],
   );
   const chunks: string[] = [];
   let current = '';
   for (const unit of units) {
     const candidate = current.length === 0 ? unit : `${current} ${unit}`;
-    if (current.length > 0 && opts.countTokens(candidate) > opts.targetTokens) {
+    if (current.length > 0 && candidate.length > opts.targetChars) {
       chunks.push(current);
       current = unit;
     } else {
@@ -76,8 +73,8 @@ function chunkSectionText(text: string, opts: ChunkOptions): string[] {
   const last = chunks[chunks.length - 1];
   if (
     last !== undefined &&
-    opts.countTokens(current) < opts.minTailTokens &&
-    opts.countTokens(`${last} ${current}`) <= opts.maxTokens
+    current.length < opts.minTailChars &&
+    last.length + 1 + current.length <= opts.maxChars
   ) {
     chunks[chunks.length - 1] = `${last} ${current}`;
   } else {
@@ -86,7 +83,7 @@ function chunkSectionText(text: string, opts: ChunkOptions): string[] {
   return chunks;
 }
 
-/** Cuts every section of an article into ~targetTokens chunks, never crossing section boundaries. */
+/** Cuts every section of an article into ~targetChars chunks, never crossing section boundaries. */
 export function chunkArticle(article: ArticleText, options: Partial<ChunkOptions> = {}): Chunk[] {
   const opts: ChunkOptions = { ...DEFAULT_CHUNK_OPTIONS, ...options };
   const out: Chunk[] = [];

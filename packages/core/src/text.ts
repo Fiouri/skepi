@@ -99,3 +99,33 @@ export function extractKeywords(query: string): string[] {
   }
   return out;
 }
+
+// Sentence end: . ! ? ; (the Greek question mark is ';' or U+037E) and the Greek ano teleia.
+// Splitting needs whitespace after the mark, so decimals (170.934, 3.5) stay whole.
+const SENTENCE_SPLIT = /(?<=[.!?;;·])\s+/u;
+
+/** Splits text into trimmed, non-empty sentences. */
+export function splitSentences(text: string): string[] {
+  return text
+    .split(SENTENCE_SPLIT)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+/**
+ * Content terms of a text in order (folded, stopwords removed, stemmed, duplicates kept so that
+ * positions stay meaningful for bigrams). Numbers are kept: they carry facts.
+ */
+export function contentTerms(text: string): string[] {
+  const out: string[] = [];
+  for (const token of tokenize(text)) {
+    if (token.length < 2 || isStopword(token)) continue;
+    out.push(stem(token));
+  }
+  return out;
+}
+
+/** Distinct content terms of a question: what Layer 1 matches and what the relevance rule checks. */
+export function questionTerms(question: string): string[] {
+  return [...new Set(contentTerms(question))];
+}

@@ -1,36 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import {
-  answerJsonSchema,
-  parseStructuredAnswer,
-  supportScore,
-  validateStructured,
-  type CitedSource,
-} from '../src/structured';
+import { answerJsonSchema, answerLimits, parseStructuredAnswer, validateStructured } from '../src/structured';
+import type { CheckableSource } from '../src/validate';
 
-const SOURCES: CitedSource[] = [
+const SOURCES: CheckableSource[] = [
   {
     id: 'S1',
-    title: 'Πάτρα',
+    title: 'Paris',
     heading: '',
-    text: 'Η Πάτρα είναι η τρίτη μεγαλύτερη πόλη της Ελλάδας με 170.934 κατοίκους. Είναι πρωτεύουσα της Αχαΐας.',
+    text: 'Paris is the capital and largest city of France. It had 2,102,650 residents in January 2023.',
   },
-  { id: 'S2', title: 'Νερό', heading: 'Καθαρισμός', text: 'Το νερό καθαρίζεται με βρασμό για ένα λεπτό.' },
+  { id: 'S2', title: 'Water', heading: 'Purification', text: 'Boil water for at least 1 minute to kill germs.' },
 ];
 
-describe('answerJsonSchema', () => {
-  it('restricts source ids to the ids in the prompt', () => {
-    const schema = answerJsonSchema(['S1', 'S2']) as {
-      properties: { sentences: { items: { properties: { source: { enum: string[] } } } } };
+describe('answerLimits / answerJsonSchema', () => {
+  it('derives per-sentence character limits so the JSON closes within the token limit', () => {
+    const en = answerLimits('en', 'qwen2.5-1.5b-instruct-q4_0.gguf');
+    const el = answerLimits('el', 'qwen2.5-1.5b-instruct-q4_0.gguf');
+    expect(en).toMatchObject({ maxTokens: 150, maxSentences: 3 });
+    expect(el).toMatchObject({ maxTokens: 200, maxSentences: 2 });
+    // Greek costs more tokens per character: shorter sentences for a similar token count.
+    expect(el.maxSentenceChars).toBeLessThan(en.maxSentenceChars);
+    expect(answerLimits('en', null, 20).maxSentenceChars).toBe(40);
+  });
+
+  it('restricts source ids to the ids in the prompt and bounds the output', () => {
+    const schema = answerJsonSchema(['S1', 'S2'], { maxSentences: 3, maxSentenceChars: 120 }) as {
+      properties: { sentences: { maxItems: number; items: { properties: { text: { maxLength: number }; source: { enum: string[] } } } } };
     };
     expect(schema.properties.sentences.items.properties.source.enum).toEqual(['S1', 'S2']);
+    expect(schema.properties.sentences.items.properties.text.maxLength).toBe(120);
+    expect(schema.properties.sentences.maxItems).toBe(3);
   });
 });
 
 describe('parseStructuredAnswer', () => {
   it('parses valid output and normalises ids', () => {
-    expect(parseStructuredAnswer('{"covered":true,"sentences":[{"text":" Η Πάτρα  είναι πόλη. ","source":"s1"}]}')).toEqual({
+    expect(parseStructuredAnswer('{"covered":true,"sentences":[{"text":" Paris  is a city. ","source":"s1"}]}')).toEqual({
       covered: true,
-      sentences: [{ text: 'Η Πάτρα είναι πόλη.', source: 'S1' }],
+      sentences: [{ text: 'Paris is a city.', source: 'S1' }],
+      truncated: false,
     });
   });
 
@@ -38,64 +46,67 @@ describe('parseStructuredAnswer', () => {
     expect(parseStructuredAnswer('<|im_start|>assistant\n{"covered":false,"sentences":[]}')).toEqual({
       covered: false,
       sentences: [],
+      truncated: false,
     });
   });
 
-  it('rejects truncated or malformed output', () => {
-    expect(parseStructuredAnswer('{"covered":true,"sentences":[{"text":"Η Πάτ')).toBeNull();
+  it('recovers complete sentence objects from cut-off or streaming output', () => {
+    expect(
+      parseStructuredAnswer('{"covered":true,"sentences":[{"text":"Paris is \\"big\\".","source":"S1"},{"text":"Par'),
+    ).toEqual({ covered: true, sentences: [{ text: 'Paris is "big".', source: 'S1' }], truncated: true });
+    expect(parseStructuredAnswer('{"cov')).toBeNull();
+    expect(parseStructuredAnswer('no json')).toBeNull();
+  });
+
+  it('rejects malformed complete output', () => {
     expect(parseStructuredAnswer('{"covered":"yes","sentences":[]}')).toBeNull();
     expect(parseStructuredAnswer('{"covered":true,"sentences":[{"text":1,"source":"S1"}]}')).toBeNull();
     expect(parseStructuredAnswer('[]')).toBeNull();
   });
 });
 
-describe('supportScore', () => {
-  it('is high when the sentence restates the source, across inflection', () => {
-    expect(supportScore('Η Πάτρα είναι πρωτεύουσα της Αχαΐας.', SOURCES[0]?.text ?? '')).toBe(1);
-  });
-
-  it('is zero when a number is not in the source verbatim', () => {
-    expect(supportScore('Η Πάτρα έχει 250.000 κατοίκους.', SOURCES[0]?.text ?? '')).toBe(0);
-    expect(supportScore('Η Πάτρα έχει 170.934 κατοίκους.', SOURCES[0]?.text ?? '')).toBe(1);
-  });
-
-  it('is low for content the source does not contain', () => {
-    expect(supportScore('Το νερό βράζει για ένα λεπτό.', SOURCES[0]?.text ?? '')).toBeLessThan(0.5);
-  });
-});
-
 describe('validateStructured', () => {
-  it('keeps supported citations and renders [Sx] markers', () => {
+  const question = 'What is the capital of France and how many people live in Paris?';
+
+  it('keeps only supported sentences and renders [Sx] markers', () => {
     const v = validateStructured(
       {
         covered: true,
+        truncated: false,
         sentences: [
-          { text: 'Η Πάτρα είναι η τρίτη μεγαλύτερη πόλη της Ελλάδας.', source: 'S1' },
-          { text: 'Το νερό καθαρίζεται με βρασμό.', source: 'S2' },
+          { text: 'Paris is the capital of France.', source: 'S1' },
+          { text: 'Paris has 3 million residents.', source: 'S1' },
+          { text: 'Paris has a big airport.', source: 'S9' },
         ],
       },
       SOURCES,
+      question,
     );
-    expect(v.text).toBe('Η Πάτρα είναι η τρίτη μεγαλύτερη πόλη της Ελλάδας [S1]. Το νερό καθαρίζεται με βρασμό [S2].');
-    expect(v.cited).toEqual(['S1', 'S2']);
-    expect(v.unverified).toBe(false);
+    expect(v.text).toBe('Paris is the capital of France [S1].');
+    expect(v.kept).toEqual([{ text: 'Paris is the capital of France.', source: 'S1' }]);
+    expect(v.cited).toEqual(['S1']);
+    expect(v.invalid).toEqual(['S9']);
+    expect(v.sentences.map((s) => s.reason)).toEqual([null, 'number', 'unknown_source']);
   });
 
-  it('drops a citation whose sentence the source does not support', () => {
+  it('removes an irrelevant sentence even if its source supports it', () => {
     const v = validateStructured(
-      { covered: true, sentences: [{ text: 'Η Πάτρα έχει μετρό και αεροδρόμιο.', source: 'S2' }] },
+      { covered: true, truncated: false, sentences: [{ text: 'Boil water for at least 1 minute.', source: 'S2' }] },
       SOURCES,
+      question,
     );
-    expect(v.cited).toEqual([]);
-    expect(v.unsupported).toEqual(['S2']);
-    expect(v.unverified).toBe(true);
-    expect(v.text).not.toContain('[S2]');
+    expect(v.kept).toEqual([]);
+    expect(v.sentences[0]?.reason).toBe('irrelevant');
   });
 
-  it('flags unknown ids and not-covered answers', () => {
-    expect(validateStructured({ covered: true, sentences: [{ text: 'x y z', source: 'S9' }] }, SOURCES).invalid).toEqual(['S9']);
-    const nc = validateStructured({ covered: false, sentences: [{ text: 'Η Πάτρα είναι πόλη.', source: 'S1' }] }, SOURCES);
-    expect(nc.notCovered).toBe(true);
-    expect(nc.cited).toEqual([]);
+  it('shows nothing when the model reports that the sources do not cover the question', () => {
+    const v = validateStructured(
+      { covered: false, truncated: false, sentences: [{ text: 'Paris is the capital of France.', source: 'S1' }] },
+      SOURCES,
+      question,
+    );
+    expect(v.notCovered).toBe(true);
+    expect(v.kept).toEqual([]);
+    expect(v.text).toBe('');
   });
 });

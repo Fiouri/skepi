@@ -14,6 +14,8 @@ export interface LoadOptions {
   cpuAffinity?: readonly number[];
   /** Flash attention on CPU; engine default when omitted. */
   flashAttention?: boolean;
+  /** Backend devices to offload to (e.g. `HTP*` for the Hexagon NPU); engine default when omitted. */
+  devices?: readonly string[];
 }
 
 export interface LoadedModel {
@@ -21,6 +23,10 @@ export interface LoadedModel {
   contextSize: number;
   loadMs: number;
   description: string;
+  /** True when layers run on a GPU/NPU backend; `reasonNoGpu` explains a CPU fallback. */
+  gpu: boolean;
+  devices: string[];
+  reasonNoGpu: string;
 }
 
 export interface ChatMessage {
@@ -42,6 +48,8 @@ export type StopReason = 'eos' | 'limit' | 'stop' | 'abort';
 export interface GenerateResult {
   text: string;
   promptTokens: number;
+  /** Prompt tokens served from the KV cache of the previous request (common prefix reuse). */
+  cachedPromptTokens: number;
   generatedTokens: number;
   timeToFirstTokenMs: number | null;
   tokensPerSecond: number | null;
