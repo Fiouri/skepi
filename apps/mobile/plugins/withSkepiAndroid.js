@@ -1,7 +1,9 @@
 // Android build customisations for the Phase 0 spike (CNG: android/ is generated, never edited by hand).
 // - arm64-v8a only (ABI split), llama.rn compiled from source (no prebuilt download).
 // - Bundled offline map assets copied to android assets (served as asset://map/...).
-// - Release manifest has no INTERNET permission: the spike app is offline by construction.
+// - Release manifest has no INTERNET permission: the app is offline by construction until Phase 1c.
+// - R8 minification for release with SKEPI keep rules (plugins/proguard-rules.skepi.pro).
+// - Release signing with the dedicated keystore (plugins/withReleaseSigning.js).
 const fs = require('fs');
 const path = require('path');
 const {
@@ -11,6 +13,7 @@ const {
   withDangerousMod,
   withGradleProperties,
 } = require('expo/config-plugins');
+const withReleaseSigning = require('./withReleaseSigning');
 
 const ABI = 'arm64-v8a';
 
@@ -26,6 +29,8 @@ const withProperties = (config) =>
     setGradleProperty(cfg.modResults, 'rnllamaBuildFromSource', 'true');
     // Deflate native libs inside the APK (download size); they are extracted at install time.
     setGradleProperty(cfg.modResults, 'expo.useLegacyPackaging', 'true');
+    // R8 for release (read by the template's build.gradle). Resource shrinking stays off.
+    setGradleProperty(cfg.modResults, 'android.enableMinifyInReleaseBuilds', 'true');
     return cfg;
   });
 
@@ -57,6 +62,24 @@ tasks.configureEach { task ->
 `;
     return cfg;
   });
+
+const PROGUARD_MARKER = '# skepi:keep-rules';
+const withKeepRules = (config) =>
+  withDangerousMod(config, [
+    'android',
+    (cfg) => {
+      const file = path.join(cfg.modRequest.platformProjectRoot, 'app', 'proguard-rules.pro');
+      const rules = fs.readFileSync(path.join(__dirname, 'proguard-rules.skepi.pro'), 'utf8');
+      const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+      if (!existing.includes(PROGUARD_MARKER)) {
+        fs.writeFileSync(file, `${existing.trimEnd()}
+
+${PROGUARD_MARKER}
+${rules}`);
+      }
+      return cfg;
+    },
+  ]);
 
 const SPLITS_MARKER = '// skepi:abi-split';
 const withAbiSplit = (config) =>
@@ -145,4 +168,8 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config))))));
+  withReleaseSigning(
+    withKeepRules(
+      withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
+    ),
+  );
