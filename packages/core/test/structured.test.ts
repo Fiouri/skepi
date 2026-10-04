@@ -34,6 +34,13 @@ describe('parseStructuredAnswer', () => {
     });
   });
 
+  it('ignores stray template tokens around the object', () => {
+    expect(parseStructuredAnswer('<|im_start|>assistant\n{"covered":false,"sentences":[]}')).toEqual({
+      covered: false,
+      sentences: [],
+    });
+  });
+
   it('rejects truncated or malformed output', () => {
     expect(parseStructuredAnswer('{"covered":true,"sentences":[{"text":"Η Πάτ')).toBeNull();
     expect(parseStructuredAnswer('{"covered":"yes","sentences":[]}')).toBeNull();

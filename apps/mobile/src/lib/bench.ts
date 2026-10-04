@@ -16,6 +16,9 @@ export const FULLTEXT_QUERIES = [
   'Μέγας Αλέξανδρος', 'θάλασσα ψάρια', 'ελιά λάδι', 'Αχαΐα', 'Ευρωπαϊκή Ένωση',
 ];
 
+/** Same words in different case/accent forms: shows whether ICU data changes matching. */
+export const ACCENT_PROBE = ['Πάτρα', 'πατρα', 'ΠΑΤΡΑ', 'σεισμός', 'σεισμος', 'ΣΕΙΣΜΟΣ', 'Αχαΐα', 'αχαια'];
+
 export const BENCH_RAG_QUESTION = 'Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;';
 
 export const GATES = {
@@ -56,6 +59,7 @@ export interface BenchReport {
   fulltext: { total: LatencySummary; native: LatencySummary; results: number[] };
   articleHtml: { total: LatencySummary; native: LatencySummary; bytes: number[] };
   plainText: { total: LatencySummary; native: LatencySummary; sections: number[] };
+  accentProbe: { query: string; suggest: string[]; fulltext: string[]; fulltextEstimated: number }[];
   prefillSweep: PrefillSample[];
   model: null | {
     id: string;
@@ -134,6 +138,18 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
     if (first) topHits.push({ archiveId: first.archiveId, path: first.path });
   }
   log(`full-text p95 ${summarize(fulltext.map((s) => s.totalMs)).p95.toFixed(1)} ms`);
+
+  const accentProbe: BenchReport['accentProbe'] = [];
+  for (const q of ACCENT_PROBE) {
+    const sg = await ExpoZim.suggest(q, 3, null);
+    const ft = await ExpoZim.search(q, 3, null, false);
+    accentProbe.push({
+      query: q,
+      suggest: sg.hits.map((h) => h.path),
+      fulltext: ft.hits.map((h) => h.path),
+      fulltextEstimated: ft.estimatedMatches ?? 0,
+    });
+  }
 
   const html: Timed[] = [];
   const htmlBytes: number[] = [];
@@ -264,6 +280,7 @@ export async function runBench(log: (line: string) => void): Promise<BenchReport
     fulltext: { ...fulltextStats, results: fulltextCounts },
     articleHtml: { ...htmlStats, bytes: htmlBytes },
     plainText: text.length > 0 ? { ...split(text), sections: sectionCounts } : { ...htmlStats, sections: sectionCounts },
+    accentProbe,
     prefillSweep,
     model: modelReport,
     memory,

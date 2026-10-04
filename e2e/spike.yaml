@@ -5,7 +5,7 @@ appId: org.skepi.app
 name: SKEPI spike (offline)
 env:
   SEARCH_QUERY: Πάτρα
-  ASK_QUESTION: Πού βρίσκεται η Πάτρα;
+  ASK_QUESTION: Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;
   EXPECTED_ARTICLE: Πάτρα
   UNRELATED_QUESTION: Ποια είναι η καλύτερη συνταγή για σουφλέ τρούφας;
 onFlowComplete:
@@ -81,8 +81,9 @@ onFlowComplete:
 
 # 5. Unrelated question: "no source found" without generation
 - tapOn:
+    id: ask-clear
+- tapOn:
     id: ask-input
-- eraseText: 200
 - inputText: ${UNRELATED_QUESTION}
 - hideKeyboard
 - tapOn:
@@ -93,7 +94,8 @@ onFlowComplete:
     timeout: 60000
 - assertNotVisible:
     id: answer-text
-- assertVisible: "status=no_source"
+- assertVisible: "Λόγος: .*δεν έγινε generation"
+- assertVisible: ${UNRELATED_QUESTION}
 - takeScreenshot: e2e/out/05-no-source
 
 # 6. Offline map (PMTiles from local file, Greek labels)

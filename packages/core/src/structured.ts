@@ -12,7 +12,8 @@ export interface StructuredAnswer {
   sentences: { text: string; source: string }[];
 }
 
-export const MAX_ANSWER_SENTENCES = 5;
+/** T1 answers stay short; 5 pretty-printed sentences overran the 400-token limit on device. */
+export const MAX_ANSWER_SENTENCES = 3;
 
 export function answerJsonSchema(sourceIds: readonly string[]): Record<string, unknown> {
   return {
@@ -42,9 +43,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** Parses and shape-checks the model output; null when it is not the expected JSON. */
 export function parseStructuredAnswer(raw: string): StructuredAnswer | null {
+  // Tolerate stray template tokens or text around the object.
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
   let data: unknown;
   try {
-    data = JSON.parse(raw.trim());
+    data = JSON.parse(raw.slice(start, end + 1));
   } catch {
     return null;
   }

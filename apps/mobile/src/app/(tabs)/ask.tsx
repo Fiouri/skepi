@@ -81,6 +81,19 @@ export default function AskScreen() {
         <View style={styles.row}>
           <Button testID="ask-submit" label="Ρώτα" onPress={() => void ask()} disabled={busy} />
           <Button testID="ask-stop" label="Διακοπή" tone="danger" onPress={() => controller.current?.abort()} disabled={!busy} />
+          <Button
+            testID="ask-clear"
+            label="Καθαρισμός"
+            onPress={() => {
+              setQuestion('');
+              setResult(null);
+              setStreamed('');
+              setSources([]);
+              setEmergency(null);
+              setPhase('idle');
+            }}
+            disabled={busy}
+          />
           <Text style={styles.muted} testID="ask-phase">
             {phase}
           </Text>

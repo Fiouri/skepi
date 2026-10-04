@@ -26,6 +26,10 @@ pnpm install
 pnpm verify          # typecheck + lint + unit tests
 ```
 
+Prerequisites (Android): Node 22+, pnpm 10, JDK 17, Android SDK 36 with NDK `27.1.12297006` and `27.3.13750724`
+(llama.rn is compiled from source), and on Windows CMake `3.31.6` (`sdkmanager "cmake;3.31.6"`; its ninja supports
+long paths). E2E: [Maestro](https://github.com/mobile-dev-inc/maestro) 2.x.
+
 Android release build (no EAS):
 
 ```sh
@@ -33,8 +37,8 @@ cd apps/mobile && npx expo prebuild --platform android --clean
 cd android && ./gradlew assembleRelease
 ```
 
-Content (ZIM, GGUF, PMTiles) is not bundled; provision a connected device with
-`scripts/provision.ps1`.
+Content (ZIM, GGUF, PMTiles) is not bundled; provision a connected device (app installed and launched once) with
+`scripts/provision.ps1`, then run the offline E2E with `e2e/run-spike.ps1`.
 
 ## License
 

@@ -39,8 +39,8 @@ export class LlamaEngine implements InferenceEngine {
         n_gpu_layers: opts.gpuLayers,
         use_mmap: opts.useMmap,
         use_mlock: opts.useMlock,
-        // One conversation at a time: do not reserve KV for 8 parallel slots (llama.rn default).
-        n_parallel: 1,
+        // n_parallel is left at the llama.rn default: n_parallel=1 crashed llama.cpp in
+        // llama_kv_cache::cpy_k (SIGSEGV) on llama.rn 0.12.9 during the spike.
         ...(opts.cpuAffinity && opts.cpuAffinity.length > 0
           ? { cpu_mask: opts.cpuAffinity.join(','), cpu_strict: true }
           : {}),
@@ -79,6 +79,9 @@ export class LlamaEngine implements InferenceEngine {
           n_predict: req.maxTokens,
           temperature: req.temperature,
           enable_thinking: false,
+          // Without this llama.rn's JSON-schema path left the assistant header out of the prompt and
+          // the model generated "<|im_start|>assistant" itself.
+          add_generation_prompt: true,
           ...(req.stop ? { stop: req.stop } : {}),
           ...(req.jsonSchema
             ? { response_format: { type: 'json_schema' as const, json_schema: { strict: true, schema: req.jsonSchema } } }

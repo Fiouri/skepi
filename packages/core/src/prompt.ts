@@ -65,10 +65,10 @@ export type AnswerFormat = 'json' | 'text';
  */
 const JSON_INSTRUCTION: Record<Lang, string> = {
   el:
-    'Απάντησε σε JSON. "covered": true μόνο αν οι πηγές απαντούν στην ερώτηση. "sentences": έως 5 σύντομες ' +
+    'Απάντησε σε JSON. "covered": true μόνο αν οι πηγές απαντούν στην ερώτηση. "sentences": έως 3 σύντομες ' +
     'προτάσεις στα ελληνικά, η καθεμία με "source" το id της πηγής που τη λέει (π.χ. "S1"). Μόνο γεγονότα από τις πηγές.',
   en:
-    'Answer in JSON. "covered": true only if the sources answer the question. "sentences": up to 5 short ' +
+    'Answer in JSON. "covered": true only if the sources answer the question. "sentences": up to 3 short ' +
     'sentences in English, each with "source" = the id of the source that states it (e.g. "S1"). Only facts from the sources.',
 };
 
