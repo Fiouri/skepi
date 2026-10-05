@@ -16,3 +16,5 @@ coverage/
 # Bench/E2E outputs
 e2e/out/
 AGENTS.md
+# rag-eval fixture ZIMs (<= 5 MB, built by tools/rag-eval/scripts/build_eval_zims.py) are committed for CI.
+!tools/rag-eval/fixtures/*.zim
