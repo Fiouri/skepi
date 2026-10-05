@@ -201,6 +201,7 @@ Raw: `phase1c/bench/bench-normal.json`, `bench-t1-simulation.json`, `bench-norma
 - `./gradlew assembleRelease` (release keystore, real-key catalog): success, 49.4 MB; signing certificate SHA-256
   `7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e`.
 - `./gradlew connectedAndroidTest`, Maestro on the S23: see above.
+- GitHub Actions run 37342225684 (commit `342c015`): `verify` and `rag-eval-smoke` green (libzim 3.10.0 sidecar, held-out section included).
 
 ## Phase 1d — first item (decided 2026-10-05)
 
