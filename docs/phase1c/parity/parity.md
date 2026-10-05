@@ -1,6 +1,6 @@
-# Retrieval parity · 2026-10-05T10:37:46.322Z
+# Retrieval parity · 2026-10-05T16:18:42.443Z
 
-Device: android (2026-10-05T10:37:27.011Z) · eval: rag-eval (python-libzim) · config {"tier":"T2","modelId":"qwen2.5-1.5b-instruct-q4_0.gguf","contextSize":2048}
+Device: android (2026-10-05T16:18:21.068Z) · eval: rag-eval (python-libzim) · config {"tier":"T2","modelId":"qwen2.5-1.5b-instruct-q4_0.gguf","contextSize":2048}
 
 Archives (device): wikipedia_el_top (ell, 102609), wikipedia_en_medicine (eng, 362501), wikipedia_en_top (eng, 703608)
 Archives (eval): wikipedia_en_top (eng, 703608), wikipedia_en_medicine (eng, 362501), wikipedia_el_top (ell, 102609)

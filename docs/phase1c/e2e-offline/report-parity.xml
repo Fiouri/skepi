@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="24.71" timestamp="2026-10-05T19:17:57">
+    <testcase id="SKEPI retrieval parity" name="SKEPI retrieval parity" classname="SKEPI retrieval parity" file="e2e\parity.yaml" time="24.701" timestamp="2026-10-05T19:17:57" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

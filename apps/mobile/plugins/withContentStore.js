@@ -51,8 +51,11 @@ const DEBUG_NSC = `<?xml version="1.0" encoding="utf-8"?>
 const withNetworkSecurity = (config) => {
   config = withAndroidManifest(config, (cfg) => {
     const manifest = cfg.modResults.manifest;
-    // Phase 1a-1b removed INTERNET from release; ContentStore needs it now. Drop any stale removal rule.
-    manifest['uses-permission'] = (manifest['uses-permission'] ?? []).filter((p) => p.$['tools:node'] !== 'remove');
+    // Phase 1a-1b removed INTERNET from release; ContentStore needs it now. Drop only that removal rule
+    // (the blockedPermissions removal rules from app.json must stay).
+    manifest['uses-permission'] = (manifest['uses-permission'] ?? []).filter(
+      (p) => !(p.$['android:name'] === 'android.permission.INTERNET' && p.$['tools:node'] === 'remove'),
+    );
     const app = AndroidConfig.Manifest.getMainApplicationOrThrow(cfg.modResults);
     app.$['android:networkSecurityConfig'] = '@xml/network_security_config';
     app.$['android:usesCleartextTraffic'] = 'false';

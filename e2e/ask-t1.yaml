@@ -1,10 +1,11 @@
 # T1-simulation flow: the developer switch forces the T1 profile; Layer 1 shows and the AI summary
-# waits for "Summarise with AI". The switch lives in memory, so the flow sets it after launch.
+# waits for "Summarise with AI". The switch is persisted (app.db): the flow sets it and resets it.
 appId: ${APP_ID}
 name: SKEPI T1-simulation flow (offline)
 env:
   ASK_QUESTION: Where is the Great Barrier Reef?
 onFlowComplete:
+  - runFlow: set-t1-off.yaml
   - setAirplaneMode: disabled
 ---
 - setAirplaneMode: enabled
@@ -14,14 +15,7 @@ onFlowComplete:
     visible:
       id: tab-bench
     timeout: 30000
-- tapOn:
-    id: tab-bench
-- extendedWaitUntil:
-    visible:
-      id: dev-t1-simulation
-    timeout: 30000
-- tapOn:
-    id: dev-t1-simulation
+- runFlow: set-t1-on.yaml
 - assertVisible: ".*mode t1-simulation.*summary on-demand.*"
 - tapOn:
     id: tab-ask

@@ -21,6 +21,7 @@ onFlowComplete:
     timeout: 30000
 
 # 1. Normal mode
+- runFlow: set-t1-off.yaml
 - assertVisible: ".*mode normal.*"
 - tapOn:
     id: bench-run

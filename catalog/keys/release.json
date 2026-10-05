@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "purpose": "release",
+  "active": {
+    "keyId": "cat-2026a",
+    "publicKey": "LGJCqdKvMlu2SkWYtK+18xndcBL4C4JHJFnPwSp0yio="
+  },
+  "backup": {
+    "keyId": "cat-2026b",
+    "publicKey": "pZN88rxx29QbYvjpkObT454ZElSoQD6z1YHDng/NPk4="
+  }
+}

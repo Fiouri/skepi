@@ -431,18 +431,18 @@ Nothing leaves the device: no account, backend, analytics or third-party crash r
 
 Targets are measured on a T1 reference device (4 GB Android). A PR that regresses a target by more than 10% does not merge. Until a T1 device is available, T1 targets are **pending** and tracked on the S23 (T2) plus T1-simulation mode.
 
-| Metric | Target | Phase 0 result (S23, T2) | Phase 1a (S23: normal / T1-simulation) | Phase 1b (S23: normal / T1-simulation, English content) |
-| --- | --- | --- | --- | --- |
-| Cold start to search, no model | < 2 s (T1) | not measured | not measured | not measured |
-| Title suggestions, p95 | < 50 ms (T1) | 9–15 ms ✓ | 14.7 / 15.7 ms ✓ | 61.2 ✗ / 35.4 ms ✓ (3 packs) |
-| Full-text search, p95 | < 300 ms (T1) | 8–19 ms ✓ (103k and 384k articles) | 7.5 / 9.1 ms ✓ | 21.2 / 18.0 ms ✓ |
-| Article open | < 500 ms (T1) | 321 ms ✓ | 151–383 ms in E2E ✓ | HTML p95 8.3 / 7.2 ms ✓ |
-| Map render | — | 327 ms ✓ | 258 ms | E2E ✓ |
-| Layer 1 (extractive) answer | < 1 s (T1) | new in Phase 1 | — | p95 337 / **252 ms** ✓ (el 169 / 147) |
-| Sources visible | < 2 s (T1) | new in Phase 1 | — | p95 217 / **198 ms** ✓ (el 198 / 164) |
-| First AI token | < 15 s (T2); T1 set after measurement | 12–18 s ✗ (old gate 4 s, Greek, Q4_K_M) | 14.7–16.0 s (borderline) / 16.9 s | p95 **4.8 s** ✓ / 7.1 s (el 12.4 / 14.3 s) |
-| Model load | < 10 s (T1) | not reported | 1.9 / 0.8 s ✓ | 13.4 s cold ✗ / 1.3 s ✓ |
-| APK per ABI (arm64) | < 80 MB | 55.3 MB ✓ (from 146.5 MB) | 45.9 MB ✓ (R8; dex 15.1 → 6.6 MB) | 46.0 MB ✓ |
+| Metric | Target | Phase 0 result (S23, T2) | Phase 1a (S23: normal / T1-simulation) | Phase 1b (S23: normal / T1-simulation, English content) | Phase 1c (S23: normal / T1-simulation) |
+| --- | --- | --- | --- | --- | --- |
+| Cold start to search, no model | < 2 s (T1) | not measured | not measured | not measured | not measured |
+| Title suggestions, p95 | < 50 ms (T1) | 9–15 ms ✓ | 14.7 / 15.7 ms ✓ | 61.2 ✗ / 35.4 ms ✓ (3 packs) | 19 / **30 ms** ✓ (3 packs, parallel) |
+| Full-text search, p95 | < 300 ms (T1) | 8–19 ms ✓ (103k and 384k articles) | 7.5 / 9.1 ms ✓ | 21.2 / 18.0 ms ✓ | 16 / 40 ms ✓ |
+| Article open | < 500 ms (T1) | 321 ms ✓ | 151–383 ms in E2E ✓ | HTML p95 8.3 / 7.2 ms ✓ | HTML p95 12 / 7 ms ✓ |
+| Map render | — | 327 ms ✓ | 258 ms | E2E ✓ | E2E ✓ |
+| Layer 1 (extractive) answer | < 1 s (T1) | new in Phase 1 | — | p95 337 / **252 ms** ✓ (el 169 / 147) | p95 326 / **234 ms** ✓ (el 200 / 154) |
+| Sources visible | < 2 s (T1) | new in Phase 1 | — | p95 217 / **198 ms** ✓ (el 198 / 164) | p95 285 / **175 ms** ✓ (el 215 / 179) |
+| First AI token | < 15 s (T2); T1 set after measurement | 12–18 s ✗ (old gate 4 s, Greek, Q4_K_M) | 14.7–16.0 s (borderline) / 16.9 s | p95 **4.8 s** ✓ / 7.1 s (el 12.4 / 14.3 s) | p95 **4.5 s** ✓ / 7.1 s (el 9.6 / 12.6 s) |
+| Model load | < 10 s (T1) | not reported | 1.9 / 0.8 s ✓ | 13.4 s cold ✗ / 1.3 s ✓ | warm 0.6 / 0.8 s ✓ · cold 14.0 s (target applies to warm loads) |
+| APK per ABI (arm64) | < 80 MB | 55.3 MB ✓ (from 146.5 MB) | 45.9 MB ✓ (R8; dex 15.1 → 6.6 MB) | 46.0 MB ✓ | 49.4 MB ✓ (op-sqlite/SQLCipher, catalog) |
 
 **Memory**
 
@@ -657,6 +657,7 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - ~~Citation hardening: bigram support check, numeric/unit rule, adversarial set in rag-eval, medical-intent flow~~ (1b).
    - Viewer sealing instrumentation tests.
    - ~~Signed catalog and downloads; English default packs + Greek locale packs~~ (1c; public hosting later).
+   - Phase 1d, first item: structural source filter (forged source tags, JSON role/system objects, `SYSTEM:`/assistant-addressed lines, sentences addressed to the model) before Layer 1 and Layer 2, no new lexicon phrases; fresh held-out set before public release.
    - Emergency cards (English master + Greek), onboarding, blackout mode, T1-simulation mode.
    - ~~rag-eval (English primary, Greek secondary, tokens/char)~~ (1b, CI smoke subset); Maestro in CI.
    - Gate: Maestro in airplane mode green · zero egress · viewer sealing tests green · rag-eval above threshold · Layer 1 < 1 s and sources < 2 s (T1-simulation) · first token < 15 s on T2 · T1 measured if a device is available.

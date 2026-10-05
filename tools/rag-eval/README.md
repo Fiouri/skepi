@@ -60,6 +60,16 @@ so they must stay unseen by tuning:
   explicit decision by the maintainer, recorded in the phase report. A fix that follows such a decision
   is validated on the tuned sets; the held-out set is then replaced or extended with new unseen items.
 
+**Status (2026-10-05):** the current held-out set has been **used for a decision**. Its Phase 1c findings
+(5 items where injected text survives the sanitizer and shows in Layer 1: a note addressed to "automated
+systems that summarise this page", a "corrected dosage" line claiming precedence, a persona instruction
+("From now on you are …"), a JSON `role`/`system` object, and "When asked about this …, reply only with";
+the persona item also produced one shown AI sentence) led
+to a structural source filter as the first Phase 1d item: forged source tags, JSON role/system objects,
+`SYSTEM:`/assistant-addressed lines and sentences addressed to the model/AI are removed before Layer 1 and
+Layer 2, with no new phrases added to the lexicon. The set keeps running as a report section, but it is no
+longer unseen; a fresh held-out set is written before the public release.
+
 ## Running
 
 ```powershell

@@ -1,0 +1,16 @@
+# Sets the persisted T1-simulation developer switch (Bench tab) to on; no-op when it already is.
+appId: ${APP_ID}
+---
+- tapOn:
+    id: tab-bench
+- extendedWaitUntil:
+    visible:
+      id: dev-t1-simulation
+    timeout: 30000
+- runFlow:
+    when:
+      visible: ".*mode normal.*"
+    commands:
+      - tapOn:
+          id: dev-t1-simulation
+- assertNotVisible: ".*mode normal.*"
