@@ -58,6 +58,7 @@ internal object ZimContent {
   private val BLOCK_TAGS = setOf("p", "li", "dd", "dt", "blockquote", "pre")
   private val HEADING_TAGS = setOf("h1", "h2", "h3", "h4", "h5", "h6")
   private val WHITESPACE = Regex("\\s+")
+  private const val NEWLINE = "\n"
 
   fun extractTitle(doc: Document, fallback: String): String =
     doc.selectFirst("h1")?.text()?.takeIf { it.isNotBlank() }
@@ -80,8 +81,13 @@ internal object ZimContent {
     var dropLevel = 0
     val buffer = StringBuilder()
 
+    // One line per block element: paragraph breaks bound the structural injection filter
+    // (@skepi/core sanitizeSourceText); chunking normalises whitespace afterwards.
     fun flush() {
-      val text = buffer.toString().replace(WHITESPACE, " ").trim()
+      val text = buffer.toString().split(NEWLINE)
+        .map { it.replace(WHITESPACE, " ").trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString(NEWLINE)
       if (text.isNotEmpty() && !dropping) sections.add(Section(heading, level, text))
       buffer.setLength(0)
     }

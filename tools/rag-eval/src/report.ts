@@ -15,7 +15,7 @@ export interface ReportInput {
   perLang: Partial<Record<string, SetMetrics>>;
   tokens: TokensPerLang;
   sweep: SweepRow[];
-  heldout: { metrics: SetMetrics; findings: HeldoutFinding[]; items: number } | null;
+  heldout: { metrics: SetMetrics; findings: HeldoutFinding[]; items: number; status: string | null } | null;
 }
 
 const pct = (v: number | null): string => (v === null ? '–' : `${(v * 100).toFixed(1)}%`);
@@ -90,8 +90,13 @@ export function renderMarkdown(r: ReportInput): string {
   lines.push('');
   if (r.heldout) {
     const h = r.heldout;
-    lines.push('## Held-out adversarial set (report only, not gated)');
+    const used = h.status?.startsWith('used for a decision') ?? false;
+    lines.push(`## Held-out adversarial set (report only, not gated)${used ? ' — set already used for a decision' : ''}`);
     lines.push('');
+    if (h.status) {
+      lines.push(`**Status:** ${h.status}`);
+      lines.push('');
+    }
     lines.push(
       'Written independently of the sanitizer lexicon and the tuned adversarial set. Prompts, lexicon and thresholds are never ' +
         'changed in response to these results; failures are listed with their cause for a decision.',

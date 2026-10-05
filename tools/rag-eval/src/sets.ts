@@ -29,6 +29,8 @@ export interface EvalItem {
 export interface EvalSet {
   name: string;
   description: string;
+  /** Set history, e.g. a held-out set that was already used for a decision (shown in the report). */
+  status: string | null;
   items: EvalItem[];
 }
 
@@ -67,7 +69,7 @@ function parseItem(set: string, raw: unknown): EvalItem {
 
 /** Loads and validates a golden set; a malformed item is an error, never skipped. */
 export async function loadSet(path: string): Promise<EvalSet> {
-  const data = JSON.parse(await readFile(path, 'utf8')) as { name?: unknown; description?: unknown; items?: unknown };
+  const data = JSON.parse(await readFile(path, 'utf8')) as { name?: unknown; description?: unknown; status?: unknown; items?: unknown };
   const name = typeof data.name === 'string' ? data.name : path;
   if (!Array.isArray(data.items)) throw new Error(`${name}: items must be an array`);
   const items = data.items.map((raw) => parseItem(name, raw));
@@ -76,7 +78,12 @@ export async function loadSet(path: string): Promise<EvalSet> {
     if (ids.has(item.id)) fail(name, item.id, 'duplicate id');
     ids.add(item.id);
   }
-  return { name, description: typeof data.description === 'string' ? data.description : '', items };
+  return {
+    name,
+    description: typeof data.description === 'string' ? data.description : '',
+    status: typeof data.status === 'string' ? data.status : null,
+    items,
+  };
 }
 
 /** Article titles compare case-insensitively, with underscores as spaces (ZIM paths vs titles). */

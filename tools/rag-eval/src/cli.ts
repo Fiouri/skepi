@@ -219,7 +219,14 @@ async function main(): Promise<number> {
     const checks = inference ? checkThresholds(outcomes, thresholds) : [];
     const sweep = sweepSupport(gated, [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
     const heldoutReport =
-      heldout.length > 0 ? { metrics: computeSetMetrics(heldout), findings: heldoutFindings(heldout), items: heldout.length } : null;
+      heldout.length > 0
+        ? {
+            metrics: computeSetMetrics(heldout),
+            findings: heldoutFindings(heldout),
+            items: heldout.length,
+            status: sets.find((s) => s.name === HELDOUT_SET)?.status ?? null,
+          }
+        : null;
     const report = {
       schema: 1,
       createdAt: new Date().toISOString(),

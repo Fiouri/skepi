@@ -205,7 +205,8 @@ def extract_sections(html: str, title: str) -> list[dict[str, Any]]:
     buffer: list[str] = []
 
     def flush() -> None:
-        text = norm("\n".join(buffer))
+        # One line per block element, like ZimContent.kt (paragraph breaks for the injection filter).
+        text = "\n".join(line for line in (norm(b) for b in buffer) if line)
         if text and not state["dropping"]:
             sections.append({"heading": state["heading"], "level": state["level"], "text": text})
         buffer.clear()
