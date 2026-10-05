@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="139.232" timestamp="2026-10-05T18:16:55">
+    <testcase id="SKEPI downloads, catalog and import (local test mirror)" name="SKEPI downloads, catalog and import (local test mirror)" classname="SKEPI downloads, catalog and import (local test mirror)" file="e2e\download.yaml" time="139.213" timestamp="2026-10-05T18:16:55" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

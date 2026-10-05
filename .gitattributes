@@ -12,3 +12,4 @@
 
 # Signed catalogs: the Ed25519 signature covers the exact bytes; never normalise them.
 catalog/embedded/** -text
+e2e/mirror/catalogs/** -text

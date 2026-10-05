@@ -1,0 +1,12 @@
+﻿10-05 18:17:06.230   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json
+10-05 18:17:06.871   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json.sig
+10-05 18:17:10.264   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json
+10-05 18:17:10.893   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json.sig
+10-05 18:17:13.750   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json
+10-05 18:17:14.371   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json.sig
+10-05 18:17:17.324   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json
+10-05 18:17:17.930   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/catalog/catalog.json.sig
+10-05 18:17:29.572   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/packs/eval-smoke-en.zim
+10-05 18:17:33.612   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/corrupt/eval-synthetic.zim
+10-05 18:17:34.218   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/packs/eval-synthetic.zim
+10-05 18:17:39.430   734   781 I SkepiContentStore: download requested: https://127.0.0.1:8443/corrupt/eval-smoke-el.zim

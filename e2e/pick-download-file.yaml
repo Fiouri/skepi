@@ -1,0 +1,23 @@
+# Picks ${FILE_NAME} from the Downloads folder in the system file picker (DocumentsUI).
+appId: com.google.android.documentsui
+---
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 10000
+- runFlow:
+    when:
+      notVisible: ${FILE_NAME}
+    commands:
+      - tapOn:
+          id: "Show roots"
+          optional: true
+      - tapOn:
+          text: "Show roots"
+          optional: true
+      - tapOn:
+          text: "Downloads"
+          optional: true
+- extendedWaitUntil:
+    visible: ${FILE_NAME}
+    timeout: 15000
+- tapOn: ${FILE_NAME}

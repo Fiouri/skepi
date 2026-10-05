@@ -1,0 +1,314 @@
+{
+  "schema": 1,
+  "sequence": 2,
+  "issuedAt": "2026-10-05T15:07:36Z",
+  "keyId": "cat-test-2026a",
+  "packs": [
+    {
+      "id": "wikipedia_en_top_mini",
+      "kind": "zim",
+      "version": "2026-09",
+      "file": "wikipedia_en_top_mini_2026-09.zim",
+      "title": {
+        "en": "Wikipedia: top articles (English, summaries)",
+        "el": "Wikipedia: κορυφαία άρθρα (αγγλικά, περιλήψεις)"
+      },
+      "lang": [
+        "en"
+      ],
+      "sizeBytes": 296858160,
+      "sha256": "9e75b5f03b4ff61864772d811bd9715c9cdc27a429229abb779aaa3cc3aa8e05",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "2385c485e3583de9ae6efb20a439c80e9210de67b6834ac584e7f926781e7dac",
+        "e5aebbb5811b1e0b56241c167c15f168e3808e4c4e1e5f26ec9182f36b1b5bb3",
+        "fda73306e944588bef492f8734c0b3e696c13505e7bc58455fed2cb36eb0c125",
+        "9fd1ecde49167d45eca7f9884450ad221dbd81f58a6ebf795a4645529da2490d",
+        "396e573a215370cb606287ea66d5a635ed063f3fa67b045b6ab0962aca56f5d6"
+      ],
+      "urls": [
+        "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors",
+      "minTier": "T0",
+      "tags": [
+        "encyclopedia",
+        "default"
+      ]
+    },
+    {
+      "id": "wikipedia_en_medicine_mini",
+      "kind": "zim",
+      "version": "2026-04",
+      "file": "wikipedia_en_medicine_mini_2026-04.zim",
+      "title": {
+        "en": "WikiMed: medical encyclopedia (English, summaries)",
+        "el": "WikiMed: ιατρική εγκυκλοπαίδεια (αγγλικά, περιλήψεις)"
+      },
+      "lang": [
+        "en"
+      ],
+      "sizeBytes": 162855323,
+      "sha256": "55153075b0773ea9c04a3db295ec5898129434ab5cae087dcb7822f37a81f358",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "e492bbca2834d2b9b1a906ff682708c710454a9f78c45a0bb8c17266725d687f",
+        "df76c2ed1a78c9865fbe2b9073cdbe0db852e05251502062201005c9a8e2b0a8",
+        "6caafd9de3b7a0eef3a742f73670a155b2d8392d78fe444b84c2eaf0656d35fd"
+      ],
+      "urls": [
+        "https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_mini_2026-04.zim"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors (WikiProject Medicine selection, Kiwix WikiMed)",
+      "minTier": "T0",
+      "tags": [
+        "medical",
+        "default"
+      ]
+    },
+    {
+      "id": "wikipedia_el_top_mini",
+      "kind": "zim",
+      "version": "2026-07",
+      "file": "wikipedia_el_top_mini_2026-07.zim",
+      "title": {
+        "en": "Wikipedia: top articles (Greek, summaries)",
+        "el": "Βικιπαίδεια: κορυφαία άρθρα (περιλήψεις)"
+      },
+      "lang": [
+        "el"
+      ],
+      "sizeBytes": 117988988,
+      "sha256": "369118ef0737561ef5624cc56546b52e6c2c244193b0e1c23a8cd58896044571",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "8895e3028e88f5b006026852b0ee5dd851abfc425097755a58c279d94264830a",
+        "bc954649ab1dbf7ad4ec5dd4145cc36a77f8d4c1e682e8f41ec2f8c5a9432d98"
+      ],
+      "urls": [
+        "https://download.kiwix.org/zim/wikipedia/wikipedia_el_top_mini_2026-07.zim"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors",
+      "minTier": "T0",
+      "tags": [
+        "encyclopedia",
+        "locale"
+      ]
+    },
+    {
+      "id": "wikipedia_el_all_mini",
+      "kind": "zim",
+      "version": "2026-09",
+      "file": "wikipedia_el_all_mini_2026-09.zim",
+      "title": {
+        "en": "Wikipedia: all articles (Greek, summaries)",
+        "el": "Βικιπαίδεια: όλα τα άρθρα (περιλήψεις)"
+      },
+      "lang": [
+        "el"
+      ],
+      "sizeBytes": 549033151,
+      "sha256": "03e741cbfaad2d3d7b7c81b4332d1d7f2d2f559f65e634f115a5e4869ef3f962",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "a949a23349ac8821d75f3c2a96e150ff8b4e6c6c8ce7a69c513f726de582fbcc",
+        "ffd47d7053582dc4f25e8c02ac1a0a3a757f67efe3d086e541f78e61a17604b0",
+        "81b6d3c9e469fbd3f37fc609826e8a09497515ddb4de104dfb5c3f9091484935",
+        "f4a3fef04a030e8ac3add81da6284b3d999353e85159dc726e2c6399a345758c",
+        "c368546c6157e26d5897e40ede3e8853bfb1bfaa493e3bb2422525ca7d32c0a4",
+        "7ecc4ba62f64d376280ab6e48e4203e5131ce58274737072a63470060abcb0ab",
+        "6975049c538f53e7cddedeb7692661f1871ff7b3c85677f188136a892d937f03",
+        "78cfdd61552f49b30643403c5638a5219c01ed0be51ac179c09d389ae375bcde",
+        "3442bf6a0f3e6f8dd538fb978918e75dfb8bad43f0dbf32de3d4ff03cb6002fc"
+      ],
+      "urls": [
+        "https://download.kiwix.org/zim/wikipedia/wikipedia_el_all_mini_2026-09.zim"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors",
+      "minTier": "T0",
+      "tags": [
+        "encyclopedia",
+        "locale"
+      ]
+    },
+    {
+      "id": "qwen2.5-1.5b-instruct-q4_0",
+      "kind": "gguf",
+      "version": "91cad51",
+      "file": "qwen2.5-1.5b-instruct-q4_0.gguf",
+      "title": {
+        "en": "AI model: Qwen2.5 1.5B Instruct (Q4_0)",
+        "el": "Μοντέλο AI: Qwen2.5 1.5B Instruct (Q4_0)"
+      },
+      "lang": [
+        "en",
+        "el"
+      ],
+      "sizeBytes": 1066227232,
+      "sha256": "dcd819ff094852c38faba6873d8ff0c9d51eadb2844539e52042ae5d647bbfdb",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "7ad0caec70b2783682d61fc85393fdbdd189d289c243e72625d78b0ea2452d33",
+        "9420bddbf7de4f9525894dd17454106e3b5a2a0276a82f16015875cefac0a559",
+        "fac0659bd996a62f3574b9a294793e93a63512e0750d5453a15149b4a06166aa",
+        "8b7d77feb6b9771279a1d761544804b22a80c1e8ac36bd9bf9229b17f4682daa",
+        "a447f5465c5260de4f839d5b4459425fe03e07ddcf5c9a6cc6c028b42853c1c9",
+        "c33027098628b782a6b85c6a9c6a2ba4ccb9fa465f56e677c8821d8cc4004be5",
+        "1f63891adea94ed522d9ed5042797fdc94432acb4774ab20883a4873ca254c71",
+        "19955b13e96e5567024582d5f3c02c79c9273f525e568c1ab2a5cdd5abf64362",
+        "a96757b6b867e17e74272fe197b3ef6d010025f4ab0c7afb31178d8ce6b4021e",
+        "5c1fb7811fe86eb1c334ab3582d731167ab5d850f55869cefa5034012eb9d153",
+        "707530aae183e0f49d07d61e7c4f3aeeebf42378f42ef74f5b482cf0544cf560",
+        "878aec1d9f52f39f28385b632a7603816ab33fa523ef58f0d29815fd85ec1470",
+        "6e3f35315f5af92647babb74c257e739ac4074e453f1d13c2825587396b77e2f",
+        "bef75cc556166d36a383f77c1e6fc9fed4bc449e00b8166ac1d037a63fc0cdb7",
+        "c511952dd8b54acdf537d5e2969f6a742a6f2634137371a6fe7cfaa542ef9678",
+        "dc8e9e217222616fee4981b4c8931b250cac2350a3945d0b6e7b06e629dc6811"
+      ],
+      "urls": [
+        "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_0.gguf"
+      ],
+      "license": "Apache-2.0",
+      "attribution": "Qwen team, Alibaba Cloud",
+      "minTier": "T1",
+      "tags": [
+        "model",
+        "default"
+      ]
+    },
+    {
+      "id": "qwen2.5-1.5b-instruct-q4_k_m",
+      "kind": "gguf",
+      "version": "91cad51",
+      "file": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "title": {
+        "en": "AI model: Qwen2.5 1.5B Instruct (Q4_K_M)",
+        "el": "Μοντέλο AI: Qwen2.5 1.5B Instruct (Q4_K_M)"
+      },
+      "lang": [
+        "en",
+        "el"
+      ],
+      "sizeBytes": 1117320736,
+      "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "01c65b4cae8cdc36c4a810669b4457d8c6a565c2f2eed8ec43f3d5fc65bc3ea9",
+        "9420bddbf7de4f9525894dd17454106e3b5a2a0276a82f16015875cefac0a559",
+        "28c99ddbcfbaa35e2fa976d714af4fcbf6de0ba4399e1af3eafeeb5c4e973fc7",
+        "cae02f22bf35642ba00ddf4c95344f8e5ed7f102301b0479558ca1ad97018532",
+        "a85ca0334935a39ca2720c85ed622adc7f3d5ea71725b35c308a9ed45f63b964",
+        "c684dd7e5be4f520c2f301bf4f8391823982877e9e6c90ca0f5d0aa9c1139e6a",
+        "b153bb64c55e014e24fac5004a6df590a48a2b31313ad256790e99e22d27dfbe",
+        "bae38fb7710a5a6d9be5bcc359b68199181e399b5375e49ba13f0bb0920cf02a",
+        "084b017fedf0b6d5c04a936555596f72d6a60980782f1676eaf78d7bd56d37af",
+        "ec9f1c150bebd16464d78f5920267b047b909af5ce4fab932597d76693935669",
+        "1dc2ed65d2b7212e800aa2c7118f9ca01e670ec4284038d5605f641ff3340951",
+        "9736a0dd00794edf93dc4a1c47cd093d0a03712b09365f9e04495cc5ffd92dd0",
+        "8d19b07ea12fe4e39497c84b0e33cba41c10191cdb6aa4905d160bb66d02b2cb",
+        "4cdee411fb0d0168ec82cb0648b592f5b9c290a79ef492e1b5bbc381a1a0eddd",
+        "8c17bbd316e9966a7c360423127db45143edb340ac4182bc361582ec81849d78",
+        "e7c0b80086c02b11e3c086098832727410f86b5369e0337d04c8ab3e66d5bc19",
+        "2817404eaf3013790465b57fb93e6cd9a1088f8f2762b2128f32a4ca6024d713"
+      ],
+      "urls": [
+        "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+      ],
+      "license": "Apache-2.0",
+      "attribution": "Qwen team, Alibaba Cloud",
+      "minTier": "T1",
+      "tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "test-smoke-en",
+      "kind": "zim",
+      "version": "1",
+      "file": "eval-smoke-en.zim",
+      "title": {
+        "en": "Test pack: English sample articles",
+        "el": "Δοκιμαστικό πακέτο: αγγλικά άρθρα"
+      },
+      "lang": [
+        "en"
+      ],
+      "sizeBytes": 221833,
+      "sha256": "e592eb26ea737fb486684f71e95d4fca9a4420b4f44dd155bc3d19f0ea5d7bf0",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "e592eb26ea737fb486684f71e95d4fca9a4420b4f44dd155bc3d19f0ea5d7bf0"
+      ],
+      "urls": [
+        "https://127.0.0.1:8443/packs/eval-smoke-en.zim"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors (see tools/rag-eval/fixtures/ATTRIBUTION.md)",
+      "minTier": "T0",
+      "tags": [
+        "test"
+      ]
+    },
+    {
+      "id": "test-mirror-fallback",
+      "kind": "zim",
+      "version": "1",
+      "file": "eval-synthetic.zim",
+      "title": {
+        "en": "Test pack: corrupt first mirror, good second mirror",
+        "el": "Δοκιμαστικό πακέτο: χαλασμένος πρώτος mirror"
+      },
+      "lang": [
+        "en"
+      ],
+      "sizeBytes": 62164,
+      "sha256": "3f14e50fc070892c66fb0e84a3b68ab1e7f14e37c7fe6c879b8026d89aefe30a",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "3f14e50fc070892c66fb0e84a3b68`b1e7f14e37c7fe6c879b8026d89aefe30a"
+      ],
+      "urls": [
+        "https://127.0.0.1:8443/corrupt/eval-synthetic.zim",
+        "https://127.0.0.1:8443/packs/eval-synthetic.zim"
+      ],
+      "license": "CC0-1.0",
+      "attribution": "SKEPI project",
+      "minTier": "T0",
+      "tags": [
+        "test"
+      ]
+    },
+    {
+      "id": "test-corrupt",
+      "kind": "zim",
+      "version": "1",
+      "file": "eval-smoke-el.zim",
+      "title": {
+        "en": "Test pack: every mirror serves corrupt bytes",
+        "el": "Δοκιμαστικό πακέτο: μόνο χαλασμένα δεδομένα"
+      },
+      "lang": [
+        "el"
+      ],
+      "sizeBytes": 115858,
+      "sha256": "85841f2f6b1e84a26a2e4cd6a146eea98f89b9c2be22279787eb08a2bd46f384",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "85841f2f6b1e84a26a2e4cd6a146eea98f89b9c2be22279787eb08a2bd46f384"
+      ],
+      "urls": [
+        "https://127.0.0.1:8443/corrupt/eval-smoke-el.zim"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors (see tools/rag-eval/fixtures/ATTRIBUTION.md)",
+      "minTier": "T0",
+      "tags": [
+        "test"
+      ]
+    }
+  ]
+}

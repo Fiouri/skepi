@@ -234,6 +234,7 @@ class ExpoContentStoreModule : Module() {
       tmp.writeBytes(Base64.decode(catalogBase64, Base64.NO_WRAP))
       File(dir, "catalog.json.sig").writeText(signature, Charsets.UTF_8)
       Files.move(tmp.toPath(), File(dir, "catalog.json").toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+      Unit
     }
 
     AsyncFunction("readAcceptedCatalog") {

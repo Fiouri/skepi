@@ -1,0 +1,194 @@
+# Download, catalog and import flow against the local HTTPS test mirror (e2e/mirror/server.mjs) on the
+# debug build (org.skepi.app.dev, test catalog signed with the test key). Wi-Fi on: DownloadManager needs
+# a network; every request goes to https://127.0.0.1:8443 through adb reverse (checked by
+# e2e/run-download-e2e.ps1: mirror log + zero non-loopback bytes for the app's UID).
+# 1. Catalog update: tampered byte, wrong key -> rejected; good (sequence 2) -> adopted; rollback -> rejected.
+# 2. Downloads: a good pack installs verified; corrupt first mirror -> next mirror; corrupt everywhere -> rejected, never installed.
+# 3. The downloaded pack opens (search + article).
+# 4. Import of an unknown ZIM: unverified, opens only after explicit consent, permanent label.
+appId: ${APP_ID}
+name: SKEPI downloads, catalog and import (local test mirror)
+---
+- runScript:
+    file: mirror-mode.js
+    env:
+      MODE: tampered
+- launchApp:
+    clearState: true
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: tab-library
+    timeout: 60000
+- tapOn:
+    id: tab-library
+- extendedWaitUntil:
+    visible:
+      id: catalog-info
+      text: "Signed catalog 1 · test keys.*"
+    timeout: 30000
+- takeScreenshot: e2e/out/dl-01-library
+
+# 1. Catalog updates
+- tapOn:
+    id: catalog-update
+- extendedWaitUntil:
+    visible:
+      id: message-catalog
+      text: "Catalog update rejected: bad_signature.*"
+    timeout: 60000
+- takeScreenshot: e2e/out/dl-02-tampered
+- runScript:
+    file: mirror-mode.js
+    env:
+      MODE: wrong-key
+- tapOn:
+    id: catalog-update
+- extendedWaitUntil:
+    visible:
+      id: message-catalog
+      text: "Catalog update rejected: bad_signature.*cat-test-2026a.*"
+    timeout: 60000
+- runScript:
+    file: mirror-mode.js
+    env:
+      MODE: good
+- tapOn:
+    id: catalog-update
+- extendedWaitUntil:
+    visible:
+      id: message-catalog
+      text: "Catalog updated to 2"
+    timeout: 60000
+- assertVisible:
+    id: catalog-info
+    text: "Signed catalog 2 · test keys.*"
+- runScript:
+    file: mirror-mode.js
+    env:
+      MODE: rollback
+- tapOn:
+    id: catalog-update
+- extendedWaitUntil:
+    visible:
+      id: message-catalog
+      text: "Catalog update rejected: rollback.*"
+    timeout: 60000
+- takeScreenshot: e2e/out/dl-03-catalog
+
+# 2. Downloads
+- scrollUntilVisible:
+    element:
+      id: download-test-smoke-en
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: download-test-smoke-en
+- scrollUntilVisible:
+    element:
+      id: download-test-mirror-fallback
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: download-test-mirror-fallback
+- scrollUntilVisible:
+    element:
+      id: download-test-corrupt
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: download-test-corrupt
+- extendedWaitUntil:
+    visible:
+      id: result-test-corrupt
+      text: "Download failed: hash_mismatch.*"
+    timeout: 120000
+- takeScreenshot: e2e/out/dl-04-corrupt-rejected
+- scrollUntilVisible:
+    element:
+      id: status-test-smoke-en
+      text: "Verified"
+    direction: UP
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: status-test-mirror-fallback
+      text: "Verified"
+    direction: UP
+    timeout: 60000
+- assertNotVisible:
+    id: installed-test-corrupt
+- scrollUntilVisible:
+    element:
+      id: network-log
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: network-log
+    text: "Download requests this session: [0-9]+ \\(127\\.0\\.0\\.1:8443\\)"
+- takeScreenshot: e2e/out/dl-05-installed
+
+# 3. The downloaded pack opens
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- inputText: Canberra
+- tapOn:
+    id: search-fulltext
+- extendedWaitUntil:
+    visible:
+      id: search-result-0
+    timeout: 15000
+- tapOn:
+    id: search-result-0
+- extendedWaitUntil:
+    visible:
+      text: "Opened in .*"
+    timeout: 15000
+- assertVisible: "Blocked requests: 0"
+- assertNotVisible:
+    id: unverified-label
+- takeScreenshot: e2e/out/dl-06-article
+- back
+
+# 4. Import an unknown ZIM (pushed to Download/ by the runner)
+- tapOn:
+    id: tab-library
+- scrollUntilVisible:
+    element:
+      id: library-import
+    direction: UP
+    timeout: 20000
+- tapOn:
+    id: library-import
+- runFlow:
+    file: pick-download-file.yaml
+    env:
+      FILE_NAME: eval-heldout.zim
+- extendedWaitUntil:
+    visible: "Open unverified content\\?"
+    timeout: 60000
+- takeScreenshot: e2e/out/dl-07-consent
+- tapOn: "Open anyway"
+- scrollUntilVisible:
+    element:
+      text: "Unverified content — not in the signed catalog"
+    direction: UP
+    timeout: 30000
+- takeScreenshot: e2e/out/dl-08-unverified
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- eraseText: 40
+- inputText: Halvik
+- tapOn:
+    id: search-fulltext
+- extendedWaitUntil:
+    visible:
+      id: search-result-0
+    timeout: 15000
+- assertVisible:
+    id: unverified-label
+- takeScreenshot: e2e/out/dl-09-unverified-search

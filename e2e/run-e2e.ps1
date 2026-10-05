@@ -38,6 +38,23 @@ function Set-AppLocale([string]$Locales) {
   if ($LASTEXITCODE -ne 0) { throw "could not set app locale '$Locales'" }
 }
 
+# Sum of rx+tx bytes of one UID over every non-loopback interface since boot (dumpsys netstats).
+function Get-UidBytes([string]$Uid) {
+  & adb @adbArgs shell dumpsys netstats --poll | Out-Null
+  $lines = & adb @adbArgs shell dumpsys netstats detail
+  $total = [int64]0
+  $inUid = $false
+  $section = $false
+  foreach ($line in $lines) {
+    if ($line -match '^\s*UID stats:') { $section = $true; continue }
+    if ($section -and $line -match '^\s*UID tag stats:') { break }
+    if (-not $section) { continue }
+    if ($line -match '^\s*ident=.* uid=(-?\d+) ') { $inUid = ($Matches[1] -eq $Uid); continue }
+    if ($inUid -and $line -match 'rb=(\d+) .*tb=(\d+)') { $total += [int64]$Matches[1] + [int64]$Matches[2] }
+  }
+  return $total
+}
+
 function Invoke-Flow([string]$Flow, [string]$Report) {
   # APP_ID is ASCII, so -e is safe here (Greek values stay in the flows' env blocks).
   $maestroArgs = @('test', $Flow, '-e', "APP_ID=$package", '--format', 'junit', '--output', (Join-Path $out $Report), '--test-output-dir', $out)
@@ -48,6 +65,8 @@ function Invoke-Flow([string]$Flow, [string]$Report) {
 }
 
 & adb @adbArgs logcat -c
+$uid = ((& adb @adbArgs shell dumpsys package $package) | Select-String -Pattern 'appId=(\d+)' | Select-Object -First 1).Matches[0].Groups[1].Value
+$bytesBefore = Get-UidBytes $uid
 $flows = @(
   @{ Flow = 'e2e/ask-en.yaml'; Report = 'report-en.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/ask-t1.yaml'; Report = 'report-t1.xml'; Locale = 'en-US' },
@@ -66,6 +85,8 @@ try {
   Pop-Location
 }
 
+$egress = (Get-UidBytes $uid) - $bytesBefore
+$downloads = @(& adb @adbArgs logcat -d -s 'SkepiContentStore:*' | Select-String -SimpleMatch 'download requested:')
 $log = & adb @adbArgs logcat -d -s 'ExpoZim:*'
 $log | Set-Content -Encoding UTF8 (Join-Path $out 'expozim-logcat.txt')
 $blocked = @($log | Select-String -SimpleMatch 'blocked request')
@@ -73,8 +94,14 @@ $blocked | ForEach-Object { $_.Line } | Set-Content -Encoding UTF8 (Join-Path $o
 
 foreach ($r in $results) { Write-Host "Maestro exit code ($($r.Flow)): $($r.Exit)" }
 Write-Host "Blocked WebView requests during E2E: $($blocked.Count)"
+Write-Host "ContentStore download requests during E2E: $($downloads.Count)"
+Write-Host "Bytes of UID $uid over real interfaces during E2E: $egress"
 $failed = @($results | Where-Object { $_.Exit -ne 0 })
 if ($failed.Count -gt 0) { exit $failed[0].Exit }
+if ($downloads.Count -gt 0 -or $egress -ne 0) {
+  Write-Error 'The app reached the network during the offline flows (zero-egress check).'
+  exit 4
+}
 if ($blocked.Count -gt 0) {
   Write-Error 'WebView attempted non-zim requests during E2E (see e2e/out/blocked-requests.txt).'
   exit 3

@@ -6,7 +6,7 @@ appId: ${APP_ID}
 name: SKEPI English flow (offline)
 env:
   SEARCH_QUERY: Water purification
-  ASK_QUESTION: Where is the Great Barrier Reef?
+  ASK_QUESTION: What is the capital of Australia?
   UNRELATED_QUESTION: What is my grandmother's recipe for truffle souffle?
 onFlowComplete:
   - setAirplaneMode: disabled

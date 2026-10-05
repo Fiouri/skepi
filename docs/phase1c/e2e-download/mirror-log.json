@@ -1,0 +1,122 @@
+﻿[
+    {
+        "at":  "2026-10-05T15:17:06.247Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "tampered"
+    },
+    {
+        "at":  "2026-10-05T15:17:06.872Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json.sig",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "tampered"
+    },
+    {
+        "at":  "2026-10-05T15:17:10.274Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "wrong-key"
+    },
+    {
+        "at":  "2026-10-05T15:17:10.890Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json.sig",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "wrong-key"
+    },
+    {
+        "at":  "2026-10-05T15:17:13.760Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "good"
+    },
+    {
+        "at":  "2026-10-05T15:17:14.391Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json.sig",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "good"
+    },
+    {
+        "at":  "2026-10-05T15:17:17.326Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "rollback"
+    },
+    {
+        "at":  "2026-10-05T15:17:17.920Z",
+        "method":  "GET",
+        "path":  "/catalog/catalog.json.sig",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "rollback"
+    },
+    {
+        "at":  "2026-10-05T15:17:29.572Z",
+        "method":  "GET",
+        "path":  "/packs/eval-smoke-en.zim",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "rollback"
+    },
+    {
+        "at":  "2026-10-05T15:17:33.630Z",
+        "method":  "GET",
+        "path":  "/corrupt/eval-synthetic.zim",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "rollback"
+    },
+    {
+        "at":  "2026-10-05T15:17:34.219Z",
+        "method":  "GET",
+        "path":  "/packs/eval-synthetic.zim",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "rollback"
+    },
+    {
+        "at":  "2026-10-05T15:17:39.424Z",
+        "method":  "GET",
+        "path":  "/corrupt/eval-smoke-el.zim",
+        "query":  "",
+        "range":  null,
+        "userAgent":  "SKEPI",
+        "status":  200,
+        "mode":  "rollback"
+    }
+]
