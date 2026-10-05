@@ -4,12 +4,13 @@ import { findCards } from '@skepi/emergency-cards';
 import { useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import { BlackoutControls } from '../../components/Blackout';
+import { BlackoutControls, PowerTips } from '../../components/Blackout';
 import { CardLinks } from '../../components/EmergencyCards';
 import { Readiness } from '../../components/Readiness';
 import { Button, useStyles, UnverifiedLabel } from '../../components/ui';
 import { knowledge, ragArchives, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
+import { usePrefs } from '../../lib/prefs';
 import { useTheme } from '../../lib/theme';
 
 interface Timing {
@@ -28,6 +29,7 @@ export default function SearchScreen() {
   const t = useMessages();
   const styles = useStyles();
   const theme = useTheme();
+  const blackout = usePrefs((s) => s.blackout);
   const archives = useContent((s) => s.archives);
   const status = useContent((s) => s.status);
   const [query, setQuery] = useState('');
@@ -79,7 +81,6 @@ export default function SearchScreen() {
     <View style={{ gap: 10 }}>
       <Button testID="home-emergency" tone="danger" label={t.home.emergency} hint={t.home.emergencyHint} onPress={() => { router.push('/emergency'); }} />
       <BlackoutControls />
-      <Readiness />
       <TextInput
         testID="search-input"
         style={styles.input}
@@ -127,6 +128,12 @@ export default function SearchScreen() {
       contentContainerStyle={{ padding: 12, paddingBottom: 48 }}
       data={hits}
       ListHeaderComponent={header}
+      ListFooterComponent={
+        <View style={{ gap: 10, marginTop: 10 }}>
+          <Readiness />
+          {blackout && <PowerTips />}
+        </View>
+      }
       keyExtractor={(h) => `${h.archiveId}/${h.path}`}
       keyboardShouldPersistTaps="handled"
       renderItem={({ item, index }) => (

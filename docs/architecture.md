@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -82,14 +82,15 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /contracts         TS interfaces: KnowledgeEngine, InferenceEngine, ContentStore, TransferService, DeviceProfile
   /db                SQL migrations + typed queries (shared mobile/desktop)
   /i18n              English (default) / Greek strings, typed catalogs + locale resolution
-  /emergency-cards   Curated static emergency cards (Markdown + sources), English master + translations
-  /ui-tokens         Colours, typography, blackout theme
+  /emergency-cards   Curated static emergency cards (typed data + per-step sources), English master + Greek; per-country emergency numbers; release check for draft cards
+  /ui-tokens         Colours, type scale, touch targets, light and blackout themes (WCAG AA checked in tests)
 /modules
   /expo-zim          Kotlin + Swift binding over libkiwix/libzim, plus the native article viewer
   /expo-device-profile  RAM, thermal state, battery, free storage
   /expo-transfer     Local hotspot, QR pairing, TLS server/client for P2P
   /expo-hash         Streaming SHA-256 (whole file + 64 MiB chunks) on a native thread, progress, cancel
   /expo-content-store  The only network user: system DownloadManager, SAF import, atomic install, embedded catalog
+  /expo-emergency-tools  SOS torch (Morse timeline), compass, one-shot GNSS fix (GPS provider, no Play Services), screen brightness
 /crates
   /zim-ffi           Rust FFI to libzim (cxx)
   /desktop-core      Inference, ZIM, hashing, transfer for Tauri
@@ -99,6 +100,7 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /catalog-builder   Builds and signs catalog.json (keygen, pin, build, keylist, verify; key never in the repo or CI)
   /rag-eval          Answer evaluation against golden sets
   /bench             Benchmarks: tokens/s, latency, energy
+  /release-guards    CI checks on the Android release build: permission allowlist (aapt2), release JS bundle rebuild probe
 /docs                Architecture, ADRs, threat model, SECURITY.md, phase reports
 ```
 
@@ -254,7 +256,7 @@ Every answer comes in **two layers**, both built only from passages found on the
 2. **Emergency and medical intercept:** fixed lexicons per language (English, Greek). An emergency match shows the emergency number and the card slot immediately; a medical match (doses, drugs, symptoms, diseases, treatment) shows the number and Layer 1 first and gates the AI summary behind a tap.
 3. **Query rewrite (T2+ only, later phase):** the LLM with GBNF outputs `{ queries: { lang: string, terms: string[] }[], intent }`. Today every tier uses the question without stopwords.
 4. **Retrieval:** in each open pack, Xapian full-text with the conjunctive query plus single-keyword queries (always, not only when the conjunctive query is short) and title suggestions for all keywords and adjacent keyword pairs; all lists merged with reciprocal rank fusion over the **rank inside each archive** (never the position in an engine's concatenated multi-archive list; Phase 1c parity fix), packs in another language than the question offset by one full list, deterministic tie-breaks; top 8 articles. Folding maps the Greek final ς to σ for matching; queries restore ς because the ZIM index keeps it (Phase 1b fix: Greek single-word questions found nothing).
-5. **Passage selection:** sections are first cleaned of instruction-like sentences (`sanitizeSourceText`), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
+5. **Passage selection:** sections are first cleaned of injected text (`sanitizeSourceText`: the Phase 1d **structural filter** — forged `<source>` blocks/tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines, sentences addressed to the model/assistant/AI/summariser, each with the rest of its paragraph — plus the Phase 1b lexicon; section text keeps one line per block element so paragraphs bound the removal), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
 6. **Context budget, in characters** per tier and language, converted with the active model's tokens-per-character (table above). Every passage must pass the no-source bar and contain the question's numbers; when the question names an article (full title match), passages come from that article. Otherwise preference for diversity across articles. Articles are ordered by their best passage; **passages of one article keep reading order** (lead first) — rag-eval coverage en 60 → 72%, el 40 → 47% (Phase 1c).
 7. **No source:** if the best chunk covers < 60% of the query terms or scores < 0.5, show "No relevant source found". No Layer 1 passages, no generation. Calibrated with rag-eval.
 8. **Prompt and output format:** a short fixed system prompt (`rag-v5-json-short`, KV-cache prefix; asks for `covered: false` on personal and future questions), passages wrapped in `<source id="S1" title="…">…</source>` with tag characters neutralised, then a one-line language instruction and the question. The model must answer in grammar-constrained JSON `{covered, sentences[1..n]{text ≤ maxLength, source ∈ ids}}`. Source text is data, not instructions.
@@ -266,7 +268,7 @@ Every answer comes in **two layers**, both built only from passages found on the
    - An answer left with no supported sentence is hidden; Layer 1 stays.
 10. **Display:** every AI answer carries the fixed label "AI summary — check the source" ("Unverified AI summary — check the source" on medical intent). Each sentence carries a tappable `[S1]` chip that opens the article at the section. If source and answer languages differ, the chip says so and offers the original text (later).
 
-**Medical intent:** the emergency number and Layer 1 are shown (the curated card joins them in Phase 1d). The AI summary is available only by tap and is labelled "Unverified AI summary — check the source".
+**Medical intent:** the emergency number, the matching curated cards (intercept topics + card keywords) and Layer 1 are shown, in that order (Phase 1d). The AI summary is available only by tap and is labelled "Unverified AI summary — check the source".
 
 **Why not a vector index of all of Wikipedia:** embeddings for millions of chunks would take many GB and hours on a phone. Xapian is already in the ZIM and covers recall. Embeddings are only for reranking a few dozen chunks. Small curated packs (Survival, WikiMed) may ship precomputed embeddings later.
 
@@ -401,7 +403,7 @@ The biggest risk is a malicious file (ZIM, GGUF, PMTiles) reaching a C++ parser.
 | Tampered content via mirror, MITM or P2P | Ed25519 catalog with pinned keys, SHA-256 per file and chunk, `sequence` anti-rollback |
 | Theft of the catalog signing key | Key kept offline (hardware key or offline machine), never in CI; backup key and rotation procedure |
 | XSS or data leak from article HTML | Native viewer: `zim://` only, JS off, strict CSP, no JS bridge, no file:// or network; covered by instrumentation tests |
-| Prompt injection via articles | No LLM tools; source sentences with injection markers (forged `<source>` tags, "ignore previous instructions", Greek equivalents) are removed before chunking; answers always with checked citations; emergency cards never pass through the LLM |
+| Prompt injection via articles | No LLM tools; the structural filter (forged source markup, chat markup, JSON role objects, role prefixes, sentences addressed to the model) and the injection lexicon remove text before chunking, so neither Layer 1 nor the model sees it; answers always with checked citations; emergency cards never pass through the LLM |
 | Attacker on the local network during P2P | Session token, TLS pinned from the QR, read-only server for selected packs, auto-close |
 | Physical access or device seizure | SQLite encrypted with SQLCipher (key in Keystore/Keychain); optional biometric lock; one-tap "clear history" |
 | Network leaks to third parties | Network only via `ContentStore` to catalog hosts; no analytics SDK, no Google Play Services for location; a test asserts zero egress |
@@ -424,7 +426,7 @@ Nothing leaves the device: no account, backend, analytics or third-party crash r
 - **Errors:** local rotating log (~1 MB); the user exports it manually after seeing its content. Never contains query text or coordinates.
 - **Location:** no location history; only places the user saves explicitly.
 - **AI history:** "save conversations" toggle (on by default) and one-tap delete all.
-- **Permissions:** minimal — network, location while in use, camera only for QR, flashlight for SOS; no contacts or photos.
+- **Permissions:** minimal. Release allowlist (CI, `tools/release-guards`): INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION; never background location. The torch needs no permission (`CameraManager.setTorchMode`); SMS and calls are hand-offs (`sms:`, `tel:`), never sent by the app. Camera (QR) arrives with P2P. No contacts or photos.
 - **Store forms:** "no data collected" on Play Data Safety and Apple Privacy Nutrition Label; true only while the zero-egress test passes.
 
 ## Performance, energy and blackout mode
@@ -454,13 +456,13 @@ Targets are measured on a T1 reference device (4 GB Android). A PR that regresse
 
 **Blackout mode**
 
-One tap from the home screen; suggested automatically when battery drops below 30% without charging.
+One tap from the home screen (switch, persisted in app.db); suggested when the battery is below 30% and not charging (checked only while the home screen is in front, never in blackout mode).
 
-- Pure-black theme (OLED), no animations, dark CSS in articles.
-- AI off; opens per request with the cost shown. Layer 1 answers remain.
-- GPS on tap only; zero background work.
-- A card with phone power-saving tips (airplane mode, brightness, OS battery saver).
-- Every costly button shows the measured estimate (e.g. "≈ 1% battery").
+- Pure-black theme (OLED, `packages/ui-tokens` `BLACKOUT`), no animations (navigation transitions off, no spinners), dark CSS injected into article HTML by the sealed viewer.
+- AI off by default: no automatic summary, the model is unloaded on entry; "Summarise with AI" on request. Layer 1 answers remain.
+- GPS and compass on tap only; no periodic work at all in blackout mode.
+- A power-saving tips card (airplane mode, brightness, OS battery saver, close apps).
+- Costly buttons (AI summary, GPS fix, SOS torch per minute) show the median of the last measured costs on this device ("≈ 1% battery") once three samples exist. Samples (`energy_samples`) come from the battery charge counter (µAh) or the 1% level steps between the start and the end of the action; nothing is recorded while charging.
 
 **Desktop:** the "station" powered by a UPS or portable power station, with an AI power cap (threads, GPU layers) and a "library and distribution only" mode.
 
@@ -500,26 +502,27 @@ Two moments of use: **preparation** (online; the user chooses and downloads) and
 
 **Onboarding "Get prepared"**
 
-1. Language and country (drives emergency numbers, default packs and map).
+1. Language (phone language, English, Greek) and country (drives emergency numbers; default from the OS region, never the network).
 2. Automatic tier and free-space detection.
-3. Storage budget (e.g. 2 / 8 / 32 GB) with a preset pack bundle each; editable.
-4. "You are ready" indicator on the home screen: cards ✓, regional map ✓, encyclopedia ✓, AI ✓.
+3. Storage budget 2 / 8 / 32 GB → preset (`planPreset` in core): English defaults, the default model when the tier runs AI, then the locale's own packs (the largest that fits); capped by free space minus the OS reserve. Downloads go through ContentStore; installed packs are kept. Debug builds with the test catalog plan only test packs (local mirror).
+4. Disclaimer (educational content, not medical advice, no warranty) before the app opens.
+5. "You are ready" indicator on the home screen: cards ✓ (draft), regional map ✓, encyclopedia ✓, AI ✓ (or "not on this device" on T0). "Get prepared" can be run again from the Library.
 
 **Tools that work without packs**
 
-- **SOS light:** Morse ···———··· with the flash; screen mode (white or red).
-- **Compass and coordinates:** magnetometer + GNSS; "send my location by SMS" opens the SMS app, never sends automatically.
+- **SOS light:** Morse ···———··· (unit 250 ms, `SOS_TIMELINE` in core) with the torch via `CameraManager.setTorchMode` on a native thread; screen mode (white or red, full brightness, same timeline). The screen stays on while it runs.
+- **Compass and coordinates:** rotation-vector (or accelerometer + magnetometer) heading, declination from the on-device World Magnetic Model; one GNSS fix per tap from the GPS provider (works in airplane mode; no Play Services). Decimal and DMS coordinates; "send my location by SMS" opens the SMS app with the text and an OpenStreetMap link filled in, never sends automatically.
 - **Sun times:** sunrise and sunset computed locally.
 - **Checklists:** go-bag, home supplies, family plan; editable and linked to cards.
 - **Notes:** plain text, encrypted, optionally linked to a map place.
 
-**Accessibility:** dynamic type and touch targets ≥ 48 dp; WCAG AA contrast in both themes; TalkBack/VoiceOver labels everywhere; emergency cards read aloud with the OS TTS.
+**Accessibility:** dynamic type (no fixed text heights; system font scale honoured) and touch targets ≥ 48 dp (`MIN_TOUCH_DP`); WCAG AA contrast in both themes (every text/background pair in `packages/ui-tokens` is tested); TalkBack/VoiceOver labels and roles on buttons, links, radios, headers and alerts; emergency cards read aloud with the OS TTS (expo-speech).
 
 **Language:** every UI string lives in `packages/i18n` (English master, Greek; a missing key is a type error). The app follows the device's first preferred language: Greek → Greek, anything else → English. Android 13+ per-app language is supported (`localeConfig` with `en`, `el`, via expo-localization).
 
 ## Data model and storage
 
-Large data are immutable files. User data live in one encrypted SQLite database (op-sqlite + SQLCipher; 256-bit random key per install, stored with expo-secure-store under an Android Keystore key). Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only; a database from a newer app or an edited migration is refused. Phase 1c ships migration 1 (`packs`, `settings`); the other tables below arrive with their features.
+Large data are immutable files. User data live in one encrypted SQLite database (op-sqlite + SQLCipher; 256-bit random key per install, stored with expo-secure-store under an Android Keystore key). Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only; a database from a newer app or an edited migration is refused. Phase 1c ships migration 1 (`packs`, `settings`), Phase 1d migration 2 (`energy_samples`; typed settings for onboarding, disclaimer, UI language, country, storage budget and blackout mode); the other tables below arrive with their features.
 
 ```
 <content root>/
@@ -607,7 +610,7 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 | App Store / TestFlight | iOS build | Apple Developer Program (annual fee); same account notarises macOS |
 | Windows | Tauri MSI/NSIS, winget | Without a code-signing certificate SmartScreen warns |
 
-**CI (GitHub Actions):** today `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests and the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0); planned: Android build, macOS (iOS, macOS), Windows (Tauri). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
+**CI (GitHub Actions):** `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests, the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0) and, since Phase 1d, `android-release-guards`: expo prebuild, the draft-cards gate must fail, `assembleRelease` (debug-signed in CI, draft cards allowed for this check only), the release permission allowlist (`aapt2 dump permissions`) and the release JS bundle rebuild probe (`tools/release-guards`); planned: macOS (iOS, macOS), Windows (Tauri). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
 
 **Distribution note:** sideloaded APKs trigger Google Play Protect prompts on install; Play Store and F-Droid are the user-facing channels.
 
@@ -657,8 +660,8 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - ~~Citation hardening: bigram support check, numeric/unit rule, adversarial set in rag-eval, medical-intent flow~~ (1b).
    - Viewer sealing instrumentation tests.
    - ~~Signed catalog and downloads; English default packs + Greek locale packs~~ (1c; public hosting later).
-   - Phase 1d, first item: structural source filter (forged source tags, JSON role/system objects, `SYSTEM:`/assistant-addressed lines, sentences addressed to the model) before Layer 1 and Layer 2, no new lexicon phrases; fresh held-out set before public release.
-   - Emergency cards (English master + Greek), onboarding, blackout mode, T1-simulation mode.
+   - **Phase 1d · safety fixes, emergency cards, onboarding, blackout mode — see `docs/phase-1d-report.md`.** Structural source filter before Layer 1 and Layer 2 (no new lexicon phrases; fresh held-out set before public release) · release permission allowlist and bundle-rebuild probe in CI · 12 draft emergency cards from public-domain sources (release fails with drafts unless `-PskepiAllowDraftCards=true`) · per-country numbers · onboarding with storage presets · blackout mode with measured costs · Tools tab (SOS torch/screen, compass, GNSS, SMS hand-off) · accessibility pass. Phase 1 gate: `docs/phase-1-gate.md`.
+   - ~~Emergency cards (English master + Greek), onboarding, blackout mode~~ (1d; cards are drafts until reviewed); ~~T1-simulation mode~~ (1a).
    - ~~rag-eval (English primary, Greek secondary, tokens/char)~~ (1b, CI smoke subset); Maestro in CI.
    - Gate: Maestro in airplane mode green · zero egress · viewer sealing tests green · rag-eval above threshold · Layer 1 < 1 s and sources < 2 s (T1-simulation) · first token < 15 s on T2 · T1 measured if a device is available.
 3. **Phase 2 · iOS and P2P.** iOS from the same Expo app · Swift binding with CoreKiwix.xcframework · iOS native viewer · internal TestFlight · place search and POIs · P2P with hotspot and QR on Android and iOS · APK propagation.

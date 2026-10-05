@@ -1,6 +1,7 @@
 # Tools (release build, airplane mode): SOS torch, red screen SOS, compass, GNSS fix (location
 # permission granted by run-e2e.ps1; the first fix without A-GPS can take minutes) and the SMS hand-off,
-# which only opens the SMS app with the text filled in (nothing is sent).
+# which only opens the SMS app with the text filled in (nothing is sent). -SimulateGnss feeds the gps
+# provider from a shell test provider when the phone has no sky view.
 appId: ${APP_ID}
 name: SKEPI tools (offline)
 onFlowComplete:
@@ -75,9 +76,11 @@ onFlowComplete:
     timeout: 10000
 - tapOn:
     id: location-sms
+# The SMS app opens (Samsung Messages asks for the recipient first, with the text kept). No screenshot
+# here: that screen shows the phone's contacts. run-e2e.ps1 checks the VIEW sms: intent in logcat.
 - extendedWaitUntil:
-    visible: ".*My location: .*openstreetmap.*"
+    notVisible:
+      id: tools-screen
     timeout: 15000
-- takeScreenshot: e2e/out/tools-05-sms
 - back
 - back

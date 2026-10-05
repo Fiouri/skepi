@@ -20,7 +20,9 @@ param(
   [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
   [string]$AppId = 'org.skepi.app',
   [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat'),
-  [string[]]$Only = @()
+  [string[]]$Only = @(),
+  # tools.yaml: feed the gps provider from a shell test provider (indoors, no sky view).
+  [switch]$SimulateGnss
 )
 
 Set-StrictMode -Version Latest
@@ -83,11 +85,37 @@ $flows = @(
   @{ Flow = 'e2e/blackout.yaml'; Report = 'report-blackout.xml'; Locale = 'en-US'; Battery = $true },
   @{ Flow = 'e2e/locale-el.yaml'; Report = 'report-el.xml'; Locale = 'el-GR' }
 )
+# -Only a,b arrives as one string through powershell -File: split it.
+$Only = @($Only | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if ($Only.Count -gt 0) { $flows = @($flows | Where-Object { $Only -contains [IO.Path]::GetFileNameWithoutExtension($_.Flow) }) }
+if ($flows.Count -eq 0) { throw "no flow matches -Only $($Only -join ',')" }
 
 # Location "while in use" for the GNSS step of tools.yaml.
 & adb @adbArgs shell pm grant $package android.permission.ACCESS_FINE_LOCATION
 & adb @adbArgs shell pm grant $package android.permission.ACCESS_COARSE_LOCATION
+
+# tools.yaml needs location services on (GNSS works in airplane mode); the previous state is restored.
+$locationWasOn = ((& adb @adbArgs shell cmd location is-location-enabled) -join '').Trim() -eq 'true'
+function Set-Location([bool]$On) {
+  & adb @adbArgs shell cmd location set-location-enabled $(if ($On) { 'true' } else { 'false' })
+}
+
+# Indoors the phone gets no GNSS fix. -SimulateGnss replaces the gps provider with a shell test provider
+# (Patras) for tools.yaml so the fix -> coordinates -> SMS path runs; without it the flow needs sky view.
+function Start-TestGps {
+  # The shell needs the MOCK_LOCATION app-op for test providers; Stop-TestGps sets it back to deny.
+  & adb @adbArgs shell appops set com.android.shell MOCK_LOCATION allow | Out-Null
+  & adb @adbArgs shell cmd location providers add-test-provider gps --requiresSatellite | Out-Null
+  & adb @adbArgs shell cmd location providers set-test-provider-enabled gps true | Out-Null
+  # The loop runs in the device shell; stopping the adb client ends it.
+  $loop = 'while true; do cmd location providers set-test-provider-location gps --location 38.24664,21.73457 --accuracy 8; sleep 2; done'
+  return Start-Process -FilePath adb -ArgumentList ($adbArgs + @('shell', "`"$loop`"")) -PassThru -WindowStyle Hidden
+}
+function Stop-TestGps($proc) {
+  if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+  & adb @adbArgs shell cmd location providers remove-test-provider gps
+  & adb @adbArgs shell appops set com.android.shell MOCK_LOCATION deny
+}
 
 # Blackout flow: a discharging battery at 25% (the phone is on USB power during E2E).
 function Set-SimulatedBattery([bool]$On) {
@@ -104,21 +132,30 @@ Push-Location $root
 try {
   foreach ($f in $flows) {
     Set-AppLocale $f.Locale
+    $location = $f.Flow -eq 'e2e/tools.yaml'
+    $gpsJob = $null
+    if ($location) { Set-Location $true; if ($SimulateGnss) { $gpsJob = Start-TestGps } }
     $battery = $f.ContainsKey('Battery')
     if ($battery) { Set-SimulatedBattery $true }
     try {
       $results += [pscustomobject]@{ Flow = $f.Flow; Exit = (Invoke-Flow $f.Flow $f.Report) }
     } finally {
       if ($battery) { Set-SimulatedBattery $false }
+      if ($location -and $SimulateGnss) { Stop-TestGps $gpsJob }
+      if ($location -and -not $locationWasOn) { Set-Location $false }
     }
   }
 } finally {
   Set-SimulatedBattery $false
+  if (-not $locationWasOn) { Set-Location $false }
   Set-AppLocale ''
   Pop-Location
 }
 
 $egress = (Get-UidBytes $uid) - $bytesBefore
+# SMS hand-off (tools.yaml): the app only started a VIEW sms: intent to the SMS app (data is redacted in logcat).
+$smsIntents = @(& adb @adbArgs logcat -d | Select-String -Pattern 'START u0 \{act=android.intent.action.VIEW dat=sms:')
+$toolsRan = @($results | Where-Object { $_.Flow -eq 'e2e/tools.yaml' }).Count -gt 0
 $downloads = @(& adb @adbArgs logcat -d -s 'SkepiContentStore:*' | Select-String -SimpleMatch 'download requested:')
 $log = & adb @adbArgs logcat -d -s 'ExpoZim:*'
 $log | Set-Content -Encoding UTF8 (Join-Path $out 'expozim-logcat.txt')
@@ -129,7 +166,12 @@ foreach ($r in $results) { Write-Host "Maestro exit code ($($r.Flow)): $($r.Exit
 Write-Host "Blocked WebView requests during E2E: $($blocked.Count)"
 Write-Host "ContentStore download requests during E2E: $($downloads.Count)"
 Write-Host "Bytes of UID $uid over real interfaces during E2E: $egress"
+if ($toolsRan) { Write-Host "SMS hand-off intents (VIEW sms:): $($smsIntents.Count)" }
 $failed = @($results | Where-Object { $_.Exit -ne 0 })
+if ($toolsRan -and $failed.Count -eq 0 -and $smsIntents.Count -lt 1) {
+  Write-Error 'tools.yaml: no VIEW sms: intent was started (SMS hand-off).'
+  exit 5
+}
 if ($failed.Count -gt 0) { exit $failed[0].Exit }
 if ($downloads.Count -gt 0 -or $egress -ne 0) {
   Write-Error 'The app reached the network during the offline flows (zero-egress check).'

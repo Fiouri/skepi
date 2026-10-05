@@ -13,6 +13,14 @@ onFlowComplete:
 - launchApp:
     stopApp: true
 - runFlow: app-ready.yaml
+# Start from normal mode (a previous run may have left blackout on).
+- runFlow:
+    when:
+      visible:
+        id: blackout-on
+    commands:
+      - tapOn:
+          id: blackout-toggle
 - extendedWaitUntil:
     visible:
       id: blackout-suggestion
@@ -24,10 +32,13 @@ onFlowComplete:
     visible:
       id: blackout-on
     timeout: 5000
-- assertVisible:
-    id: power-tips
 - assertNotVisible:
     id: blackout-suggestion
+- scrollUntilVisible:
+    element:
+      id: power-tips
+    direction: DOWN
+    timeout: 20000
 - takeScreenshot: e2e/out/blackout-01-home
 # Ask: Layer 1 only, AI on request (three measured summaries)
 - tapOn:
@@ -80,8 +91,14 @@ onFlowComplete:
     id: search-fulltext
 - extendedWaitUntil:
     visible:
-      id: search-result-0
+      id: search-timing
+      text: "fulltext:.*"
     timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: search-result-0
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: search-result-0
 - extendedWaitUntil:
@@ -106,6 +123,11 @@ onFlowComplete:
 # Back to normal
 - tapOn:
     id: tab-search
+- scrollUntilVisible:
+    element:
+      id: blackout-toggle
+    direction: UP
+    timeout: 20000
 - tapOn:
     id: blackout-toggle
 - extendedWaitUntil:

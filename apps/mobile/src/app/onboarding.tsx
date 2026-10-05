@@ -113,7 +113,8 @@ export default function OnboardingScreen() {
   const title = (p: CatalogPack): string => (lang === 'el' ? (p.title.el ?? p.title.en) : p.title.en);
 
   return (
-    <ScrollView style={styles.fill} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 48 }} testID="onboarding">
+    <View style={styles.fill} testID="onboarding">
+    <ScrollView style={styles.fill} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }}>
       <Text style={styles.muted} testID="onboarding-step">
         {t.onboarding.stepOf({ step: step + 1, total: STEPS })}
       </Text>
@@ -227,7 +228,9 @@ export default function OnboardingScreen() {
         </View>
       )}
 
-      <View style={[styles.row, { justifyContent: 'space-between' }]}>
+    </ScrollView>
+      {/* Navigation stays on screen: the country list is longer than one screen. */}
+      <View style={[styles.stickyHeader, styles.row, { justifyContent: 'space-between', borderTopWidth: 1, borderBottomWidth: 0, borderTopColor: styles.input.borderColor }]}>
         {step > 0 ? <Button testID="onboarding-back" label={t.onboarding.back} onPress={() => { setStep((s) => s - 1); }} /> : <View />}
         {step < STEPS - 1 && (
           <Button
@@ -237,6 +240,6 @@ export default function OnboardingScreen() {
           />
         )}
       </View>
-    </ScrollView>
+    </View>
   );
 }

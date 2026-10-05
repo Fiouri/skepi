@@ -1,6 +1,7 @@
 # SKEPI threat model
 
-Started in Phase 1c (catalog, downloads, import, viewer). Updated with every feature that adds an input,
+Started in Phase 1c (catalog, downloads, import, viewer); Phase 1d added the structural source filter,
+release guards, emergency cards, location and the tools. Updated with every feature that adds an input,
 a parser or a network path. Architecture context: `docs/architecture.md` ("Security", "Content pipeline").
 
 ## Assets
@@ -20,7 +21,35 @@ a parser or a network path. Architecture context: `docs/architecture.md` ("Secur
 3. **File import** (Storage Access Framework: USB, Files, another app).
 4. **Article viewer** (HTML from ZIM files inside a WebView).
 5. **Model output** (text shown to the user; covered by citation checks, `docs/architecture.md`).
-6. Later: P2P transfer (Phase 2).
+6. **Article text as model input** (prompt injection inside ZIM passages; see "Source text").
+7. **Bundled emergency cards and numbers** (safety-critical static content).
+8. **Device sensors and intents** (GNSS, compass, torch, SMS/dialler hand-off; Phase 1d).
+9. Later: P2P transfer (Phase 2).
+
+## Source text (prompt injection)
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| Injected instructions inside an article reach the model or Layer 1 | Before chunking, `sanitizeSourceText` removes **structural** injections — forged `<source>` blocks and tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines (`SYSTEM:`, `[assistant]`), sentences addressed to the model/assistant/AI/summariser (vocatives, "note for …", persona assignments, answer-format orders, "this line supersedes …"); a structural hit also drops the rest of its paragraph — and the Phase 1b lexicon phrases. Paragraph breaks come from the extraction (one line per block element). | `packages/core/test/sanitize.test.ts`, `rag.test.ts` (Layer 1 and the prompt); rag-eval adversarial set (gated) and held-out section (reported) |
+| An injection the filter misses | The model has no tools; every AI sentence must be supported by the cited source (bigram + number/unit checks); emergency cards never pass through the LLM. Accepted residual risk: a fact-shaped injected sentence can still appear verbatim in Layer 1, which always shows its source. | rag-eval |
+
+## Emergency cards and numbers
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| Wrong first-aid instruction | Static cards from public-domain US federal sources with a source and locator per step; never generated; every card ships as **draft** with a permanent banner until two first-aid instructors review it; CODEOWNERS on the folder. | `packages/emergency-cards` tests (schema, sources, translation numbers) |
+| Draft cards in a public release | `skepiCheckEmergencyCards` fails the release build; `-PskepiAllowDraftCards=true` for internal builds only, with a loud warning. | Gradle task; CI step "Release build must fail with draft emergency cards" |
+| Wrong emergency number | Bundled per-country dataset with a documented official source per country; unknown country → 112 labelled "check the local number"; the country is chosen by the user, never from the network. Calls only open the dialler. | `numbers.test.ts` |
+
+## Device sensors, permissions and intents
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| Permission creep in release builds | Allowlist on the release APK (`aapt2 dump permissions`): INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION (+ the app's own signature-level dynamic-receiver permission). ACCESS_BACKGROUND_LOCATION, CAMERA and RECORD_AUDIO are removed in the manifest. | `tools/release-guards` in CI (`android-release-guards`) |
+| Location tracking | GPS provider only (no Play Services, no network location), one fix per tap, updates removed after the fix or timeout; no history stored; the compass and GNSS stop when the Tools tab loses focus or the app goes to background. | `ExpoEmergencyToolsModule`; `e2e/tools.yaml` |
+| Silent SMS or calls | No SEND_SMS / CALL_PHONE permission: the app only opens the SMS app (`sms:?body=`) or the dialler (`tel:`); the user sends or calls. | permission allowlist; `run-e2e.ps1` (VIEW `sms:` intent) |
+| Torch left on | The Morse player switches off on its own thread after stop, on errors and when the app goes to background. | `MorsePlayerTest` |
+| Stale release bundle (old core code in a release) | Bundle task inputs include `packages/` and `modules/`; CI probe edits one file in each and requires a rebuilt bundle containing the change. | `tools/release-guards` bundle probe |
 
 ## Catalog
 
@@ -63,7 +92,8 @@ of key lists arrives with catalog hosting.
 ## Article viewer
 
 Unchanged from Phase 1a (sealed `zim://` WebView, JS off, strict CSP, no JS bridge, path traversal rejected;
-`SealingTest`). Unverified packs render through the same viewer with the same restrictions plus the label.
+`SealingTest`). Phase 1d: blackout mode adds an inline `<style>` after the CSP meta in HTML responses (inline
+style was already allowed); no script source changes (`SealingTest.blackoutThemeAddsDarkCssAndKeepsTheCsp`). Unverified packs render through the same viewer with the same restrictions plus the label.
 
 ## Data at rest
 
@@ -74,5 +104,6 @@ app.db is SQLCipher (op-sqlite); the 256-bit key is random per install and store
 
 - Catalog hosting and key-list distribution (later phase); maps (PMTiles) join the catalog then.
 - Fuzzing of libzim / llama.cpp loaders (Phase 2 gate).
-- Held-out adversarial results (`docs/phase-1c-report.md`): injected instructions that the sanitizer lexicon
-  does not match stay visible in Layer 1 passages (verbatim source text). Decision pending.
+- Held-out adversarial set: used for the Phase 1d decision (structural filter); a fresh unseen set is needed
+  before the public release.
+- Emergency cards: review by certified first-aid instructors (release blocker).

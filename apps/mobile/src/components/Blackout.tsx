@@ -44,7 +44,7 @@ function useLowBattery(enabled: boolean): number | null {
   return low;
 }
 
-/** One tap from home: blackout on/off, the low-battery suggestion and the power-saving tips. */
+/** One tap from home: blackout on/off and the low-battery suggestion. */
 export function BlackoutControls() {
   const t = useMessages();
   const styles = useStyles();
@@ -74,7 +74,6 @@ export function BlackoutControls() {
           {blackout ? t.blackout.on : t.blackout.off}
         </Text>
       </View>
-      {blackout && <PowerTips />}
     </View>
   );
 }
