@@ -1,7 +1,13 @@
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
+  ENERGY_SAMPLES_KEPT,
+  estimateEnergy,
+  formatEnergy,
   getPack,
+  listEnergySamples,
+  recordEnergySample,
+  type EnergySample,
   getSetting,
   listPacks,
   migrate,
@@ -67,19 +73,19 @@ const PACK: PackRow = {
 describe('migrate', () => {
   it('applies every migration once, in order, and is idempotent', async () => {
     const db = memoryDb();
-    expect(await migrate(db, MIGRATIONS, () => 42)).toEqual([1]);
+    expect(await migrate(db, MIGRATIONS, () => 42)).toEqual([1, 2]);
     expect(await migrate(db)).toEqual([]);
     expect(await schemaVersion(db)).toBe(MIGRATIONS.length);
     const tables = (await db.execute("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")).rows.map((r) => r.name);
-    expect(tables).toEqual(['packs', 'schema_migrations', 'settings']);
+    expect(tables).toEqual(['energy_samples', 'packs', 'schema_migrations', 'settings']);
   });
 
   it('applies later migrations forward only, keeping data', async () => {
     const db = memoryDb();
     await migrate(db);
     await upsertPack(db, PACK);
-    const next: Migration[] = [...MIGRATIONS, { version: 2, name: 'test_add', statements: ['CREATE TABLE extra (x INTEGER)'] }];
-    expect(await migrate(db, next)).toEqual([2]);
+    const next: Migration[] = [...MIGRATIONS, { version: 3, name: 'test_add', statements: ['CREATE TABLE extra (x INTEGER)'] }];
+    expect(await migrate(db, next)).toEqual([3]);
     expect(await getPack(db, PACK.id)).toEqual(PACK);
   });
 
@@ -93,7 +99,7 @@ describe('migrate', () => {
 
   it('refuses downgrades, edited migrations and gaps', async () => {
     const db = memoryDb();
-    await migrate(db, [...MIGRATIONS, { version: 2, name: 'future', statements: ['SELECT 1'] }]);
+    await migrate(db, [...MIGRATIONS, { version: MIGRATIONS.length + 1, name: 'future', statements: ['SELECT 1'] }]);
     await expect(migrate(db, MIGRATIONS)).rejects.toThrow(MigrationError);
     const edited = memoryDb();
     await migrate(edited);
@@ -143,5 +149,50 @@ describe('settings', () => {
     await expect(setSetting(db, 'catalog.accepted', { sequence: 1.5, sha256: 'x' })).rejects.toThrow();
     await db.execute("UPDATE settings SET value = '{broken' WHERE key = 'catalog.accepted'");
     expect(await getSetting(db, 'catalog.accepted')).toBeNull();
+  });
+});
+
+describe('energy samples', () => {
+  const sample = (pct: number, at: number): EnergySample => ({ action: 'ai-summary', tier: 'T2', batteryDeltaPct: pct, durationMs: 9000, createdAt: at });
+
+  it('records samples per action and tier and keeps only the newest ones', async () => {
+    const db = memoryDb();
+    await migrate(db);
+    for (let i = 0; i < ENERGY_SAMPLES_KEPT + 5; i += 1) await recordEnergySample(db, sample(0.1 * i, 1000 + i));
+    await recordEnergySample(db, { ...sample(2, 5000), tier: 'T1' });
+    const t2 = await listEnergySamples(db, 'ai-summary', 'T2');
+    expect(t2).toHaveLength(ENERGY_SAMPLES_KEPT);
+    expect(t2[0]?.createdAt).toBe(1000 + ENERGY_SAMPLES_KEPT + 4);
+    expect(await listEnergySamples(db, 'ai-summary', 'T1')).toHaveLength(1);
+  });
+
+  it('rejects impossible values', async () => {
+    const db = memoryDb();
+    await migrate(db);
+    await expect(recordEnergySample(db, sample(-1, 1))).rejects.toThrow();
+    await expect(recordEnergySample(db, sample(101, 1))).rejects.toThrow();
+    await expect(recordEnergySample(db, { ...sample(1, 1), durationMs: 1.5 })).rejects.toThrow();
+  });
+
+  it('estimates the median once enough samples exist, and formats it', () => {
+    expect(estimateEnergy([sample(1, 1), sample(2, 2)])).toBeNull();
+    expect(estimateEnergy([sample(0.2, 1), sample(5, 2), sample(0.4, 3)])).toEqual({ pct: 0.4, samples: 3 });
+    expect(estimateEnergy([sample(1, 1), sample(2, 2), sample(3, 3), sample(4, 4)])?.pct).toBe(2.5);
+    expect(formatEnergy({ pct: 0.05, samples: 3 })).toBe('< 0.1%');
+    expect(formatEnergy({ pct: 0.42, samples: 3 })).toBe('≈ 0.4%');
+    expect(formatEnergy({ pct: 1.6, samples: 3 })).toBe('≈ 2%');
+  });
+
+  it('validates the onboarding and blackout settings', async () => {
+    const db = memoryDb();
+    await migrate(db);
+    await setSetting(db, 'region.country', 'GR');
+    await setSetting(db, 'ui.locale', 'el');
+    await setSetting(db, 'blackout.enabled', true);
+    expect(await getSetting(db, 'region.country')).toBe('GR');
+    expect(await getSetting(db, 'ui.locale')).toBe('el');
+    expect(await getSetting(db, 'blackout.enabled')).toBe(true);
+    await expect(setSetting(db, 'region.country', 'greece')).rejects.toThrow();
+    await expect(setSetting(db, 'storage.budgetGb', -2)).rejects.toThrow();
   });
 });

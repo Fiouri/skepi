@@ -1,0 +1,28 @@
+{
+  "name": "@skepi/emergency-cards",
+  "version": "0.0.0",
+  "private": true,
+  "license": "CC-BY-SA-4.0 AND GPL-3.0-or-later",
+  "description": "Curated static emergency cards (English master, Greek translation) and per-country emergency numbers. Every change needs review by people with first-aid training (CODEOWNERS).",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src test scripts",
+    "test": "vitest run",
+    "check-release": "tsx scripts/check-release.ts"
+  },
+  "dependencies": {
+    "@skepi/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.3"
+  }
+}

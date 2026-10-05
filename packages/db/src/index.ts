@@ -1,4 +1,16 @@
 export { migrate, MigrationError, schemaVersion, type Row, type SqlDatabase, type SqlExecutor, type SqlValue } from './db';
+export {
+  ENERGY_ACTIONS,
+  ENERGY_SAMPLES_KEPT,
+  estimateEnergy,
+  formatEnergy,
+  listEnergySamples,
+  MIN_ENERGY_SAMPLES,
+  recordEnergySample,
+  type EnergyAction,
+  type EnergyEstimate,
+  type EnergySample,
+} from './energy';
 export { MIGRATIONS, type Migration } from './migrations';
 export {
   findPackByPath,
@@ -21,4 +33,5 @@ export {
   type SettingKey,
   type Settings,
   type TrustedKeySetting,
+  type UiLocaleSetting,
 } from './settings';

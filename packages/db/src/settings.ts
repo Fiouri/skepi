@@ -22,7 +22,21 @@ export interface Settings {
   'downloads.allowMetered': boolean;
   /** System downloads in flight, so a restarted app resumes verifying and installing them. */
   'downloads.active': ActiveDownload[];
+  /** "Get prepared" finished (epoch ms); until then the app opens on onboarding. */
+  'onboarding.completedAt': number;
+  /** The user accepted the disclaimer (educational content, not medical advice, no warranty). */
+  'disclaimer.acceptedAt': number;
+  /** UI language chosen at onboarding; 'system' follows the device. */
+  'ui.locale': UiLocaleSetting;
+  /** Country for emergency numbers (ISO 3166-1 alpha-2), chosen at onboarding, never from the network. */
+  'region.country': string;
+  /** Storage budget chosen at onboarding, in GB (pack preset). */
+  'storage.budgetGb': number;
+  /** Blackout mode: pure black, no animations, AI off by default, GPS on tap only. */
+  'blackout.enabled': boolean;
 }
+
+export type UiLocaleSetting = 'system' | 'en' | 'el';
 
 export interface ActiveDownload {
   packId: string;
@@ -36,6 +50,7 @@ export interface ActiveDownload {
 export type SettingKey = keyof Settings;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isTimestamp = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
 const isSequence = (v: unknown): v is SequenceSetting =>
   isObject(v) && typeof v.sequence === 'number' && Number.isSafeInteger(v.sequence) && typeof v.sha256 === 'string';
 
@@ -48,6 +63,12 @@ const VALIDATORS: { [K in SettingKey]: (v: unknown) => v is Settings[K] } = {
     return Array.isArray(keys) && keys.every((k) => isObject(k) && typeof k.keyId === 'string' && typeof k.publicKey === 'string');
   },
   'downloads.allowMetered': (v): v is boolean => typeof v === 'boolean',
+  'onboarding.completedAt': isTimestamp,
+  'disclaimer.acceptedAt': isTimestamp,
+  'ui.locale': (v): v is UiLocaleSetting => v === 'system' || v === 'en' || v === 'el',
+  'region.country': (v): v is string => typeof v === 'string' && /^[A-Z]{2}$/.test(v),
+  'storage.budgetGb': (v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 4096,
+  'blackout.enabled': (v): v is boolean => typeof v === 'boolean',
   'downloads.active': (v): v is ActiveDownload[] =>
     Array.isArray(v) &&
     v.every(

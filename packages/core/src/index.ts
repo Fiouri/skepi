@@ -77,7 +77,30 @@ export {
   type ParitySearch,
   type ParityStep,
 } from './parity';
-export { isInjection, sanitizeSourceText } from './sanitize';
+export {
+  hasRolePrefix,
+  isAddressedToModel,
+  isInjection,
+  sanitizeSourceText,
+  sanitizeWithReport,
+  structuralReason,
+  type Removal,
+  type RemovalReason,
+  type SanitizeReport,
+  type StructuralReason,
+} from './sanitize';
+export { morseTimeline, SOS_TIMELINE, SOS_UNIT_MS } from './morse';
+export {
+  planPreset,
+  RESERVE_BYTES,
+  SPACE_FACTOR,
+  STORAGE_PRESETS_GB,
+  usableBytes,
+  type PlanSkipReason,
+  type PresetInput,
+  type PresetPlan,
+  type StoragePresetGb,
+} from './prepare';
 export { DEFAULT_SUGGEST, suggestTitles, type SuggestOptions } from './suggest';
 export { percentile, summarize, type LatencySummary } from './stats';
 export {

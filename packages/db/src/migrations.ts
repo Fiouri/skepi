@@ -37,4 +37,19 @@ export const MIGRATIONS: readonly Migration[] = [
       'CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
     ],
   },
+  {
+    version: 2,
+    name: 'energy_samples',
+    statements: [
+      // Measured battery cost per action (blackout mode, "≈ x% battery"); never leaves the device.
+      `CREATE TABLE energy_samples (
+        action TEXT NOT NULL,
+        tier TEXT NOT NULL,
+        battery_delta_pct REAL NOT NULL CHECK (battery_delta_pct >= 0 AND battery_delta_pct <= 100),
+        duration_ms INTEGER NOT NULL CHECK (duration_ms >= 0),
+        created_at INTEGER NOT NULL
+      )`,
+      'CREATE INDEX energy_samples_action ON energy_samples (action, tier, created_at)',
+    ],
+  },
 ];
