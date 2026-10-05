@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="18.129" timestamp="2026-10-05T05:07:17">
+    <testcase id="SKEPI Greek UI (offline)" name="SKEPI Greek UI (offline)" classname="SKEPI Greek UI (offline)" file="e2e\locale-el.yaml" time="18.117" timestamp="2026-10-05T05:07:17" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

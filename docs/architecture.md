@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -157,24 +157,34 @@ The LLM is optional, loads only when needed, and its size is chosen automaticall
 
 **Test devices.** Current reference: Galaxy S23 (8 GB, T2). All T1 gates stay **pending** until a 4 GB device is available. Until then, the app has a **T1-simulation mode** used on the S23 to catch large regressions early; a 4 GB Android emulator covers functional (not performance) checks.
 
-- T1-simulation forces the T1 profile on any device: T1 model (Qwen2.5-1.5B **Q4_0** preferred, Q4_K_M fallback), **2 unpinned threads** (pinning to big cores would hide T1 latency), n_ctx 2048, T1 context budget. It is a developer setting (Bench tab, in memory until `packages/db` lands) and applies to Ask and the bench; the bench skips its thread sweep in this mode.
-- The bench JSON (schema 2) records `mode` (`normal` | `t1-simulation`) and the applied profile (detected/effective tier, model, threads, affinity, n_ctx, budget).
-- Context budgets are still token-based in core (`TIER_BUDGET_TOKENS`, T1 = 800); the per-language character budgets arrive with the Phase 1 RAG work. Normal mode keeps the Phase 0 settings on every tier until then.
+- T1-simulation forces the T1 profile on any device: T1 model (Qwen2.5-1.5B **Q4_0** preferred, Q4_K_M fallback), **2 unpinned threads** (pinning to big cores would hide T1 latency), n_ctx 2048, T1 character budget, AI summary on request. It is a developer setting (Bench tab, in memory until `packages/db` lands) and applies to Ask and the bench.
+- Normal mode applies the detected tier: T2 uses Q4_0 on the performance cores (pinned), the T2 character budget and automatic AI summaries; T1 uses on-demand summaries; T0 loads no model.
+- The bench JSON (schema 3) records `mode` (`normal` | `t1-simulation`), the backend and the applied profile, and per language Layer 1 latency, sources-visible latency, TTFT, tokens/s, reused prompt tokens and the tokenizer check.
+
+**Context budgets** (`packages/core/src/budget.ts`) are set in **characters of source text per tier and question language** and converted to tokens with the active model's measured tokens-per-character (`packages/core/src/tokens.ts`, one profile per tokenizer; unknown models get a conservative fallback). The budget is clamped so that sources + system prompt + question + answer fit n_ctx.
+
+| Tier | English | Greek | Max passages |
+| --- | --- | --- | --- |
+| T1 | 1,800 chars | 650 chars | 3 |
+| T2 | 2,600 chars | 1,000 chars | 4 |
+| T3 | 12,000 chars | 6,000 chars | 8 |
+
+Chunks are ~600 characters (sentence-packed, never across sections). Answer limit: 150 tokens in English, 200 in Greek (Greek costs ~4× more tokens per character); the JSON schema bounds each sentence's length (`maxLength`) so the object closes within the limit.
 
 **Model selection.** Default family: small Qwen models. The exact model is chosen by `/tools/rag-eval` (English primary set, Greek secondary set), not by reputation. rag-eval also reports **tokens per character** per language: a tokenizer that is efficient for a language directly cuts latency. A new model ships only if it does not regress citation precision or refusal-when-no-source.
 
 **Model lifecycle**
 
 1. **Load:** lazy, on the first AI request. Free RAM is checked first (`loadLlamaModelInfo` + `DeviceProfile`); if it does not fit, a smaller model is proposed.
-2. **Run:** tokens stream to the UI with a stop button. The system prompt's KV cache is reused. Temperature 0.2, answer limit ~150 tokens (configurable).
+2. **Run:** tokens stream to the UI with a stop button. The system prompt is short, fixed and always first; llama.rn keeps the KV cache of the previous request and reuses the longest common token prefix (verified in llama.rn 0.12.9 `rn-completion.cpp`), and the app prefills the system prompt right after loading (`LlamaEngine.prewarm`). Temperature 0.2, answer limit 150 tokens (English) / 200 (Greek).
 3. **Unload:** after 2 minutes idle, when the app goes to background, or on memory warning (`onTrimMemory` / `didReceiveMemoryWarning`).
 
 **Inference settings**
 
 - Threads = performance cores, not all cores.
 - mmap on, mlock off on mobile.
-- Q4_0 quantization on mobile (22% faster than Q4_K_M on the S23 in Phase 0).
-- Metal on iOS. Android: CPU by default; GPU/NPU backends behind a feature flag and tested as a Phase 1 experiment.
+- Q4_0 quantization on mobile, the default since Phase 1b (22% faster prefill than Q4_K_M on the S23 in Phase 0).
+- Metal on iOS. Android: CPU by default. GPU (OpenCL, Adreno) and NPU (Hexagon) backends sit behind a developer flag (Bench → backend) and a separate experiment build (`SKEPI_GPU_EXPERIMENT=1` at prebuild); results in `docs/phase-1b-report.md`. Never enabled by default.
 - Desktop: automatic GPU offload, Vulkan on Windows, Metal on macOS.
 - Structured outputs are constrained with GBNF grammar so JSON is always valid.
 
@@ -232,27 +242,28 @@ HTML is converted to text natively (jsoup on Android, SwiftSoup on iOS, scraper 
 
 Every answer comes in **two layers**, both built only from passages found on the device. All logic lives in `packages/core` and is identical on all platforms.
 
-- **Layer 1 — extractive answer (instant, no LLM).** The best passages from the sources, with the relevant sentences highlighted. Always correct, because it is verbatim source text. Primary answer on T1 and in blackout mode. Target < 1 s on T1.
-- **Layer 2 — AI summary.** Streams after Layer 1. Automatic on T2+, on demand ("Summarise with AI") on T1.
+- **Layer 1 — extractive answer (instant, no LLM).** The best passages from the sources, with the sentences that match the question highlighted, each with its source id and section anchor (`buildLayer1`). Always correct, because it is verbatim source text. Shown before any model work starts; primary answer on T1 and in blackout mode. Target < 1 s on T1.
+- **Layer 2 — AI summary.** Streams below Layer 1 (`summarise`). Automatic on T2+, on demand ("Summarise with AI") on T1 and in T1-simulation, on tap only for medical intent.
 
-**Pipeline**
+**Pipeline** (`retrieve` = steps 1–6 and Layer 1; `summarise` = steps 7–9)
 
 1. **Language:** detected deterministically from the script (no model).
-2. **Emergency intercept:** a fixed lexicon per language (bleeding, CPR, choking, burn, poisoning…) checks the query. On a match, the curated card and the emergency number are shown immediately, before anything else. It does not wait for the LLM.
-3. **Query rewrite (T2+ only):** the LLM with GBNF outputs `{ queries: { lang: string, terms: string[] }[], intent }`, so a query in one language also searches packs in the others (English packs are the richest). On T1, the query without stopwords is used.
-4. **Retrieval:** Xapian full-text in each open pack, top 8 articles per pack, merged with reciprocal rank fusion (scores across indexes are not comparable).
-5. **Passage selection:** sections are cut into ~200–300 token chunks and ranked with BM25 over the small candidate set. On T2+, optional rerank with a small multilingual embedding model.
-6. **Context budget, in characters:** budgets are set in characters per language and converted with the measured tokens-per-character of the active model (Phase 0: Greek ≈ 1 token per character, about 4× English). Preference for diversity across articles.
-7. **No source:** if the best score is below the calibrated threshold, show "No relevant source found" with the search results. No generation.
-8. **Prompt and output format:** passages are wrapped in `<source id="S1" title="…">…</source>`. The model must answer in a fixed JSON format where every sentence names its source id (free-form citing failed in Phase 0: the small model never cited on its own). Source text is data, not instructions. Prompts are versioned and covered by rag-eval.
-9. **Post-validation (per sentence):**
+2. **Emergency and medical intercept:** fixed lexicons per language (English, Greek). An emergency match shows the emergency number and the card slot immediately; a medical match (doses, drugs, symptoms, diseases, treatment) shows the number and Layer 1 first and gates the AI summary behind a tap.
+3. **Query rewrite (T2+ only, later phase):** the LLM with GBNF outputs `{ queries: { lang: string, terms: string[] }[], intent }`. Today every tier uses the question without stopwords.
+4. **Retrieval:** in each open pack, Xapian full-text with the conjunctive query plus single-keyword queries (always, not only when the conjunctive query is short) and title suggestions for all keywords and adjacent keyword pairs; all lists merged with reciprocal rank fusion, top 8 articles. Folding maps the Greek final ς to σ for matching; queries restore ς because the ZIM index keeps it (Phase 1b fix: Greek single-word questions found nothing).
+5. **Passage selection:** sections are first cleaned of instruction-like sentences (`sanitizeSourceText`), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
+6. **Context budget, in characters** per tier and language, converted with the active model's tokens-per-character (table above). Every passage must pass the no-source bar and contain the question's numbers; when the question names an article (full title match), passages come from that article. Otherwise preference for diversity across articles.
+7. **No source:** if the best chunk covers < 60% of the query terms or scores < 0.5, show "No relevant source found". No Layer 1 passages, no generation. Calibrated with rag-eval.
+8. **Prompt and output format:** a short fixed system prompt (`rag-v5-json-short`, KV-cache prefix; asks for `covered: false` on personal and future questions), passages wrapped in `<source id="S1" title="…">…</source>` with tag characters neutralised, then a one-line language instruction and the question. The model must answer in grammar-constrained JSON `{covered, sentences[1..n]{text ≤ maxLength, source ∈ ids}}`. Source text is data, not instructions.
+9. **Post-validation (per sentence, as soon as each sentence object is complete while streaming):**
    - Citation ids that do not exist are dropped.
-   - Support check uses content **bigrams**, not single words, with a calibrated threshold. Unsupported sentences are removed.
-   - Any number with a unit (mg, ml, °C, minutes, tablets…) must appear verbatim in the cited source; otherwise the sentence is **removed**, not just shaded.
-   - An answer left with no supported sentence is not shown; Layer 1 stays.
-10. **Display:** each sentence carries a tappable `[S1]` chip that opens the article at the section. If source and answer languages differ, the chip says so and offers the original text.
+   - Numbers with a unit (mg, ml, °C, minutes, hours, tablets, %, kg… in English and Greek) must appear verbatim (same number, same unit) in the cited source; bare numbers must appear as whole numbers. Otherwise the sentence is **removed**.
+   - Relevance: the sentence must share at least one content term with the question.
+   - Support: content **bigrams** of the sentence must be found as term pairs within one source sentence (title terms pair with everything), at a calibrated threshold (`MIN_BIGRAM_SUPPORT`), and the sentence's terms must form one connected graph over those pairs (coherence: no stitching of facts from different sentences).
+   - An answer left with no supported sentence is hidden; Layer 1 stays.
+10. **Display:** every AI answer carries the fixed label "AI summary — check the source" ("Unverified AI summary — check the source" on medical intent). Each sentence carries a tappable `[S1]` chip that opens the article at the section. If source and answer languages differ, the chip says so and offers the original text (later).
 
-**Medical intent:** the card, the emergency number and Layer 1 are shown. The AI summary is available only by tap and is labelled "unverified AI summary — check the source". Every AI answer carries a short fixed label "AI summary — check the source".
+**Medical intent:** the emergency number and Layer 1 are shown (the curated card joins them in Phase 1d). The AI summary is available only by tap and is labelled "Unverified AI summary — check the source".
 
 **Why not a vector index of all of Wikipedia:** embeddings for millions of chunks would take many GB and hours on a phone. Xapian is already in the ZIM and covers recall. Embeddings are only for reranking a few dozen chunks. Small curated packs (Survival, WikiMed) may ship precomputed embeddings later.
 
@@ -383,7 +394,7 @@ The biggest risk is a malicious file (ZIM, GGUF, PMTiles) reaching a C++ parser.
 | Tampered content via mirror, MITM or P2P | Ed25519 catalog with pinned keys, SHA-256 per file and chunk, `sequence` anti-rollback |
 | Theft of the catalog signing key | Key kept offline (hardware key or offline machine), never in CI; backup key and rotation procedure |
 | XSS or data leak from article HTML | Native viewer: `zim://` only, JS off, strict CSP, no JS bridge, no file:// or network; covered by instrumentation tests |
-| Prompt injection via articles | No LLM tools; answers always with sources; emergency cards never pass through the LLM |
+| Prompt injection via articles | No LLM tools; source sentences with injection markers (forged `<source>` tags, "ignore previous instructions", Greek equivalents) are removed before chunking; answers always with checked citations; emergency cards never pass through the LLM |
 | Attacker on the local network during P2P | Session token, TLS pinned from the QR, read-only server for selected packs, auto-close |
 | Physical access or device seizure | SQLite encrypted with SQLCipher (key in Keystore/Keychain); optional biometric lock; one-tap "clear history" |
 | Network leaks to third parties | Network only via `ContentStore` to catalog hosts; no analytics SDK, no Google Play Services for location; a test asserts zero egress |
@@ -413,18 +424,18 @@ Nothing leaves the device: no account, backend, analytics or third-party crash r
 
 Targets are measured on a T1 reference device (4 GB Android). A PR that regresses a target by more than 10% does not merge. Until a T1 device is available, T1 targets are **pending** and tracked on the S23 (T2) plus T1-simulation mode.
 
-| Metric | Target | Phase 0 result (S23, T2) | Phase 1a (S23: normal / T1-simulation) |
-| --- | --- | --- | --- |
-| Cold start to search, no model | < 2 s (T1) | not measured | not measured |
-| Title suggestions, p95 | < 50 ms (T1) | 9–15 ms ✓ | 14.7 / 15.7 ms ✓ |
-| Full-text search, p95 | < 300 ms (T1) | 8–19 ms ✓ (103k and 384k articles) | 7.5 / 9.1 ms ✓ |
-| Article open | < 500 ms (T1) | 321 ms ✓ | 151–383 ms in E2E ✓ |
-| Map render | — | 327 ms ✓ | 258 ms |
-| Layer 1 (extractive) answer | < 1 s (T1) | new in Phase 1 | — |
-| Sources visible | < 2 s (T1) | new in Phase 1 | — |
-| First AI token | < 15 s (T2); T1 set after measurement | 12–18 s ✗ (old gate 4 s, Greek, Q4_K_M) | 14.7–16.0 s (borderline) / 16.9 s |
-| Model load | < 10 s (T1) | not reported | 1.9 / 0.8 s ✓ |
-| APK per ABI (arm64) | < 80 MB | 55.3 MB ✓ (from 146.5 MB) | 45.9 MB ✓ (R8; dex 15.1 → 6.6 MB) |
+| Metric | Target | Phase 0 result (S23, T2) | Phase 1a (S23: normal / T1-simulation) | Phase 1b (S23: normal / T1-simulation, English content) |
+| --- | --- | --- | --- | --- |
+| Cold start to search, no model | < 2 s (T1) | not measured | not measured | not measured |
+| Title suggestions, p95 | < 50 ms (T1) | 9–15 ms ✓ | 14.7 / 15.7 ms ✓ | 61.2 ✗ / 35.4 ms ✓ (3 packs) |
+| Full-text search, p95 | < 300 ms (T1) | 8–19 ms ✓ (103k and 384k articles) | 7.5 / 9.1 ms ✓ | 21.2 / 18.0 ms ✓ |
+| Article open | < 500 ms (T1) | 321 ms ✓ | 151–383 ms in E2E ✓ | HTML p95 8.3 / 7.2 ms ✓ |
+| Map render | — | 327 ms ✓ | 258 ms | E2E ✓ |
+| Layer 1 (extractive) answer | < 1 s (T1) | new in Phase 1 | — | p95 337 / **252 ms** ✓ (el 169 / 147) |
+| Sources visible | < 2 s (T1) | new in Phase 1 | — | p95 217 / **198 ms** ✓ (el 198 / 164) |
+| First AI token | < 15 s (T2); T1 set after measurement | 12–18 s ✗ (old gate 4 s, Greek, Q4_K_M) | 14.7–16.0 s (borderline) / 16.9 s | p95 **4.8 s** ✓ / 7.1 s (el 12.4 / 14.3 s) |
+| Model load | < 10 s (T1) | not reported | 1.9 / 0.8 s ✓ | 13.4 s cold ✗ / 1.3 s ✓ |
+| APK per ABI (arm64) | < 80 MB | 55.3 MB ✓ (from 146.5 MB) | 45.9 MB ✓ (R8; dex 15.1 → 6.6 MB) | 46.0 MB ✓ |
 
 **Memory**
 
@@ -586,7 +597,7 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 | App Store / TestFlight | iOS build | Apple Developer Program (annual fee); same account notarises macOS |
 | Windows | Tauri MSI/NSIS, winget | Without a code-signing certificate SmartScreen warns |
 
-**CI (GitHub Actions):** Linux (core, lint, eval, Android build), macOS (iOS, macOS), Windows (Tauri). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-spike.ps1` take `-AppId` (release by default).
+**CI (GitHub Actions):** today `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests and the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0); planned: Android build, macOS (iOS, macOS), Windows (Tauri). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
 
 **Distribution note:** sideloaded APKs trigger Google Play Protect prompts on install; Play Store and F-Droid are the user-facing channels.
 
@@ -627,15 +638,16 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
 
 1. **Phase 0 · Android spike — DONE, GO.** libkiwix (official Maven package) · llama.rn · PMTiles map · native viewer. Report: `docs/spike-report.md`.
    - Gate result: search, article, map and APK size passed; first-token latency failed (12–18 s vs 4 s), addressed by the two-layer answer and revised targets.
+   - **Phase 1b · two-layer answers, latency, citation hardening — DONE.** Layer 1 extractive answers · labelled AI summary (auto on T2, on demand on T1, on tap for medical intent) · char budgets with measured tokens/char · Q4_0 · prompt v5 + KV prefix reuse · bigram/coherence/relevance/number-unit validation · source sanitizer · `tools/rag-eval` (en 108, el 50, adversarial 30) all thresholds met · CI smoke · GPU/NPU experiment (not usable). Report: `docs/phase-1b-report.md`.
    - **Phase 1a · foundation and security hardening — DONE.** Release keystore and fail-closed signing · viewer sealing instrumentation tests · `modules/expo-device-profile` · `packages/i18n` (English default, Greek) · T1-simulation mode · R8 · still no INTERNET permission (downloads arrive in Phase 1c). Report: `docs/phase1a/README.md`.
 2. **Phase 1 · Android MVP (English-first).**
    - Release keystore outside the repo (first task).
-   - Two-layer answers (Layer 1 extractive, Layer 2 AI) with char-based budgets, Q4_0, shorter prompt, KV-cache reuse; GPU/NPU backend experiment.
-   - Citation hardening: bigram support check, numeric/unit rule, adversarial set in rag-eval, medical-intent flow.
+   - ~~Two-layer answers with char-based budgets, Q4_0, shorter prompt, KV-cache reuse; GPU/NPU backend experiment~~ (1b).
+   - ~~Citation hardening: bigram support check, numeric/unit rule, adversarial set in rag-eval, medical-intent flow~~ (1b).
    - Viewer sealing instrumentation tests.
    - Signed catalog and downloads; English default packs + Greek locale packs.
    - Emergency cards (English master + Greek), onboarding, blackout mode, T1-simulation mode.
-   - rag-eval (English primary, Greek secondary, tokens/char) and Maestro in CI.
+   - ~~rag-eval (English primary, Greek secondary, tokens/char)~~ (1b, CI smoke subset); Maestro in CI.
    - Gate: Maestro in airplane mode green · zero egress · viewer sealing tests green · rag-eval above threshold · Layer 1 < 1 s and sources < 2 s (T1-simulation) · first token < 15 s on T2 · T1 measured if a device is available.
 3. **Phase 2 · iOS and P2P.** iOS from the same Expo app · Swift binding with CoreKiwix.xcframework · iOS native viewer · internal TestFlight · place search and POIs · P2P with hotspot and QR on Android and iOS · APK propagation.
    - Gate: Maestro green on iOS · verified transfer Android→iPhone · fuzzing without crashes.

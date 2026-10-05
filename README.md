@@ -4,19 +4,23 @@
 knowledge library (ZIM / Wikipedia), offline vector maps (PMTiles) and an on-device AI assistant that
 answers only from local sources, with citations.
 
-> Status: **Phase 0 spike (Android only).** Not usable by end users yet. See
-> [`docs/architecture.md`](docs/architecture.md) and [`docs/spike-report.md`](docs/spike-report.md).
+> Status: **Phase 1b (Android only):** two-layer answers (extractive Layer 1 + labelled AI summary),
+> citation hardening and rag-eval. Not usable by end users yet. See [`docs/architecture.md`](docs/architecture.md)
+> and [`docs/phase-1b-report.md`](docs/phase-1b-report.md).
 
 ## Layout
 
 ```
-apps/mobile          Expo (dev build, New Architecture) spike app
+apps/mobile          Expo (dev build, New Architecture) app
 packages/contracts   TS interfaces (KnowledgeEngine, InferenceEngine, DeviceProfile)
-packages/core        Pure TS: RAG, BM25, chunking, budget, citation validation, emergency lexicon
+packages/core        Pure TS: retrieval, Layer 1, char budgets, prompts, post-validation, emergency/medical lexicons
+packages/i18n        English (default) / Greek UI strings
 modules/expo-zim     Kotlin Expo module over libkiwix/libzim (java-libkiwix AAR) + sealed zim:// viewer
+modules/expo-device-profile  RAM, CPU topology, battery, thermal
 native/kiwix         Pinned libkiwix version + checksum
+tools/rag-eval       Answer-quality eval (node-llama-cpp on CPU + python-libzim), golden sets, CI smoke
 scripts/             provision.ps1 (download + verify + adb push content)
-e2e/                 Maestro flows
+e2e/                 Maestro flows (run-e2e.ps1)
 ```
 
 ## Develop
@@ -38,7 +42,8 @@ cd android && ./gradlew assembleRelease
 ```
 
 Content (ZIM, GGUF, PMTiles) is not bundled; provision a connected device (app installed and launched once) with
-`scripts/provision.ps1`, then run the offline E2E with `e2e/run-spike.ps1`.
+`scripts/provision.ps1` (English packs + Greek locale pack, Q4_0 model), then run the offline E2E with
+`e2e/run-e2e.ps1`. Answer quality: `pnpm --filter @skepi/rag-eval eval` (see [`tools/rag-eval`](tools/rag-eval/README.md)).
 
 ## License
 
