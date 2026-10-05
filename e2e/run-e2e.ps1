@@ -2,8 +2,10 @@
 .SYNOPSIS
   Runs the Maestro flows on the connected device in airplane mode and checks that the sealed
   WebView made zero network requests (blocked-request log must be empty).
-  1. e2e/spike.yaml with the app locale forced to en-US (English UI).
-  2. e2e/locale-el.yaml with the app locale forced to el-GR (Greek UI).
+  1. e2e/ask-en.yaml    English UI: search, article, Layer 1 + automatic AI summary with citation, no source, map.
+  2. e2e/ask-t1.yaml    English UI, T1-simulation: Layer 1, then "Summarise with AI".
+  3. e2e/medical.yaml   English UI: emergency number + Layer 1 first, unverified AI summary on tap.
+  4. e2e/locale-el.yaml Greek UI (app locale el-GR): Greek strings and a Greek Layer 1 answer.
   The per-app locale (Android 13+) is reset to "follow the system" afterwards.
   -AppId selects the installed build: org.skepi.app (release, default) or org.skepi.app.dev (debug).
 #>
@@ -46,12 +48,19 @@ function Invoke-Flow([string]$Flow, [string]$Report) {
 }
 
 & adb @adbArgs logcat -c
+$flows = @(
+  @{ Flow = 'e2e/ask-en.yaml'; Report = 'report-en.xml'; Locale = 'en-US' },
+  @{ Flow = 'e2e/ask-t1.yaml'; Report = 'report-t1.xml'; Locale = 'en-US' },
+  @{ Flow = 'e2e/medical.yaml'; Report = 'report-medical.xml'; Locale = 'en-US' },
+  @{ Flow = 'e2e/locale-el.yaml'; Report = 'report-el.xml'; Locale = 'el-GR' }
+)
+$results = @()
 Push-Location $root
 try {
-  Set-AppLocale 'en-US'
-  $maestroExit = Invoke-Flow 'e2e/spike.yaml' 'report.xml'
-  Set-AppLocale 'el-GR'
-  $localeExit = Invoke-Flow 'e2e/locale-el.yaml' 'report-el.xml'
+  foreach ($f in $flows) {
+    Set-AppLocale $f.Locale
+    $results += [pscustomobject]@{ Flow = $f.Flow; Exit = (Invoke-Flow $f.Flow $f.Report) }
+  }
 } finally {
   Set-AppLocale ''
   Pop-Location
@@ -62,11 +71,10 @@ $log | Set-Content -Encoding UTF8 (Join-Path $out 'expozim-logcat.txt')
 $blocked = @($log | Select-String -SimpleMatch 'blocked request')
 $blocked | ForEach-Object { $_.Line } | Set-Content -Encoding UTF8 (Join-Path $out 'blocked-requests.txt')
 
-Write-Host "Maestro exit code (English flow): $maestroExit"
-Write-Host "Maestro exit code (Greek UI flow): $localeExit"
+foreach ($r in $results) { Write-Host "Maestro exit code ($($r.Flow)): $($r.Exit)" }
 Write-Host "Blocked WebView requests during E2E: $($blocked.Count)"
-if ($maestroExit -ne 0) { exit $maestroExit }
-if ($localeExit -ne 0) { exit $localeExit }
+$failed = @($results | Where-Object { $_.Exit -ne 0 })
+if ($failed.Count -gt 0) { exit $failed[0].Exit }
 if ($blocked.Count -gt 0) {
   Write-Error 'WebView attempted non-zim requests during E2E (see e2e/out/blocked-requests.txt).'
   exit 3

@@ -1,0 +1,61 @@
+# Medical flow: the emergency number and Layer 1 come first; the AI summary only on tap, labelled
+# "Unverified AI summary — check the source" (also on T2, where summaries are otherwise automatic).
+appId: ${APP_ID}
+name: SKEPI medical flow (offline)
+env:
+  ASK_QUESTION: What does insulin do?
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: tab-ask
+    timeout: 30000
+- tapOn:
+    id: tab-ask
+- tapOn:
+    id: ask-input
+- inputText: ${ASK_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: medical-notice
+    timeout: 15000
+- assertVisible: "Medical question. In an emergency call 112.*"
+- extendedWaitUntil:
+    visible:
+      id: layer1-passage-0
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: ask-summarise
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Show unverified AI summary"
+- assertNotVisible:
+    id: ai-summary
+- takeScreenshot: e2e/out/med-01-layer1
+- tapOn:
+    id: ask-summarise
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 180000
+- scrollUntilVisible:
+    element:
+      id: ai-label
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Unverified AI summary — check the source"
+- takeScreenshot: e2e/out/med-02-unverified-summary

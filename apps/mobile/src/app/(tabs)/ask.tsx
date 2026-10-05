@@ -149,7 +149,8 @@ export default function AskScreen() {
 
   return (
     <ContentGate>
-      <ScrollView style={styles.screen} contentContainerStyle={{ gap: 8, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+      {/* Question, Ask/Stop and the phase stay on screen while Layer 1 and the summary scroll. */}
+      <View style={styles.stickyHeader}>
         <TextInput
           testID="ask-input"
           style={styles.input}
@@ -175,6 +176,8 @@ export default function AskScreen() {
             {t.ask.phase[phase]}
           </Text>
         </View>
+      </View>
+      <ScrollView style={styles.screen} contentContainerStyle={{ gap: 8, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         {!model && <Text style={styles.muted}>{t.ask.noModel}</Text>}
         {profile.mode === 't1-simulation' && (
           <Text style={styles.muted} testID="ask-t1-simulation">
@@ -295,20 +298,45 @@ export default function AskScreen() {
   );
 }
 
+/**
+ * One Layer 1 passage: the matching sentences (with "…" where the passage skips text), and the whole
+ * passage on request. Showing every passage in full pushed the AI summary off the first screen.
+ */
 function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; index: number; onOpen: () => void; label: string }) {
+  const t = useMessages();
+  const [expanded, setExpanded] = useState(false);
+  const highlighted = passage.sentences.flatMap((s, i) => (s.highlighted ? [i] : []));
+  const shown = expanded || highlighted.length === 0 ? passage.sentences.map((_, i) => i) : highlighted;
+  const canExpand = shown.length < passage.sentences.length || expanded;
   return (
     <View style={styles.passage} testID={`layer1-passage-${index}`}>
       <Pressable testID={`layer1-source-${passage.sourceId}`} style={styles.chip} onPress={onOpen}>
         <Text style={styles.chipText}>{label}</Text>
       </Pressable>
       <Text style={styles.text} selectable>
-        {passage.sentences.map((s, i) => (
-          <Text key={i} style={s.highlighted ? styles.highlight : undefined}>
-            {i > 0 ? ' ' : ''}
-            {s.text}
-          </Text>
-        ))}
+        {shown.map((i, k) => {
+          const s = passage.sentences[i];
+          if (!s) return null;
+          const gap = k > 0 && i !== (shown[k - 1] ?? -1) + 1;
+          return (
+            <Text key={i} style={s.highlighted ? styles.highlight : undefined}>
+              {k > 0 ? (gap ? ' … ' : ' ') : i > 0 ? '… ' : ''}
+              {s.text}
+            </Text>
+          );
+        })}
       </Text>
+      {canExpand && (
+        <Pressable
+          testID={`layer1-toggle-${index}`}
+          accessibilityRole="button"
+          onPress={() => {
+            setExpanded((e) => !e);
+          }}
+        >
+          <Text style={styles.link}>{expanded ? t.ask.hidePassage : t.ask.showPassage}</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

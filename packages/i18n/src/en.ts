@@ -49,6 +49,8 @@ export const en: Messages = {
     noSourceDetail: ({ reason, coverage }) => `Reason: ${reason} · coverage ${coverage} · no generation`,
     fromSources: 'From the sources',
     sourceLabel: ({ id, title, heading }) => `[${id}] ${heading ? `${title} — ${heading}` : title}`,
+    showPassage: 'Show whole passage',
+    hidePassage: 'Show matching sentences only',
     summarise: 'Summarise with AI',
     summariseMedical: 'Show unverified AI summary',
     writing: 'Writing the AI summary…',

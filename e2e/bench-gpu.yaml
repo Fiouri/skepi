@@ -1,0 +1,52 @@
+# GPU/NPU experiment (Phase 1b): bench with the OpenCL (Adreno) and Hexagon (NPU) backends.
+# Needs the experiment build (SKEPI_GPU_EXPERIMENT=1 at prebuild); results under bench/ on the device.
+appId: ${APP_ID}
+name: SKEPI bench (GPU/NPU experiment)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: tab-bench
+    timeout: 30000
+- tapOn:
+    id: tab-bench
+- extendedWaitUntil:
+    visible:
+      id: bench-run
+    timeout: 30000
+
+# 1. OpenCL
+- tapOn:
+    id: dev-backend-opencl
+- assertVisible: ".*opencl.*"
+- tapOn:
+    id: bench-run
+- extendedWaitUntil:
+    visible:
+      id: bench-gates
+    timeout: 1800000
+- takeScreenshot: e2e/out/bench-opencl
+
+# 2. Hexagon
+- scrollUntilVisible:
+    element:
+      id: dev-backend-hexagon
+    direction: UP
+    timeout: 20000
+- tapOn:
+    id: dev-backend-hexagon
+- tapOn:
+    id: bench-run
+- extendedWaitUntil:
+    notVisible:
+      id: bench-gates
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: bench-gates
+    timeout: 1800000
+- takeScreenshot: e2e/out/bench-hexagon

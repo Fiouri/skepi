@@ -41,7 +41,10 @@ const withProperties = (config) =>
 // llama.rn builds 7 arm64 variants and picks one at runtime with graceful fallback
 // (tryLoadLibrary). Keep the baseline + the two common fast paths; Hexagon/OpenCL stays out
 // (architecture: NPU only behind a feature flag) together with its prebuilt HTP assets.
-const LLAMA_EXCLUDED_VARIANTS = ['v8_2', 'v8_2_i8mm', 'v8_2_dotprod_i8mm_hexagon_opencl'];
+// SKEPI_GPU_EXPERIMENT=1 at prebuild time keeps the OpenCL/Hexagon variant for the Phase 1b backend
+// measurements (Bench → backend). Such a build is for measurements only and is never released.
+const GPU_EXPERIMENT = process.env.SKEPI_GPU_EXPERIMENT === '1';
+const LLAMA_EXCLUDED_VARIANTS = GPU_EXPERIMENT ? ['v8_2', 'v8_2_i8mm'] : ['v8_2', 'v8_2_i8mm', 'v8_2_dotprod_i8mm_hexagon_opencl'];
 const PACKAGING_MARKER = '// skepi:llama-variants';
 const withLlamaVariants = (config) =>
   withAppBuildGradle(config, (cfg) => {
@@ -174,6 +177,12 @@ const withOfflineManifest = (config) => {
     perms.push({ $: { 'android:name': 'android.permission.INTERNET', 'tools:node': 'remove' } });
     manifest['uses-permission'] = perms;
     const app = AndroidConfig.Manifest.getMainApplicationOrThrow(cfg.modResults);
+    if (GPU_EXPERIMENT) {
+      // llama.rn loads the vendor OpenCL / FastRPC libraries at runtime (README, Android GPU/NPU).
+      app['uses-native-library'] = ['libOpenCL.so', 'libcdsprpc.so'].map((name) => ({
+        $: { 'android:name': name, 'android:required': 'false' },
+      }));
+    }
     // libkiwix's AAR declares allowBackup=true; GB-sized content must never go to cloud backup.
     app.$['android:allowBackup'] = 'false';
     const replace = new Set((app.$['tools:replace'] ?? '').split(',').filter(Boolean));

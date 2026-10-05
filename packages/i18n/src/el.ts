@@ -50,6 +50,8 @@ export const el: Messages = {
     noSourceDetail: ({ reason, coverage }) => `Λόγος: ${reason} · κάλυψη ${coverage} · χωρίς παραγωγή απάντησης`,
     fromSources: 'Από τις πηγές',
     sourceLabel: ({ id, title, heading }) => `[${id}] ${heading ? `${title} — ${heading}` : title}`,
+    showPassage: 'Εμφάνιση όλου του αποσπάσματος',
+    hidePassage: 'Μόνο οι σχετικές προτάσεις',
     summarise: 'Σύνοψη με AI',
     summariseMedical: 'Εμφάνιση μη επαληθευμένης σύνοψης AI',
     writing: 'Γράφεται η σύνοψη AI…',

@@ -46,6 +46,9 @@ export interface Messages {
     fromSources: string;
     /** Citation chip / passage link: "[S1] Title — Section". */
     sourceLabel: (p: { id: string; title: string; heading: string }) => string;
+    /** Layer 1 shows the matching sentences; these toggle the whole passage. */
+    showPassage: string;
+    hidePassage: string;
     summarise: string;
     summariseMedical: string;
     writing: string;

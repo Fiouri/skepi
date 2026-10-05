@@ -107,4 +107,14 @@ export const styles = StyleSheet.create({
   highlight: { backgroundColor: colors.highlight, fontWeight: '600' },
   summary: { backgroundColor: colors.summaryBg, padding: 12, borderRadius: 8, gap: 8 },
   summaryLabel: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+  stickyHeader: {
+    backgroundColor: colors.bg,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  link: { color: colors.accent, fontSize: 14, paddingVertical: 8, minHeight: 40 },
 });

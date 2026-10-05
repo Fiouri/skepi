@@ -1,8 +1,10 @@
-# Greek locale check: run-spike.ps1 sets the app locale to el-GR (per-app language, Android 13+)
-# before this flow and resets it afterwards. The UI must be Greek; nothing else changes.
-# APP_ID: org.skepi.app (release, default in run-spike.ps1) or org.skepi.app.dev (debug).
+# Greek UI flow: run-e2e.ps1 sets the app locale to el-GR (per-app language, Android 13+) before
+# this flow and resets it afterwards. Greek UI strings, then a Greek question answered by Layer 1
+# from the Greek pack.
 appId: ${APP_ID}
 name: SKEPI Greek UI (offline)
+env:
+  ASK_QUESTION: Πού βρίσκεται η Πάτρα;
 onFlowComplete:
   - setAirplaneMode: disabled
 ---
@@ -18,4 +20,18 @@ onFlowComplete:
 - assertVisible: "Χάρτης"
 - assertVisible: "Πλήρες κείμενο"
 - assertNotVisible: "Full-text"
-- takeScreenshot: e2e/out/07-greek-ui
+- takeScreenshot: e2e/out/el-01-greek-ui
+- tapOn:
+    id: tab-ask
+- tapOn:
+    id: ask-input
+- inputText: ${ASK_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: layer1-passage-0
+    timeout: 15000
+- assertVisible: "Από τις πηγές"
+- takeScreenshot: e2e/out/el-02-layer1
