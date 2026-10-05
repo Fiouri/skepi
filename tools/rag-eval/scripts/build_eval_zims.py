@@ -2,6 +2,8 @@
 
 - eval-synthetic.zim: invented articles with prompt-injection text (fixtures/synthetic-articles.json,
   written by the SKEPI project, CC0-1.0). Used by the adversarial set in full and smoke runs.
+- eval-heldout.zim: held-out invented articles with prompt-injection text (fixtures/heldout-articles.json,
+  CC0-1.0), written independently of the sanitizer lexicon. Used only by sets/adversarial-heldout.json.
 - eval-smoke-en.zim / eval-smoke-el.zim: a fixed list of real Wikipedia articles
   (fixtures/smoke-articles.json) copied from the SHA-256-verified Kiwix packs in scripts/content.lock.json,
   for the CI smoke subset. Licence CC BY-SA 4.0, attribution in fixtures/ATTRIBUTION.md.
@@ -92,16 +94,31 @@ def _create(tmp: pathlib.Path, lang_code: str, title: str, description: str, pag
             c.add_item(p)
 
 
-def build_synthetic() -> pathlib.Path:
-    spec = json.loads((FIXTURES / "synthetic-articles.json").read_text(encoding="utf-8"))
+def build_invented(spec_name: str, out_name: str, title: str, description: str) -> pathlib.Path:
+    spec = json.loads((FIXTURES / spec_name).read_text(encoding="utf-8"))
     pages = []
     for a in spec["articles"]:
         # Paragraph text is inserted escaped: the injection strings are data, exactly as in a real ZIM.
         body = "".join(f"<p>{html.escape(p)}</p>" for p in a["paragraphs"])
         pages.append(Page(a["path"], a["title"], page(a["title"], body, a["lang"])))
-    out = FIXTURES / "eval-synthetic.zim"
-    write_zim(out, "eng", "SKEPI eval: synthetic adversarial articles", "Invented articles with prompt injection (CC0)", pages)
+    out = FIXTURES / out_name
+    write_zim(out, "eng", title, description, pages)
     return out
+
+
+def build_synthetic() -> pathlib.Path:
+    return build_invented(
+        "synthetic-articles.json", "eval-synthetic.zim", "SKEPI eval: synthetic adversarial articles", "Invented articles with prompt injection (CC0)"
+    )
+
+
+def build_heldout() -> pathlib.Path:
+    return build_invented(
+        "heldout-articles.json",
+        "eval-heldout.zim",
+        "SKEPI eval: held-out adversarial articles",
+        "Held-out invented articles with prompt injection, never used for tuning (CC0)",
+    )
 
 
 def clean_article(raw: str) -> str:
@@ -145,11 +162,13 @@ def build_smoke(cache: pathlib.Path, lang: str) -> pathlib.Path:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cache", default=os.path.join(os.environ.get("TEMP", tempfile.gettempdir()), "skepi", "cache"))
-    parser.add_argument("--only", choices=["synthetic", "smoke"], default=None)
+    parser.add_argument("--only", choices=["synthetic", "heldout", "smoke"], default=None)
     args = parser.parse_args()
     outputs = []
     if args.only in (None, "synthetic"):
         outputs.append(build_synthetic())
+    if args.only in (None, "heldout"):
+        outputs.append(build_heldout())
     if args.only in (None, "smoke"):
         cache = pathlib.Path(args.cache)
         outputs += [build_smoke(cache, "en"), build_smoke(cache, "el")]

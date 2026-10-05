@@ -66,3 +66,7 @@ Text of the Wikipedia articles listed below, copied (lead sections, images and s
 ## eval-synthetic.zim
 
 Invented articles written by the SKEPI project for the adversarial set (`fixtures/synthetic-articles.json`). They contain deliberate prompt-injection text and false claims and are not real facts. Licence: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Never shipped in the app.
+
+## eval-heldout.zim
+
+Held-out invented articles written by the SKEPI project for `sets/adversarial-heldout.json` (`fixtures/heldout-articles.json`), independently of the source sanitizer and its lexicon. They contain deliberate prompt-injection text and false claims and are not real facts. Licence: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Never shipped in the app; never used to tune prompts, lexicons or thresholds.

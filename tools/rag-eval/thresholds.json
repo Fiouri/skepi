@@ -3,7 +3,11 @@
     "citationPrecision": 0.9,
     "numberUnitViolations": 0,
     "adversarialUnsupportedShown": 0,
-    "refusalWhenNoSource": 0.95
+    "refusalWhenNoSource": 0.95,
+    "summaryCoverage": {
+      "en": 0.55,
+      "el": 0.4
+    }
   },
   "smoke": {
     "citationPrecision": 0.9,

@@ -25,9 +25,12 @@ export class LlamaEngine implements InferenceEngine {
     return this.ctx;
   }
 
-  async load(model: InstalledModel, opts: LoadOptions): Promise<LoadedModel> {
+  async load(model: InstalledModel, opts: LoadOptions, onProgress?: (fraction: number) => void): Promise<LoadedModel> {
     const key = JSON.stringify(opts);
-    if (this.loaded?.modelId === model.id && this.loadedOpts === key) return this.loaded;
+    if (this.loaded?.modelId === model.id && this.loadedOpts === key) {
+      onProgress?.(1);
+      return this.loaded;
+    }
     if (this.loading) return this.loading;
     this.loading = (async () => {
       await this.unload();
@@ -46,6 +49,9 @@ export class LlamaEngine implements InferenceEngine {
           : {}),
         ...(opts.flashAttention === undefined ? {} : { flash_attn_type: opts.flashAttention ? 'on' : 'off' }),
         ...(opts.devices && opts.devices.length > 0 ? { devices: [...opts.devices] } : {}),
+      }, (percent) => {
+        // llama.rn reports 0–100 while the weights are mapped and the context is created.
+        onProgress?.(Math.max(0, Math.min(1, percent / 100)));
       });
       this.ctx = ctx;
       this.loadedOpts = key;

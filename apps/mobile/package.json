@@ -4,16 +4,23 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@maplibre/maplibre-react-native": "11.4.1",
+    "@op-engineering/op-sqlite": "18.2.5",
     "@skepi/contracts": "workspace:*",
     "@skepi/core": "workspace:*",
+    "@skepi/db": "workspace:*",
     "@skepi/i18n": "workspace:*",
     "expo": "~57.0.26",
     "expo-constants": "~57.0.20",
+    "expo-content-store": "workspace:*",
+    "expo-crypto": "~57.0.3",
     "expo-device-profile": "workspace:*",
+    "expo-document-picker": "~57.0.3",
+    "expo-hash": "workspace:*",
     "expo-keep-awake": "~57.0.2",
     "expo-linking": "~57.0.11",
     "expo-localization": "~57.0.2",
     "expo-router": "~57.0.24",
+    "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-zim": "workspace:*",
     "llama.rn": "0.12.9",
@@ -35,5 +42,8 @@
     "prebuild": "expo prebuild --platform android --clean"
   },
   "private": true,
-  "license": "GPL-3.0-or-later"
+  "license": "GPL-3.0-or-later",
+  "op-sqlite": {
+    "sqlcipher": true
+  }
 }

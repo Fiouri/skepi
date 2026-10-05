@@ -7,8 +7,15 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.kiwix.libzim.Query
 import java.io.File
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
 
 private const val MAX_LIMIT = 100
+private const val MAX_CONTENT_FILE_BYTES = 4L * 1024 * 1024
+
+/** Title suggestions per pack run in parallel; 4 threads cover the packs of a typical library. */
+private val suggestPool = Executors.newFixedThreadPool(4) { r -> Thread(r, "zim-suggest").apply { isDaemon = true } }
 
 class ExpoZimModule : Module() {
   private val context: Context
@@ -25,6 +32,43 @@ class ExpoZimModule : Module() {
   private fun clampLimit(limit: Int): Int = limit.coerceIn(1, MAX_LIMIT)
 
   private fun elapsedMs(startNs: Long): Double = (System.nanoTime() - startNs) / 1_000_000.0
+
+  private fun suggestIn(open: OpenArchive, query: String, limit: Int): List<Map<String, Any?>> =
+    synchronized(open.suggestLock) {
+      val search = open.suggestionSearcher().suggest(query)
+      val it = search.getResults(0, limit)
+      try {
+        val out = mutableListOf<Map<String, Any?>>()
+        while (it.hasNext()) {
+          val item = it.next()
+          out.add(
+            mapOf(
+              "archiveId" to open.id,
+              "path" to item.path,
+              "title" to item.title,
+              "snippet" to (if (item.hasSnippet()) item.snippet else null),
+              "score" to null,
+              "rank" to out.size,
+            ),
+          )
+        }
+        out
+      } finally {
+        it.dispose()
+        search.dispose()
+      }
+    }
+
+  /** A path under the content dir; canonical paths defeat `..` and symlink escapes. */
+  private fun contentFile(relativePath: String): File {
+    val root = ZimRegistry.contentRoot(context)?.canonicalFile
+      ?: throw ZimException("ERR_ZIM_NO_STORAGE", "External files dir unavailable")
+    val target = File(root, relativePath).canonicalFile
+    if (!target.path.startsWith(root.path + File.separator)) {
+      throw ZimException("ERR_ZIM_PATH", "Path escapes content dir: $relativePath")
+    }
+    return target
+  }
 
   override fun definition() = ModuleDefinition {
     Name("ExpoZim")
@@ -83,29 +127,18 @@ class ExpoZimModule : Module() {
     AsyncFunction("suggest") { query: String, limit: Int, archiveIds: List<String>? ->
       ready()
       val start = System.nanoTime()
-      val hits = targets(archiveIds).flatMap { open ->
-        synchronized(open.suggestLock) {
-          val search = open.suggestionSearcher().suggest(query)
-          val it = search.getResults(0, clampLimit(limit))
+      val archives = targets(archiveIds)
+      val perArchive = clampLimit(limit)
+      // Packs run in parallel (each archive has its own suggestion lock), results keep the requested
+      // archive order: latency follows the slowest pack instead of the sum (Phase 1c, 3+ packs).
+      val hits = if (archives.size <= 1) {
+        archives.flatMap { suggestIn(it, query, perArchive) }
+      } else {
+        archives.map { open -> suggestPool.submit(Callable { suggestIn(open, query, perArchive) }) }.flatMap { future ->
           try {
-            val out = mutableListOf<Map<String, Any?>>()
-            while (it.hasNext()) {
-              val item = it.next()
-              out.add(
-                mapOf(
-                  "archiveId" to open.id,
-                  "path" to item.path,
-                  "title" to item.title,
-                  "snippet" to (if (item.hasSnippet()) item.snippet else null),
-                  "score" to null,
-                  "rank" to out.size,
-                ),
-              )
-            }
-            out
-          } finally {
-            it.dispose()
-            search.dispose()
+            future.get()
+          } catch (e: ExecutionException) {
+            throw e.cause ?: e
           }
         }
       }
@@ -205,15 +238,20 @@ class ExpoZimModule : Module() {
 
     /** Writes a UTF-8 file under the content dir (bench reports). Returns the absolute path. */
     AsyncFunction("writeContentFile") { relativePath: String, text: String ->
-      val root = ZimRegistry.contentRoot(context)?.canonicalFile
-        ?: throw ZimException("ERR_ZIM_NO_STORAGE", "External files dir unavailable")
-      val target = File(root, relativePath).canonicalFile
-      if (!target.path.startsWith(root.path + File.separator)) {
-        throw ZimException("ERR_ZIM_PATH", "Path escapes content dir: $relativePath")
-      }
+      val target = contentFile(relativePath)
       target.parentFile?.mkdirs()
       target.writeText(text, Charsets.UTF_8)
       target.absolutePath
+    }
+
+    /** Reads a UTF-8 file under the content dir (bench inputs such as parity queries). */
+    AsyncFunction("readContentFile") { relativePath: String ->
+      val target = contentFile(relativePath)
+      if (!target.isFile) return@AsyncFunction null
+      if (target.length() > MAX_CONTENT_FILE_BYTES) {
+        throw ZimException("ERR_ZIM_TOO_LARGE", "$relativePath is ${target.length()} bytes (max $MAX_CONTENT_FILE_BYTES)")
+      }
+      target.readText(Charsets.UTF_8)
     }
 
     View(ZimArticleView::class) {

@@ -1,0 +1,22 @@
+{
+  "name": "@skepi/catalog-builder",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run",
+    "catalog": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@skepi/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.3"
+  }
+}

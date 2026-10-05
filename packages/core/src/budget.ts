@@ -99,5 +99,13 @@ export function selectWithinBudget(ranked: readonly ScoredChunk[], opts: BudgetO
   }
   for (const r of relevant) tryAdd(r);
 
-  return selected.sort((a, b) => b.score - a.score);
+  // Articles in score order; passages of one article in reading order (lead first), so the prompt
+  // and Layer 1 read like the article (rag-eval: the 1.5B model declined when a definition came second).
+  const articleRank = new Map<string, number>();
+  for (const r of selected) {
+    const article = `${r.chunk.archiveId}/${r.chunk.path}`;
+    if (!articleRank.has(article)) articleRank.set(article, articleRank.size);
+  }
+  const rankOf = (r: ScoredChunk): number => articleRank.get(`${r.chunk.archiveId}/${r.chunk.path}`) ?? 0;
+  return selected.sort((a, b) => rankOf(a) - rankOf(b) || a.chunk.index - b.chunk.index);
 }

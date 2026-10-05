@@ -1,7 +1,7 @@
 // Android build customisations for the Phase 0 spike (CNG: android/ is generated, never edited by hand).
 // - arm64-v8a only (ABI split), llama.rn compiled from source (no prebuilt download).
 // - Bundled offline map assets copied to android assets (served as asset://map/...).
-// - Release manifest has no INTERNET permission: the app is offline by construction until Phase 1c.
+// - Network access only through ContentStore (plugins/withContentStore.js, modules/expo-content-store).
 // - R8 minification for release with SKEPI keep rules (plugins/proguard-rules.skepi.pro).
 // - Release signing with the dedicated keystore (plugins/withReleaseSigning.js).
 // - Debug installs side-by-side with release: applicationId suffix ".dev", label "SKEPI Dev".
@@ -15,6 +15,7 @@ const {
   withGradleProperties,
   withProjectBuildGradle,
 } = require('expo/config-plugins');
+const withContentStore = require('./withContentStore');
 const withReleaseSigning = require('./withReleaseSigning');
 
 const ABI = 'arm64-v8a';
@@ -144,6 +145,26 @@ subprojects { p ->
     return cfg;
   });
 
+// The release JS bundle task only tracks files under apps/mobile, so a change in packages/* or
+// modules/* alone left the bundle UP-TO-DATE and shipped stale core code (found in Phase 1c).
+const BUNDLE_INPUTS_MARKER = '// skepi:bundle-inputs';
+const withBundleInputs = (config) =>
+  withAppBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(BUNDLE_INPUTS_MARKER)) return cfg;
+    cfg.modResults.contents += `
+${BUNDLE_INPUTS_MARKER}
+tasks.matching { it.name.startsWith('createBundle') && it.name.endsWith('JsAndAssets') }.configureEach { t ->
+    ['packages', 'modules'].each { dir ->
+        t.inputs.files(fileTree(new File(rootDir, "../../../\${dir}")) {
+            include '**/*.ts', '**/*.tsx', '**/*.js', '**/*.json'
+            exclude '**/node_modules/**', '**/android/**', '**/build/**', '**/test/**'
+        }).withPropertyName("skepiWorkspace_\${dir}")
+    }
+}
+`;
+    return cfg;
+  });
+
 const SPLITS_MARKER = '// skepi:abi-split';
 const withAbiSplit = (config) =>
   withAppBuildGradle(config, (cfg) => {
@@ -171,11 +192,6 @@ const withOfflineManifest = (config) => {
   config = withAndroidManifest(config, (cfg) => {
     const manifest = cfg.modResults.manifest;
     manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
-    const perms = (manifest['uses-permission'] ?? []).filter(
-      (p) => p.$['android:name'] !== 'android.permission.INTERNET',
-    );
-    perms.push({ $: { 'android:name': 'android.permission.INTERNET', 'tools:node': 'remove' } });
-    manifest['uses-permission'] = perms;
     const app = AndroidConfig.Manifest.getMainApplicationOrThrow(cfg.modResults);
     if (GPU_EXPERIMENT) {
       // llama.rn loads the vendor OpenCL / FastRPC libraries at runtime (README, Android GPU/NPU).
@@ -190,27 +206,7 @@ const withOfflineManifest = (config) => {
     app.$['tools:replace'] = [...replace].join(',');
     return cfg;
   });
-  // Debug builds still need INTERNET for Metro; build-type manifests override the main one.
-  return withDangerousMod(config, [
-    'android',
-    (cfg) => {
-      const debugDir = path.join(cfg.modRequest.platformProjectRoot, 'app', 'src', 'debug');
-      const file = path.join(debugDir, 'AndroidManifest.xml');
-      if (!fs.existsSync(file)) return cfg;
-      let xml = fs.readFileSync(file, 'utf8');
-      if (!xml.includes('android.permission.INTERNET')) {
-        if (!xml.includes('xmlns:tools')) {
-          xml = xml.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ');
-        }
-        xml = xml.replace(
-          /(<manifest[^>]*>)/,
-          '$1\n    <uses-permission android:name="android.permission.INTERNET" tools:node="replace"/>',
-        );
-        fs.writeFileSync(file, xml);
-      }
-      return cfg;
-    },
-  ]);
+  return config;
 };
 
 // Windows: RN codegen object paths exceed 260 chars. The SDK's default CMake 3.22 bundles ninja 1.10
@@ -237,10 +233,10 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withAndroidTestPackaging(withDevVariant(
+  withContentStore(withBundleInputs(withAndroidTestPackaging(withDevVariant(
     withReleaseSigning(
       withKeepRules(
         withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
       ),
     ),
-  ));
+  ))));

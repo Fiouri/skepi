@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "description": "Official packs of the SKEPI catalog. tools/catalog-builder downloads each file from its official source on the maintainer's machine, checks the publisher's checksum, measures SHA-256 and 64 MB chunk hashes and signs catalog.json. Maps (PMTiles) join when catalog hosting exists (they are extracts, not upstream files).",
+  "packs": [
+    {
+      "id": "wikipedia_en_top_mini",
+      "kind": "zim",
+      "version": "2026-09",
+      "file": "wikipedia_en_top_mini_2026-09.zim",
+      "title": { "en": "Wikipedia: top articles (English, summaries)", "el": "Wikipedia: κορυφαία άρθρα (αγγλικά, περιλήψεις)" },
+      "lang": ["en"],
+      "urls": ["https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim"],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors",
+      "minTier": "T0",
+      "tags": ["encyclopedia", "default"],
+      "source": {
+        "kind": "download",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim",
+        "upstreamSha256Url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim.sha256"
+      }
+    },
+    {
+      "id": "wikipedia_en_medicine_mini",
+      "kind": "zim",
+      "version": "2026-04",
+      "file": "wikipedia_en_medicine_mini_2026-04.zim",
+      "title": { "en": "WikiMed: medical encyclopedia (English, summaries)", "el": "WikiMed: ιατρική εγκυκλοπαίδεια (αγγλικά, περιλήψεις)" },
+      "lang": ["en"],
+      "urls": ["https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_mini_2026-04.zim"],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors (WikiProject Medicine selection, Kiwix WikiMed)",
+      "minTier": "T0",
+      "tags": ["medical", "default"],
+      "source": {
+        "kind": "download",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_mini_2026-04.zim",
+        "upstreamSha256Url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_mini_2026-04.zim.sha256"
+      }
+    },
+    {
+      "id": "wikipedia_el_top_mini",
+      "kind": "zim",
+      "version": "2026-07",
+      "file": "wikipedia_el_top_mini_2026-07.zim",
+      "title": { "en": "Wikipedia: top articles (Greek, summaries)", "el": "Βικιπαίδεια: κορυφαία άρθρα (περιλήψεις)" },
+      "lang": ["el"],
+      "urls": ["https://download.kiwix.org/zim/wikipedia/wikipedia_el_top_mini_2026-07.zim"],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors",
+      "minTier": "T0",
+      "tags": ["encyclopedia", "locale"],
+      "source": {
+        "kind": "download",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_top_mini_2026-07.zim",
+        "upstreamSha256Url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_top_mini_2026-07.zim.sha256"
+      }
+    },
+    {
+      "id": "wikipedia_el_all_mini",
+      "kind": "zim",
+      "version": "2026-09",
+      "file": "wikipedia_el_all_mini_2026-09.zim",
+      "title": { "en": "Wikipedia: all articles (Greek, summaries)", "el": "Βικιπαίδεια: όλα τα άρθρα (περιλήψεις)" },
+      "lang": ["el"],
+      "urls": ["https://download.kiwix.org/zim/wikipedia/wikipedia_el_all_mini_2026-09.zim"],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors",
+      "minTier": "T0",
+      "tags": ["encyclopedia", "locale"],
+      "source": {
+        "kind": "download",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_all_mini_2026-09.zim",
+        "upstreamSha256Url": "https://download.kiwix.org/zim/wikipedia/wikipedia_el_all_mini_2026-09.zim.sha256"
+      }
+    },
+    {
+      "id": "qwen2.5-1.5b-instruct-q4_0",
+      "kind": "gguf",
+      "version": "91cad51",
+      "file": "qwen2.5-1.5b-instruct-q4_0.gguf",
+      "title": { "en": "AI model: Qwen2.5 1.5B Instruct (Q4_0)", "el": "Μοντέλο AI: Qwen2.5 1.5B Instruct (Q4_0)" },
+      "lang": ["en", "el"],
+      "urls": [
+        "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_0.gguf"
+      ],
+      "license": "Apache-2.0",
+      "attribution": "Qwen team, Alibaba Cloud",
+      "minTier": "T1",
+      "tags": ["model", "default"],
+      "source": {
+        "kind": "download",
+        "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_0.gguf",
+        "upstreamSha256": "dcd819ff094852c38faba6873d8ff0c9d51eadb2844539e52042ae5d647bbfdb",
+        "upstreamSha256From": "Hugging Face LFS oid of qwen2.5-1.5b-instruct-q4_0.gguf at revision 91cad51170dc346986eccefdc2dd33a9da36ead9"
+      }
+    },
+    {
+      "id": "qwen2.5-1.5b-instruct-q4_k_m",
+      "kind": "gguf",
+      "version": "91cad51",
+      "file": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "title": { "en": "AI model: Qwen2.5 1.5B Instruct (Q4_K_M)", "el": "Μοντέλο AI: Qwen2.5 1.5B Instruct (Q4_K_M)" },
+      "lang": ["en", "el"],
+      "urls": [
+        "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+      ],
+      "license": "Apache-2.0",
+      "attribution": "Qwen team, Alibaba Cloud",
+      "minTier": "T1",
+      "tags": ["model"],
+      "source": {
+        "kind": "download",
+        "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+        "upstreamSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+        "upstreamSha256From": "Hugging Face LFS oid of qwen2.5-1.5b-instruct-q4_k_m.gguf at revision 91cad51170dc346986eccefdc2dd33a9da36ead9"
+      }
+    }
+  ]
+}

@@ -9,7 +9,7 @@ import { detectMedicalIntent, type MedicalIntent } from './medical';
 import { buildPrompt, PROMPT_VERSION, SYSTEM_PROMPT, type PromptSource } from './prompt';
 import { sanitizeSourceText } from './sanitize';
 import {
-  ANSWER_MAX_TOKENS,
+  ANSWER_MAX_CHARS,
   answerJsonSchema,
   answerLimits,
   parseStructuredAnswer,
@@ -39,8 +39,8 @@ export interface RagConfig {
   /** Model context size; the budget is clamped so the whole prompt fits. */
   contextSize: number;
   temperature: number;
-  /** Answer limit per language (tokens). */
-  answerMaxTokens: Readonly<Record<Lang, number>>;
+  /** Answer length per language (characters; tokens follow from the model's tokens per character). */
+  answerMaxChars: Readonly<Record<Lang, number>>;
   minSupport: number;
 }
 
@@ -55,13 +55,15 @@ export const DEFAULT_RAG_CONFIG: RagConfig = {
   modelId: null,
   contextSize: 2048,
   temperature: 0.2,
-  answerMaxTokens: ANSWER_MAX_TOKENS,
+  answerMaxChars: ANSWER_MAX_CHARS,
   minSupport: MIN_BIGRAM_SUPPORT,
 };
 
 export interface RagSource extends PromptSource {
   archiveId: string;
   path: string;
+  /** Chunk id (`<archiveId>/<path>#<index>`), stable across runs on the same archive. */
+  chunkId: string;
   score: number;
   /** Estimated tokens with the active model's tokenizer profile. */
   tokens: number;
@@ -75,6 +77,7 @@ export type RagEvent =
   | { type: 'emergency'; match: EmergencyMatch }
   | { type: 'medical'; intent: MedicalIntent }
   | { type: 'retrieved'; hits: SearchHit[]; ms: number }
+  | { type: 'ranked'; chunks: readonly ScoredChunk[] }
   | { type: 'context'; sources: RagSource[]; ms: number }
   | { type: 'layer1'; answer: Layer1Answer; ms: number }
   | { type: 'no_source'; reason: NoSourceReason }
@@ -112,8 +115,16 @@ export interface RetrieveOptions {
   signal: AbortSignal;
   onEvent?: (event: RagEvent) => void;
   config?: Partial<RagConfig>;
+  /** Restrict retrieval to these archives; all open archives when omitted. */
   archiveIds?: readonly string[];
+  /** ZIM language (`eng`, `ell`, …) of the open archives. */
+  archives?: readonly ArchiveRef[];
   now?: () => number;
+}
+
+export interface ArchiveRef {
+  archiveId: string;
+  language: string;
 }
 
 /** Reads the live flag: the signal can flip while retrieval is awaited (defeats TS narrowing). */
@@ -152,11 +163,23 @@ export function planSuggestions(keywords: readonly string[], maxSuggestions: num
   return out;
 }
 
+/** ZIM `Language` metadata codes (ISO 639-3, possibly comma-separated) per question language. */
+export const ZIM_LANGUAGE_CODES: Readonly<Record<Lang, readonly string[]>> = { en: ['eng', 'en'], el: ['ell', 'el', 'gre'] };
+
+export function archiveMatchesLanguage(zimLanguage: string, lang: Lang): boolean {
+  const codes = ZIM_LANGUAGE_CODES[lang];
+  return zimLanguage
+    .split(',')
+    .map((c) => c.trim().toLowerCase())
+    .some((c) => codes.includes(c));
+}
+
 async function search(
   knowledge: KnowledgeEngine,
   keywords: readonly string[],
   cfg: RagConfig,
   archiveIds: readonly string[] | undefined,
+  offset: (archiveId: string) => number,
 ): Promise<SearchHit[]> {
   const scope = archiveIds ? { archiveIds } : {};
   const lists: SearchHit[][] = [];
@@ -168,7 +191,7 @@ async function search(
   for (const q of planSuggestions(keywords, cfg.maxSuggestions)) {
     lists.push(await knowledge.search(q, { mode: 'suggest', limit: cfg.suggestTopK, ...scope }));
   }
-  return reciprocalRankFusion(lists).slice(0, cfg.fulltextTopK);
+  return reciprocalRankFusion(lists, { archiveOffset: offset }).slice(0, cfg.fulltextTopK);
 }
 
 /**
@@ -223,6 +246,7 @@ export function rankChunks(keywords: readonly string[], chunks: readonly Chunk[]
 export function toSources(selected: readonly ScoredChunk[]): RagSource[] {
   return selected.map((s, i) => ({
     id: `S${i + 1}`,
+    chunkId: s.chunk.id,
     archiveId: s.chunk.archiveId,
     path: s.chunk.path,
     title: s.chunk.articleTitle,
@@ -249,7 +273,8 @@ function isEligible(r: ScoredChunk, question: string, cfg: RagConfig): boolean {
 function reservedTokens(question: string, lang: Lang, cfg: RagConfig): number {
   const estimate = makeTokenEstimator(tokenizerProfile(cfg.modelId));
   const TEMPLATE_AND_INSTRUCTION = 80;
-  return estimate(SYSTEM_PROMPT) + estimate(question) + TEMPLATE_AND_INSTRUCTION + cfg.answerMaxTokens[lang];
+  const answer = answerLimits(lang, cfg.modelId, cfg.answerMaxChars[lang]).maxTokens;
+  return estimate(SYSTEM_PROMPT) + estimate(question) + TEMPLATE_AND_INSTRUCTION + answer;
 }
 
 /**
@@ -296,7 +321,12 @@ export async function retrieve(question: string, knowledge: KnowledgeEngine, opt
   if (keywords.length === 0) return noSource('no_keywords');
 
   let t = now();
-  const hits = await search(knowledge, keywords, cfg, options.archiveIds);
+  // Packs in the question's language first: another language's hits rank after a full list.
+  const otherLanguage = new Set(
+    (options.archives ?? []).filter((a) => !archiveMatchesLanguage(a.language, lang)).map((a) => a.archiveId),
+  );
+  const offset = (archiveId: string): number => (otherLanguage.has(archiveId) ? cfg.fulltextTopK : 0);
+  const hits = await search(knowledge, keywords, cfg, options.archiveIds, offset);
   timings.retrievalMs = now() - t;
   emit({ type: 'retrieved', hits, ms: timings.retrievalMs });
   if (isAborted(options.signal)) return { ...base, hits, status: 'aborted' };
@@ -311,6 +341,7 @@ export async function retrieve(question: string, knowledge: KnowledgeEngine, opt
   const countTokens = makeTokenEstimator(tokenizerProfile(cfg.modelId));
   const ranked = rankChunks(keywords, articles.flatMap((a) => chunkArticle(a, { countTokens })));
   timings.rankMs = now() - t;
+  emit({ type: 'ranked', chunks: ranked });
 
   const top = ranked[0];
   const best = top ? { score: top.score, coverage: top.coverage } : null;
@@ -384,7 +415,7 @@ export async function summarise(
   const emit = options.onEvent ?? (() => undefined);
   const { question, lang, sources } = retrieval;
   const label: SummaryLabel = retrieval.medical ? 'unverified-ai-summary' : 'ai-summary';
-  const limits = answerLimits(lang, cfg.modelId, cfg.answerMaxTokens[lang]);
+  const limits = answerLimits(lang, cfg.modelId, cfg.answerMaxChars[lang]);
   const byId = new Map(sources.map((s) => [s.id, s]));
 
   let streamed = '';

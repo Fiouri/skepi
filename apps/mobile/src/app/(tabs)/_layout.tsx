@@ -8,6 +8,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: t.tabs.search, tabBarButtonTestID: 'tab-search' }} />
       <Tabs.Screen name="ask" options={{ title: t.tabs.ask, tabBarButtonTestID: 'tab-ask' }} />
       <Tabs.Screen name="map" options={{ title: t.tabs.map, tabBarButtonTestID: 'tab-map' }} />
+      <Tabs.Screen name="library" options={{ title: t.tabs.library, tabBarButtonTestID: 'tab-library' }} />
       <Tabs.Screen name="bench" options={{ title: t.tabs.bench, tabBarButtonTestID: 'tab-bench' }} />
     </Tabs>
   );

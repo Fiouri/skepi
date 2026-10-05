@@ -39,19 +39,19 @@ describe('rankBm25', () => {
 });
 
 describe('reciprocalRankFusion', () => {
-  const hit = (path: string, archiveId = 'a'): SearchHit => ({
+  const hit = (path: string, archiveId = 'a', rank = 0): SearchHit => ({
     archiveId,
     path,
     title: path,
     snippet: null,
     score: null,
-    rank: 0,
+    rank,
   });
 
   it('boosts documents that appear in several lists and re-ranks', () => {
     const fused = reciprocalRankFusion([
-      [hit('x'), hit('y')],
-      [hit('y'), hit('z')],
+      [hit('x', 'a', 0), hit('y', 'a', 1)],
+      [hit('y', 'a', 0), hit('z', 'a', 1)],
     ]);
     expect(fused.map((h) => h.path)).toEqual(['y', 'x', 'z']);
     expect(fused.map((h) => h.rank)).toEqual([0, 1, 2]);
@@ -59,5 +59,20 @@ describe('reciprocalRankFusion', () => {
 
   it('keeps the same path from different archives apart', () => {
     expect(reciprocalRankFusion([[hit('x', 'a'), hit('x', 'b')]])).toHaveLength(2);
+  });
+
+  it('uses the rank inside each archive, so the archive order of an engine does not matter', () => {
+    const a = [hit('a0', 'A', 0), hit('a1', 'A', 1), hit('b0', 'B', 0), hit('b1', 'B', 1)];
+    const b = [hit('b0', 'B', 0), hit('b1', 'B', 1), hit('a0', 'A', 0), hit('a1', 'A', 1)];
+    const paths = (lists: SearchHit[][]): string[] => reciprocalRankFusion(lists).map((h) => h.path);
+    expect(paths([a])).toEqual(paths([b]));
+    expect(paths([a])).toEqual(['a0', 'b0', 'a1', 'b1']);
+  });
+
+  it('ranks archives with an offset (another language) after the preferred ones', () => {
+    const fused = reciprocalRankFusion([[hit('el0', 'el', 0), hit('en0', 'en', 0), hit('en1', 'en', 1)]], {
+      archiveOffset: (id) => (id === 'el' ? 8 : 0),
+    });
+    expect(fused.map((h) => h.path)).toEqual(['en0', 'en1', 'el0']);
   });
 });

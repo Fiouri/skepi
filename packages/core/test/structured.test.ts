@@ -13,14 +13,18 @@ const SOURCES: CheckableSource[] = [
 ];
 
 describe('answerLimits / answerJsonSchema', () => {
-  it('derives per-sentence character limits so the JSON closes within the token limit', () => {
+  it('converts the character limits to tokens with the model tokens per character', () => {
     const en = answerLimits('en', 'qwen2.5-1.5b-instruct-q4_0.gguf');
     const el = answerLimits('el', 'qwen2.5-1.5b-instruct-q4_0.gguf');
-    expect(en).toMatchObject({ maxTokens: 150, maxSentences: 3 });
-    expect(el).toMatchObject({ maxTokens: 200, maxSentences: 2 });
-    // Greek costs more tokens per character: shorter sentences for a similar token count.
-    expect(el.maxSentenceChars).toBeLessThan(en.maxSentenceChars);
-    expect(answerLimits('en', null, 20).maxSentenceChars).toBe(40);
+    // Qwen2.5 (en 0.25, el 0.95 tokens/char): the Phase 1b limits of 150 / 200 tokens.
+    expect(en).toEqual({ maxChars: 408, maxTokens: 150, maxSentences: 3, maxSentenceChars: 136 });
+    expect(el).toEqual({ maxChars: 172, maxTokens: 200, maxSentences: 2, maxSentenceChars: 86 });
+    // Same characters, more tokens for a less efficient (unknown) tokenizer.
+    const fallback = answerLimits('en', null);
+    expect(fallback.maxSentenceChars).toBe(136);
+    expect(fallback.maxTokens).toBeGreaterThan(en.maxTokens);
+    expect(answerLimits('en', null, 30).maxSentenceChars).toBe(40);
+    expect(answerLimits('el', null, 10_000).maxSentenceChars).toBe(220);
   });
 
   it('restricts source ids to the ids in the prompt and bounds the output', () => {

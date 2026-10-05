@@ -47,6 +47,14 @@ DROP_HEADINGS = re.compile(
     re.IGNORECASE,
 )
 BLOCK_TAGS = {"p", "li", "dd", "dt", "blockquote", "pre"}
+# jsoup's block-level tags (Element.text() separates them, and <br>, with a space).
+JSOUP_BLOCK_TAGS = {
+    "address", "article", "aside", "blockquote", "body", "canvas", "caption", "center", "col", "colgroup",
+    "dd", "details", "dir", "div", "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form",
+    "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "html", "li", "listing", "main", "menu",
+    "nav", "ol", "p", "plaintext", "pre", "section", "summary", "table", "tbody", "td", "tfoot", "th",
+    "thead", "tr", "ul",
+}
 HEADING_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
 WHITESPACE = re.compile(r"\s+")
 
@@ -65,9 +73,11 @@ class Store:
         file = pathlib.Path(path).resolve()
         if file.suffix.lower() != ".zim" or not file.is_file():
             raise ValueError(f"not a ZIM file: {path}")
-        archive_id = file.stem
+        archive = Archive(str(file))
+        # The archive UUID, like ZimRegistry.open on Android: ids (and chunk ids) match the phone's.
+        archive_id = str(archive.uuid)
         if archive_id not in self.archives:
-            self.archives[archive_id] = Archive(str(file))
+            self.archives[archive_id] = archive
         a = self.archives[archive_id]
 
         def meta(name: str) -> str:
@@ -182,6 +192,13 @@ def extract_sections(html: str, title: str) -> list[dict[str, Any]]:
     for el in soup.select(DROP_SELECTORS):
         el.decompose()
     body = soup.body or soup
+    # jsoup's text() puts a space at <br> and around block elements ("O<br>3" -> "O 3"); get_text()
+    # joins them ("O3"). Parity found this in chemical formulas (Ozone, Biogas).
+    for br in body.find_all("br"):
+        br.replace_with(" ")
+    for el in body.find_all(list(JSOUP_BLOCK_TAGS)):
+        el.insert_before(" ")
+        el.insert_after(" ")
 
     sections: list[dict[str, Any]] = []
     state = {"heading": "", "level": 1, "dropping": False, "drop_level": 0}

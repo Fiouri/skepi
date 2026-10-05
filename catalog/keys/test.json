@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "purpose": "test",
+  "active": {
+    "keyId": "cat-test-2026a",
+    "publicKey": "hg+MX2L5ecZC7lQy9LLdmVldiuCieKI7CTFD875dNVQ="
+  },
+  "backup": {
+    "keyId": "cat-test-2026b",
+    "publicKey": "nF/jWlRi/zrE1SXUVNWE7kpPrZZb+5xaO2G7qct0dko="
+  }
+}

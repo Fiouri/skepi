@@ -11,11 +11,58 @@ export interface Messages {
     search: string;
     ask: string;
     map: string;
+    library: string;
     bench: string;
   };
   content: {
     opening: string;
     missing: string;
+    verifying: (p: { file: string; percent: number }) => string;
+  };
+  /** Permanent label of content that matched no signed catalog entry. */
+  unverified: {
+    label: string;
+    consentTitle: string;
+    consentBody: (title: string) => string;
+    consentAccept: string;
+    cancel: string;
+  };
+  library: {
+    catalog: (p: { sequence: number; keys: string; packs: number }) => string;
+    noCatalog: string;
+    catalogRejected: (p: { origin: string; reason: string }) => string;
+    checkUpdate: string;
+    updated: (sequence: number) => string;
+    upToDate: (sequence: number) => string;
+    updateRejected: (reason: string) => string;
+    allowMetered: string;
+    allowMeteredHint: string;
+    installed: string;
+    available: string;
+    none: string;
+    size: (size: string) => string;
+    licence: (licence: string) => string;
+    verified: string;
+    download: string;
+    cancel: string;
+    remove: string;
+    verify: string;
+    verifyOk: string;
+    verifyFailed: string;
+    import: string;
+    importing: string;
+    imported: (title: string) => string;
+    importRejected: (reason: string) => string;
+    open: string;
+    phase: Record<'queued' | 'waiting-for-network' | 'downloading' | 'verifying' | 'installing' | 'done' | 'failed' | 'cancelled', string>;
+    progress: (p: { phase: string; percent: number; mirror: number; rejected: number }) => string;
+    failed: (reason: string) => string;
+    meteredTitle: string;
+    meteredBody: (size: string) => string;
+    meteredAccept: string;
+    noSpace: (p: { needed: string; free: string }) => string;
+    rejectedModels: (files: string) => string;
+    networkLog: (p: { count: number; hosts: string }) => string;
   };
   search: {
     placeholder: string;
@@ -35,6 +82,8 @@ export interface Messages {
     clear: string;
     phase: Record<'idle' | 'loading-model' | 'retrieving' | 'generating' | 'done' | 'error', string>;
     noModel: string;
+    /** Model load progress, 0–100. */
+    loadingModel: (percent: number) => string;
     emergencyCall: (number: string) => string;
     emergencyServices: (n: { ambulance: string; fire: string; police: string }) => string;
     emergencyTopics: (topics: string) => string;
@@ -69,6 +118,7 @@ export interface Messages {
   };
   bench: {
     run: string;
+    parity: string;
     running: string;
     status: Record<'idle' | 'running' | 'done' | 'error', string>;
     developer: string;

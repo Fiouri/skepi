@@ -28,10 +28,16 @@ export class NodeLlamaEngine implements InferenceEngine {
   private sequence: LlamaContextSequence | null = null;
   private readonly grammars = new Map<string, LlamaGrammar>();
 
-  async load(model: InstalledModel, opts: LoadOptions): Promise<LoadedModel> {
+  async load(model: InstalledModel, opts: LoadOptions, onProgress?: (fraction: number) => void): Promise<LoadedModel> {
     const start = Date.now();
     this.llama = await getLlama({ gpu: false, maxThreads: opts.threads });
-    this.model = await this.llama.loadModel({ modelPath: model.path, gpuLayers: 0, useMmap: opts.useMmap, useMlock: opts.useMlock });
+    this.model = await this.llama.loadModel({
+      modelPath: model.path,
+      gpuLayers: 0,
+      useMmap: opts.useMmap,
+      useMlock: opts.useMlock,
+      ...(onProgress ? { onLoadProgress: onProgress } : {}),
+    });
     this.context = await this.model.createContext({ contextSize: opts.contextSize, threads: opts.threads, sequences: 1 });
     this.sequence = this.context.getSequence();
     return {

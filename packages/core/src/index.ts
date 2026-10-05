@@ -28,10 +28,11 @@ export {
   type Layer1Passage,
   type Layer1Sentence,
 } from './extractive';
-export { reciprocalRankFusion, RRF_K } from './fusion';
+export { reciprocalRankFusion, RRF_K, type FusionOptions } from './fusion';
 export { detectMedicalIntent, MEDICAL_LEXICON, type MedicalIntent } from './medical';
 export { buildPrompt, PROMPT_VERSION, renderSources, SYSTEM_PROMPT, type PromptSource } from './prompt';
 export {
+  archiveMatchesLanguage,
   DEFAULT_RAG_CONFIG,
   planQueries,
   planSuggestions,
@@ -41,6 +42,7 @@ export {
   summarise,
   TITLE_BOOST,
   toSources,
+  type ArchiveRef,
   type NoSourceReason,
   type RagConfig,
   type RagEvent,
@@ -56,12 +58,31 @@ export {
   type SummaryLabel,
   type SummaryResult,
   type SummaryStatus,
+  ZIM_LANGUAGE_CODES,
 } from './rag';
+export {
+  compareParity,
+  fnv1a,
+  PARITY_RANKED_TOP,
+  probeRetrieval,
+  type ParityArticle,
+  type ParityChunk,
+  type ParityConfig,
+  type ParityDiff,
+  type ParityHit,
+  type ParityQuery,
+  type ParityQueryFile,
+  type ParityRecord,
+  type ParityReport,
+  type ParitySearch,
+  type ParityStep,
+} from './parity';
 export { isInjection, sanitizeSourceText } from './sanitize';
+export { DEFAULT_SUGGEST, suggestTitles, type SuggestOptions } from './suggest';
 export { percentile, summarize, type LatencySummary } from './stats';
 export {
+  ANSWER_MAX_CHARS,
   ANSWER_MAX_SENTENCES,
-  ANSWER_MAX_TOKENS,
   answerJsonSchema,
   answerLimits,
   parseStructuredAnswer,
@@ -128,3 +149,37 @@ export {
   type SentenceCheck,
   type SentenceRejection,
 } from './validate';
+export {
+  CATALOG_CHUNK_SIZE,
+  CATALOG_SCHEMA,
+  decodeSignature,
+  findPackBySha256,
+  fromBase64,
+  generateKeyPair,
+  isAllowedDownloadUrl,
+  KEY_LIST_SCHEMA,
+  NO_SEQUENCE,
+  parseCatalog,
+  parseKeyList,
+  pinnedKeys,
+  publicKeyOf,
+  sha256Hex,
+  signBytes,
+  toBase64,
+  toHex,
+  trustedFromPinned,
+  utf8,
+  verifyCatalog,
+  verifyKeyList,
+  type Catalog,
+  type CatalogPack,
+  type CatalogRejection,
+  type CatalogTier,
+  type KeyList,
+  type PackKind,
+  type PinnedKeyInput,
+  type PinnedKeys,
+  type SequenceState,
+  type TrustedKey,
+  type Verified,
+} from './catalog';

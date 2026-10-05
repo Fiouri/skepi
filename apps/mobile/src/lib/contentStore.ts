@@ -1,0 +1,494 @@
+import type {
+  CatalogEntry,
+  ContentStore,
+  DownloadProgress,
+  InstalledPack,
+  PackKind,
+  VerifyResult,
+} from '@skepi/contracts';
+import { findPackBySha256, fromBase64, isAllowedDownloadUrl, toBase64, type Catalog } from '@skepi/core';
+import {
+  findPackByPath,
+  getPack,
+  getSetting,
+  listPacks,
+  removePack,
+  setConsent,
+  setSetting,
+  upsertPack,
+  type ActiveDownload,
+  type PackRow,
+  type SqlDatabase,
+} from '@skepi/db';
+import { ExpoContentStore, type NativeDownload, type NetworkState } from 'expo-content-store';
+import { hashFile } from 'expo-hash';
+import type { CatalogSource } from './catalog';
+
+/**
+ * ContentStore (Android): the only module that reaches the network (ESLint enforces it). Downloads
+ * go through the system DownloadManager into tmp/<file>.partial; the file is hashed on a native
+ * thread and only a file whose SHA-256 matches the signed catalog is moved into place and registered,
+ * in that order. A mismatch deletes the file and tries the next mirror. Imports are copied into app
+ * storage and hashed the same way; an unknown ZIM is registered as unverified (opens only after
+ * explicit consent), an unknown GGUF is rejected.
+ */
+const POLL_MS = 500;
+const DIRS: Readonly<Record<PackKind, 'zim' | 'models' | 'maps'>> = { zim: 'zim', gguf: 'models', pmtiles: 'maps', places: 'maps' };
+
+export type ContentErrorCode =
+  | 'insufficient_space'
+  | 'no_mirror'
+  | 'hash_mismatch'
+  | 'download_failed'
+  | 'unverified_model'
+  | 'unsupported_file'
+  | 'not_found';
+
+export class ContentError extends Error {
+  constructor(
+    readonly code: ContentErrorCode,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+function relativePath(kind: PackKind, file: string): string {
+  return `${DIRS[kind]}/${file}`;
+}
+
+function toInstalled(p: PackRow): InstalledPack {
+  return {
+    id: p.id,
+    kind: p.kind,
+    version: p.version,
+    title: p.title,
+    path: p.path,
+    sizeBytes: p.sizeBytes,
+    sha256: p.sha256,
+    verified: p.verified,
+    source: p.source,
+    consentAt: p.consentAt,
+    license: p.license,
+  };
+}
+
+/** Reads the live flag (it can flip while a native call is awaited). */
+function isAborted(signal: AbortSignal): boolean {
+  return signal.aborted;
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+export interface DownloadOptions {
+  signal: AbortSignal;
+  /** The user confirmed the size on a metered network (default: Wi-Fi only). */
+  allowMetered: boolean;
+}
+
+export interface ReconcileReport {
+  registered: string[];
+  unverified: string[];
+  /** Unknown GGUF files: never loaded (unverified models are not accepted on mobile). */
+  rejectedModels: string[];
+  missing: string[];
+  changed: string[];
+  partialsRemoved: number;
+}
+
+export interface FreeSpace {
+  freeBytes: number;
+  requiredBytes: number;
+  ok: boolean;
+}
+
+export class AndroidContentStore implements ContentStore {
+  constructor(
+    private readonly db: () => Promise<SqlDatabase>,
+    private readonly catalog: () => Catalog | null,
+  ) {}
+
+  networkState(): NetworkState {
+    return ExpoContentStore.getNetworkState();
+  }
+
+  freeSpace(sizeBytes: number): FreeSpace {
+    const freeBytes = ExpoContentStore.getFreeBytes();
+    const requiredBytes = ExpoContentStore.requiredFreeBytes(sizeBytes);
+    return { freeBytes, requiredBytes, ok: freeBytes >= requiredBytes };
+  }
+
+  /** URLs this process handed to DownloadManager (zero-egress evidence). */
+  networkLog(): ReturnType<typeof ExpoContentStore.getNetworkLog> {
+    return ExpoContentStore.getNetworkLog();
+  }
+
+  async listInstalled(): Promise<InstalledPack[]> {
+    return (await listPacks(await this.db())).map(toInstalled);
+  }
+
+  download(entry: CatalogEntry, signal: AbortSignal): AsyncIterable<DownloadProgress> {
+    return this.downloadPack(entry, { signal, allowMetered: false });
+  }
+
+  /** Downloads, verifies and installs one catalog pack, trying its mirrors in order. */
+  async *downloadPack(entry: CatalogEntry, options: DownloadOptions, resume?: ActiveDownload): AsyncGenerator<DownloadProgress> {
+    const db = await this.db();
+    const urls = entry.urls.filter(isAllowedDownloadUrl);
+    if (urls.length === 0) throw new ContentError('no_mirror', `${entry.id}: no HTTPS mirror`);
+    if (!resume) {
+      const space = this.freeSpace(entry.sizeBytes);
+      if (!space.ok) {
+        throw new ContentError('insufficient_space', `${entry.id}: needs ${String(space.requiredBytes)} bytes free (file + 10% + 1 GB), has ${String(space.freeBytes)}`);
+      }
+    }
+    const progress = (phase: DownloadProgress['phase'], mirror: number, rejected: number, bytes: number, error: string | null = null): DownloadProgress => ({
+      packId: entry.id,
+      phase,
+      bytes,
+      totalBytes: entry.sizeBytes,
+      mirror,
+      rejectedMirrors: rejected,
+      error,
+    });
+    const partial = `tmp/${entry.file}.partial`;
+    let rejected = resume?.rejectedMirrors ?? 0;
+    let lastError: string | null = null;
+    for (let mirror = resume?.mirror ?? 0; mirror < urls.length; mirror += 1) {
+      const url = urls[mirror] ?? '';
+      const downloadId =
+        resume && mirror === resume.mirror ? resume.downloadId : await ExpoContentStore.startDownload(url, entry.file, entry.title.en, options.allowMetered);
+      await this.trackActive(db, { packId: entry.id, downloadId, mirror, rejectedMirrors: rejected, allowMetered: options.allowMetered });
+      // Set inside the polling loop; an object so control-flow analysis sees the assignment.
+      const outcome: { done: NativeDownload | null } = { done: null };
+      try {
+        for (;;) {
+          if (isAborted(options.signal)) {
+            ExpoContentStore.removeDownload(downloadId);
+            yield progress('cancelled', mirror, rejected, 0);
+            return;
+          }
+          const q = ExpoContentStore.queryDownload(downloadId);
+          if (!q || q.status === 'failed' || q.status === 'successful') {
+            outcome.done = q;
+            break;
+          }
+          yield progress(q.status === 'paused' ? 'waiting-for-network' : q.status === 'pending' ? 'queued' : 'downloading', mirror, rejected, q.bytes);
+          await sleep(POLL_MS);
+        }
+      } finally {
+        await this.untrackActive(db, entry.id, downloadId);
+      }
+      const done = outcome.done;
+      if (done?.status !== 'successful') {
+        lastError = `mirror ${String(mirror + 1)}: download failed (reason ${String(done?.reason ?? -1)})`;
+        ExpoContentStore.removeDownload(downloadId);
+        continue;
+      }
+      // Verify before anything can open the file.
+      const info = ExpoContentStore.fileInfo(partial);
+      yield progress('verifying', mirror, rejected, info.sizeBytes);
+      let sha256: string;
+      try {
+        sha256 = (await hashFile(info.path, { signal: options.signal })).sha256;
+      } catch (e) {
+        await ExpoContentStore.deleteFile(partial);
+        ExpoContentStore.removeDownload(downloadId);
+        if (isAborted(options.signal)) {
+          yield progress('cancelled', mirror, rejected, 0);
+          return;
+        }
+        throw e;
+      }
+      if (sha256 !== entry.sha256 || info.sizeBytes !== entry.sizeBytes) {
+        // Wrong bytes from this mirror: delete them and try the next mirror.
+        await ExpoContentStore.deleteFile(partial);
+        ExpoContentStore.removeDownload(downloadId);
+        rejected += 1;
+        lastError = `mirror ${String(mirror + 1)}: SHA-256 mismatch`;
+        continue;
+      }
+      yield progress('installing', mirror, rejected, info.sizeBytes);
+      await this.install(db, entry, partial, sha256, 'download');
+      // The DownloadManager entry pointed at the partial file, which is now moved: forget it.
+      ExpoContentStore.removeDownload(downloadId);
+      yield progress('done', mirror, rejected, info.sizeBytes);
+      return;
+    }
+    yield progress('failed', urls.length - 1, rejected, 0, lastError);
+    throw new ContentError(rejected > 0 ? 'hash_mismatch' : 'download_failed', `${entry.id}: ${lastError ?? 'no mirror succeeded'}`);
+  }
+
+  private async trackActive(db: SqlDatabase, d: ActiveDownload): Promise<void> {
+    const active = (await getSetting(db, 'downloads.active')) ?? [];
+    await setSetting(db, 'downloads.active', [...active.filter((a) => a.packId !== d.packId), d]);
+  }
+
+  private async untrackActive(db: SqlDatabase, packId: string, downloadId: number): Promise<void> {
+    const active = (await getSetting(db, 'downloads.active')) ?? [];
+    await setSetting(
+      db,
+      'downloads.active',
+      active.filter((a) => !(a.packId === packId && a.downloadId === downloadId)),
+    );
+  }
+
+  /** Downloads still known to DownloadManager after a restart (resumed by the Library screen). */
+  async activeDownloads(): Promise<ActiveDownload[]> {
+    const db = await this.db();
+    const active = (await getSetting(db, 'downloads.active')) ?? [];
+    const alive = active.filter((a) => ExpoContentStore.queryDownload(a.downloadId) !== null);
+    if (alive.length !== active.length) await setSetting(db, 'downloads.active', alive);
+    return alive;
+  }
+
+  /** Atomic rename into place, then registration; a failed registration removes the file again. */
+  private async install(db: SqlDatabase, entry: CatalogEntry, from: string, sha256: string, source: PackRow['source']): Promise<PackRow> {
+    const target = relativePath(entry.kind, entry.file);
+    const catalog = this.catalog();
+    const row: PackRow = {
+      id: entry.id,
+      kind: entry.kind,
+      version: entry.version,
+      title: entry.title.en,
+      path: '',
+      sizeBytes: entry.sizeBytes,
+      sha256,
+      verified: true,
+      catalogSeq: catalog?.sequence ?? null,
+      license: entry.license,
+      source,
+      consentAt: null,
+      installedAt: Date.now(),
+      lastOpenedAt: null,
+    };
+    // Set inside the transaction callback; an object so control-flow analysis sees the assignment.
+    const moved = { done: false };
+    try {
+      await db.transaction(async (tx) => {
+        row.path = await ExpoContentStore.installFile(from, target);
+        moved.done = true;
+        await upsertPack(tx, row);
+      });
+    } catch (e) {
+      if (moved.done) await ExpoContentStore.deleteFile(target);
+      throw e;
+    }
+    return row;
+  }
+
+  /**
+   * Import from a file picked with the Storage Access Framework: copied into app storage (libzim
+   * needs a real path), hashed, looked up in the catalog. Known → verified pack. Unknown ZIM →
+   * unverified (opens only after consent, labelled, JavaScript off). Unknown GGUF → rejected.
+   */
+  async importFile(uri: string, onProgress?: (phase: 'copying' | 'verifying', bytes: number) => void): Promise<InstalledPack> {
+    const db = await this.db();
+    const stamp = `import-${String(Date.now())}`;
+    const sub = onProgress
+      ? ExpoContentStore.addListener('onImportProgress', (e) => {
+          onProgress('copying', e.copiedBytes);
+        })
+      : null;
+    let copied;
+    try {
+      copied = await ExpoContentStore.importFromUri(uri, stamp);
+    } finally {
+      sub?.remove();
+    }
+    try {
+      const digest = await hashFile(copied.path, { onProgress: (hashed) => onProgress?.('verifying', hashed) });
+      const catalog = this.catalog();
+      const known = catalog ? findPackBySha256(catalog, digest.sha256) : null;
+      if (known) {
+        const row = await this.install(db, known, copied.relativePath, digest.sha256, 'import');
+        return toInstalled(row);
+      }
+      const name = copied.displayName.toLowerCase();
+      if (name.endsWith('.gguf')) throw new ContentError('unverified_model', 'This model file is not in the signed catalog. Unverified models are not accepted.');
+      if (!name.endsWith('.zim')) throw new ContentError('unsupported_file', `Unsupported file: ${copied.displayName}`);
+      const id = `import-${digest.sha256.slice(0, 12)}`;
+      const file = `${id}.zim`;
+      const row: PackRow = {
+        id,
+        kind: 'zim',
+        version: 'unverified',
+        title: copied.displayName,
+        path: '',
+        sizeBytes: digest.sizeBytes,
+        sha256: digest.sha256,
+        verified: false,
+        catalogSeq: null,
+        license: null,
+        source: 'import',
+        consentAt: null,
+        installedAt: Date.now(),
+        lastOpenedAt: null,
+      };
+      await db.transaction(async (tx) => {
+        row.path = await ExpoContentStore.installFile(copied.relativePath, `zim/${file}`);
+        await upsertPack(tx, row);
+      });
+      return toInstalled(row);
+    } finally {
+      await ExpoContentStore.deleteFile(copied.relativePath);
+    }
+  }
+
+  /** Full integrity check: hash the installed file and compare with the registered/catalog hash. */
+  async verify(pack: InstalledPack, onProgress?: (hashed: number, total: number) => void): Promise<VerifyResult> {
+    const digest = await hashFile(pack.path, onProgress ? { onProgress } : {});
+    const catalog = this.catalog();
+    const expected = catalog?.packs.find((p) => p.id === pack.id)?.sha256 ?? pack.sha256;
+    return { ok: digest.sha256 === expected, sha256: digest.sha256, expected };
+  }
+
+  async remove(packId: string): Promise<void> {
+    const db = await this.db();
+    const row = await getPack(db, packId);
+    if (!row) throw new ContentError('not_found', `${packId} is not installed`);
+    const file = row.path.split('/').pop() ?? '';
+    await removePack(db, packId);
+    await ExpoContentStore.deleteFile(relativePath(row.kind, file));
+  }
+
+  async consent(packId: string): Promise<void> {
+    await setConsent(await this.db(), packId, Date.now());
+  }
+
+  /**
+   * Startup check (architecture: quick check of existence and size; full hash only on mismatch or
+   * for files the database does not know, e.g. provisioned by the dev scripts).
+   */
+  async reconcile(onProgress?: (file: string, hashed: number, total: number) => void): Promise<ReconcileReport> {
+    const db = await this.db();
+    const catalog = this.catalog();
+    const report: ReconcileReport = { registered: [], unverified: [], rejectedModels: [], missing: [], changed: [], partialsRemoved: 0 };
+    const known = await listPacks(db);
+    for (const p of known) {
+      const file = p.path.split('/').pop() ?? '';
+      const info = ExpoContentStore.fileInfo(relativePath(p.kind, file));
+      if (!info.exists) {
+        await removePack(db, p.id);
+        report.missing.push(p.id);
+        continue;
+      }
+      if (info.sizeBytes === p.sizeBytes) continue;
+      const digest = await hashFile(info.path, { onProgress: (h, t) => onProgress?.(file, h, t) });
+      const entry = catalog ? findPackBySha256(catalog, digest.sha256) : null;
+      report.changed.push(p.id);
+      if (p.kind === 'gguf' && !entry) {
+        await removePack(db, p.id);
+        report.rejectedModels.push(file);
+        continue;
+      }
+      await upsertPack(db, { ...p, sha256: digest.sha256, sizeBytes: digest.sizeBytes, verified: entry !== null, catalogSeq: entry ? (catalog?.sequence ?? null) : null, consentAt: entry ? null : p.consentAt });
+    }
+    for (const dir of ['zim', 'models'] as const) {
+      for (const f of ExpoContentStore.listDir(dir)) {
+        if (await findPackByPath(db, f.path)) continue;
+        const kind: PackKind | null = dir === 'zim' && f.name.toLowerCase().endsWith('.zim') ? 'zim' : dir === 'models' && f.name.toLowerCase().endsWith('.gguf') ? 'gguf' : null;
+        if (!kind) continue;
+        const digest = await hashFile(f.path, { onProgress: (h, t) => onProgress?.(f.name, h, t) });
+        const entry = catalog ? findPackBySha256(catalog, digest.sha256) : null;
+        if (entry && entry.kind === kind) {
+          await upsertPack(db, {
+            id: entry.id,
+            kind,
+            version: entry.version,
+            title: entry.title.en,
+            path: f.path,
+            sizeBytes: digest.sizeBytes,
+            sha256: digest.sha256,
+            verified: true,
+            catalogSeq: catalog?.sequence ?? null,
+            license: entry.license,
+            source: 'provisioned',
+            consentAt: null,
+            installedAt: Date.now(),
+            lastOpenedAt: null,
+          });
+          report.registered.push(entry.id);
+        } else if (kind === 'zim') {
+          await upsertPack(db, {
+            id: `local-${digest.sha256.slice(0, 12)}`,
+            kind,
+            version: 'unverified',
+            title: f.name,
+            path: f.path,
+            sizeBytes: digest.sizeBytes,
+            sha256: digest.sha256,
+            verified: false,
+            catalogSeq: null,
+            license: null,
+            source: 'provisioned',
+            consentAt: null,
+            installedAt: Date.now(),
+            lastOpenedAt: null,
+          });
+          report.unverified.push(f.name);
+        } else {
+          report.rejectedModels.push(f.name);
+        }
+      }
+    }
+    // Stale partial files (architecture: tmp/ is cleaned on every start), except live downloads.
+    const live = new Set((await this.activeDownloads()).map((a) => a.packId));
+    const livePartials = new Set(catalog?.packs.filter((p) => live.has(p.id)).map((p) => `${p.file}.partial`) ?? []);
+    for (const f of ExpoContentStore.listDir('tmp')) {
+      if (livePartials.has(f.name)) continue;
+      await ExpoContentStore.deleteFile(`tmp/${f.name}`);
+      report.partialsRemoved += 1;
+    }
+    return report;
+  }
+}
+
+/** Signed catalog, pinned keys and update sources bundled in this build (assets/catalog). */
+export function readEmbeddedCatalog(): ReturnType<typeof ExpoContentStore.readEmbeddedCatalog> {
+  return ExpoContentStore.readEmbeddedCatalog();
+}
+
+/** Newest accepted catalog kept in internal storage (verified again on every start). */
+export function readAcceptedCatalog(): ReturnType<typeof ExpoContentStore.readAcceptedCatalog> {
+  return ExpoContentStore.readAcceptedCatalog();
+}
+
+export async function writeAcceptedCatalog(source: CatalogSource): Promise<void> {
+  await ExpoContentStore.writeAcceptedCatalog(toBase64(source.bytes), source.signature);
+}
+
+async function downloadSmall(url: string, fileName: string, signal: AbortSignal): Promise<string> {
+  const id = await ExpoContentStore.startDownload(url, fileName, 'SKEPI catalog', false);
+  try {
+    for (;;) {
+      if (isAborted(signal)) throw new ContentError('download_failed', 'cancelled');
+      const q = ExpoContentStore.queryDownload(id);
+      if (!q || q.status === 'failed') throw new ContentError('download_failed', `${url}: download failed (reason ${String(q?.reason ?? -1)})`);
+      if (q.status === 'successful') break;
+      await sleep(POLL_MS);
+    }
+    const data = await ExpoContentStore.readSmallFileBase64(`tmp/${fileName}.partial`);
+    if (data === null) throw new ContentError('download_failed', `${url}: nothing downloaded`);
+    return data;
+  } finally {
+    ExpoContentStore.removeDownload(id);
+    await ExpoContentStore.deleteFile(`tmp/${fileName}.partial`);
+  }
+}
+
+/**
+ * Fetches `catalog.json` and `catalog.json.sig` from a catalog source (HTTPS, same rules as packs).
+ * The result is only a candidate: the caller verifies signature and sequence before using it.
+ */
+export async function fetchCatalogUpdate(baseUrl: string, signal: AbortSignal): Promise<CatalogSource> {
+  const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const catalogUrl = `${base}catalog.json`;
+  if (!isAllowedDownloadUrl(catalogUrl)) throw new ContentError('no_mirror', `${catalogUrl} is not an allowed URL`);
+  const bytes = await downloadSmall(catalogUrl, 'catalog-update.json', signal);
+  const sig = await downloadSmall(`${base}catalog.json.sig`, 'catalog-update.json.sig', signal);
+  return { origin: 'update', bytes: fromBase64(bytes), signature: new TextDecoder().decode(fromBase64(sig)) };
+}

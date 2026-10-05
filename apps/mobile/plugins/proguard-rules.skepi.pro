@@ -22,3 +22,7 @@
 -keep class expo.modules.ExpoModulesPackageList { *; }
 -keep class * extends expo.modules.kotlin.modules.Module { *; }
 -keep class * extends expo.modules.kotlin.views.ExpoView { *; }
+
+# op-sqlite (SQLCipher): JNI bridge resolved by name from C++.
+-keep class com.op.sqlite.** { *; }
+-dontwarn com.op.sqlite.**

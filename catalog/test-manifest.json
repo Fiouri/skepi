@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "description": "Test packs for the debug catalog and the local HTTPS test mirror (e2e/mirror, https://127.0.0.1:8443 through adb reverse). Small fixture ZIMs from tools/rag-eval/fixtures. Debug builds only; never in a release catalog.",
+  "packs": [
+    {
+      "id": "test-smoke-en",
+      "kind": "zim",
+      "version": "1",
+      "file": "eval-smoke-en.zim",
+      "title": { "en": "Test pack: English sample articles", "el": "Δοκιμαστικό πακέτο: αγγλικά άρθρα" },
+      "lang": ["en"],
+      "urls": ["https://127.0.0.1:8443/packs/eval-smoke-en.zim"],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors (see tools/rag-eval/fixtures/ATTRIBUTION.md)",
+      "minTier": "T0",
+      "tags": ["test"],
+      "source": { "kind": "local", "path": "tools/rag-eval/fixtures/eval-smoke-en.zim" }
+    },
+    {
+      "id": "test-mirror-fallback",
+      "kind": "zim",
+      "version": "1",
+      "file": "eval-synthetic.zim",
+      "title": { "en": "Test pack: corrupt first mirror, good second mirror", "el": "Δοκιμαστικό πακέτο: χαλασμένος πρώτος mirror" },
+      "lang": ["en"],
+      "urls": ["https://127.0.0.1:8443/corrupt/eval-synthetic.zim", "https://127.0.0.1:8443/packs/eval-synthetic.zim"],
+      "license": "CC0-1.0",
+      "attribution": "SKEPI project",
+      "minTier": "T0",
+      "tags": ["test"],
+      "source": { "kind": "local", "path": "tools/rag-eval/fixtures/eval-synthetic.zim" }
+    },
+    {
+      "id": "test-corrupt",
+      "kind": "zim",
+      "version": "1",
+      "file": "eval-smoke-el.zim",
+      "title": { "en": "Test pack: every mirror serves corrupt bytes", "el": "Δοκιμαστικό πακέτο: μόνο χαλασμένα δεδομένα" },
+      "lang": ["el"],
+      "urls": ["https://127.0.0.1:8443/corrupt/eval-smoke-el.zim"],
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wikipedia contributors (see tools/rag-eval/fixtures/ATTRIBUTION.md)",
+      "minTier": "T0",
+      "tags": ["test"],
+      "source": { "kind": "local", "path": "tools/rag-eval/fixtures/eval-smoke-el.zim" }
+    }
+  ]
+}

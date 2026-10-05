@@ -1,9 +1,11 @@
 import {
+  DEFAULT_SUGGEST,
   makeTokenEstimator,
   PROMPT_VERSION,
   resolveInferenceProfile,
   retrieve,
   summarise,
+  suggestTitles,
   summarize,
   tokenizerProfile,
   type InferenceBackend,
@@ -16,7 +18,7 @@ import {
 } from '@skepi/core';
 import { ExpoDeviceProfile, type CpuInfo, type DeviceInfo, type MemoryInfo } from 'expo-device-profile';
 import { ExpoZim, type ZimArchiveInfo } from 'expo-zim';
-import { ensureModel, knowledge, llama, ragConfigFor, useContent } from './content';
+import { ensureModel, knowledge, llama, ragArchives, ragConfigFor, useContent } from './content';
 
 /** Title prefixes typed into the suggestion box (English primary, Greek secondary). */
 export const SUGGEST_QUERIES = [
@@ -123,7 +125,7 @@ export interface LangSummary {
 }
 
 export interface BenchReport {
-  schema: 3;
+  schema: 4;
   createdAt: string;
   promptVersion: string;
   /** 't1-simulation' when the T1 profile was forced on this device. */
@@ -152,7 +154,10 @@ export interface BenchReport {
   model: null | {
     id: string;
     sizeBytes: number;
+    /** First load in this bench run (cold when the file is not in the page cache, e.g. after a reboot). */
     loadMs: number;
+    /** Second load right after unloading: the file is in the page cache (the < 10 s target). */
+    warmLoadMs: number;
     prewarmMs: number;
     description: string;
     gpu: boolean;
@@ -215,16 +220,19 @@ export async function runBench(log: (line: string) => void, options: BenchOption
   log(`archives: ${archives.map((a) => `${a.name} (${a.language})`).join(', ')}`);
 
   // Warm-up (first Xapian open is not representative of steady state).
-  await ExpoZim.suggest('A', 5, null);
+  const suggestScope = { ...DEFAULT_SUGGEST, archives: ragArchives() };
+  await suggestTitles(knowledge, 'A', suggestScope);
   await ExpoZim.search('water', 8, null, false);
   await ExpoZim.search('Ελλάδα', 8, null, false);
 
   const suggest: Timed[] = [];
   const suggestCounts: number[] = [];
+  // As typed in the Search screen: active-language packs first, packs in parallel, capped per pack.
   for (const q of SUGGEST_QUERIES) {
-    const { value, t } = await timed(() => ExpoZim.suggest(q, 10, null));
-    suggest.push(t);
-    suggestCounts.push(value.hits.length);
+    const start = performance.now();
+    const hits = await suggestTitles(knowledge, q, suggestScope);
+    suggest.push({ totalMs: performance.now() - start, nativeMs: knowledge.lastNativeMs.suggest });
+    suggestCounts.push(hits.length);
   }
   log(`suggest p95 ${summarize(suggest.map((s) => s.totalMs)).p95.toFixed(1)} ms`);
 
@@ -261,19 +269,25 @@ export async function runBench(log: (line: string) => void, options: BenchOption
   let modelReport: BenchReport['model'] = null;
   if (model) {
     await llama.unload();
-    const ready = await ensureModel({ profile, model });
-    if (ready) {
+    const first = await ensureModel({ profile, model });
+    await llama.unload();
+    const ready = first ? await ensureModel({ profile, model }) : null;
+    if (first && ready) {
       modelReport = {
         id: model.id,
         sizeBytes: model.sizeBytes,
-        loadMs: ready.loaded.loadMs,
+        loadMs: first.loaded.loadMs,
+        warmLoadMs: ready.loaded.loadMs,
         prewarmMs: ready.prewarmMs,
         description: ready.loaded.description,
         gpu: ready.loaded.gpu,
         devices: ready.loaded.devices,
         reasonNoGpu: ready.loaded.reasonNoGpu,
       };
-      log(`model load ${ready.loaded.loadMs} ms, prewarm ${ready.prewarmMs} ms, gpu ${String(ready.loaded.gpu)} ${ready.loaded.reasonNoGpu}`);
+      log(
+        `model load ${first.loaded.loadMs} ms (first), ${ready.loaded.loadMs} ms (warm), prewarm ${ready.prewarmMs} ms, ` +
+          `gpu ${String(ready.loaded.gpu)} ${ready.loaded.reasonNoGpu}`,
+      );
     }
   } else {
     log('no GGUF: AI summary metrics skipped');
@@ -290,6 +304,7 @@ export async function runBench(log: (line: string) => void, options: BenchOption
       const r = await retrieve(question, knowledge, {
         signal,
         config: ragConfig,
+        archives: ragArchives(),
         onEvent: (e) => {
           if (e.type === 'context') shown.at = options.renderSources(e.sources);
         },
@@ -386,7 +401,7 @@ export async function runBench(log: (line: string) => void, options: BenchOption
   const t1 = profile.mode === 't1-simulation' || profile.effectiveTier === 'T1';
   const t2 = profile.effectiveTier === 'T2' && profile.mode === 'normal';
   const report: BenchReport = {
-    schema: 3,
+    schema: 4,
     createdAt: new Date().toISOString(),
     promptVersion: PROMPT_VERSION,
     mode: profile.mode,
@@ -429,7 +444,8 @@ export async function runBench(log: (line: string) => void, options: BenchOption
       suggestP95Ms: gate(suggestStats.total.p95, GATES.suggestP95Ms),
       fulltextP95Ms: gate(fulltextStats.total.p95, GATES.fulltextP95Ms),
       articleHtmlP95Ms: gate(htmlStats.total.p95, GATES.articleOpenMs),
-      modelLoadMs: gate(modelReport?.loadMs, GATES.modelLoadMs),
+      modelLoadMs: gate(modelReport?.warmLoadMs, GATES.modelLoadMs),
+      modelFirstLoadMs: gate(modelReport?.loadMs, null),
       layer1EnP95Ms: gate(perLang.en.layer1?.p95, t1 ? GATES.layer1P95Ms : null),
       layer1ElP95Ms: gate(perLang.el.layer1?.p95, t1 ? GATES.layer1P95Ms : null),
       sourcesVisibleEnP95Ms: gate(perLang.en.sourcesVisible?.p95, t1 ? GATES.sourcesVisibleP95Ms : null),

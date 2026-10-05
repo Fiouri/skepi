@@ -48,11 +48,14 @@ export function ContentGate({ children }: { children: ReactNode }) {
   const status = useContent((s) => s.status);
   const error = useContent((s) => s.error);
   const archives = useContent((s) => s.archives);
+  const verifying = useContent((s) => s.verifying);
   if (status === 'loading' || status === 'idle') {
     return (
       <View style={styles.center}>
         <ActivityIndicator />
-        <Text style={styles.muted}>{t.content.opening}</Text>
+        <Text style={styles.muted} testID="content-opening">
+          {verifying ? t.content.verifying(verifying) : t.content.opening}
+        </Text>
       </View>
     );
   }
@@ -75,6 +78,18 @@ export function ContentGate({ children }: { children: ReactNode }) {
     );
   }
   return <>{children}</>;
+}
+
+/** Permanent label for content from an unverified pack (not in the signed catalog). */
+export function UnverifiedLabel({ archiveId }: { archiveId: string }) {
+  const t = useMessages();
+  const unverified = useContent((s) => s.archives.some((a) => a.archiveId === archiveId && !a.verified));
+  if (!unverified) return null;
+  return (
+    <Text style={styles.unverified} testID="unverified-label">
+      {t.unverified.label}
+    </Text>
+  );
 }
 
 export const styles = StyleSheet.create({
@@ -117,4 +132,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   link: { color: colors.accent, fontSize: 14, paddingVertical: 8, minHeight: 40 },
+  unverified: { color: colors.danger, fontWeight: '700', fontSize: 13 },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
+  progressFill: { height: 6, backgroundColor: colors.accent },
 });

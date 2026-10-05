@@ -57,7 +57,8 @@ export interface GenerateResult {
 }
 
 export interface InferenceEngine {
-  load(model: InstalledModel, opts: LoadOptions): Promise<LoadedModel>;
+  /** `onProgress` receives the load progress as a fraction (0–1), for the UI. */
+  load(model: InstalledModel, opts: LoadOptions, onProgress?: (fraction: number) => void): Promise<LoadedModel>;
   generate(req: GenerateRequest, onToken: (t: string) => void, signal: AbortSignal): Promise<GenerateResult>;
   embed?(texts: string[]): Promise<Float32Array[]>;
   unload(): Promise<void>;

@@ -21,6 +21,8 @@ declare class ExpoZimNativeModule extends NativeModule {
   getBlockedRequests(): Promise<BlockedRequest[]>;
   clearBlockedRequests(): Promise<void>;
   writeContentFile(relativePath: string, text: string): Promise<string>;
+  /** UTF-8 text of a file under the content dir (max 4 MB); null when it does not exist. */
+  readContentFile(relativePath: string): Promise<string | null>;
 }
 
 export default requireNativeModule<ExpoZimNativeModule>('ExpoZim');

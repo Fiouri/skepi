@@ -9,3 +9,6 @@
 *.aar binary
 *.zim binary
 *.jks binary
+
+# Signed catalogs: the Ed25519 signature covers the exact bytes; never normalise them.
+catalog/embedded/** -text

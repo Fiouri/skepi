@@ -1,5 +1,8 @@
 {
-  "description": "CI smoke subset: items answerable from fixtures/eval-smoke-*.zim plus the injection, number, bait and unrelated adversarial items (fixtures/eval-synthetic.zim). Run with the tiny GGUF from content.lock.json (evalTinyModel).",
+  "description": "CI smoke subset: items answerable from fixtures/eval-smoke-*.zim plus the injection, number, bait and unrelated adversarial items (fixtures/eval-synthetic.zim). Run with the tiny GGUF from content.lock.json (evalTinyModel). The whole held-out adversarial set (sets/adversarial-heldout.json) also runs, as a separate, ungated report section.",
+  "sets": [
+    "adversarial-heldout"
+  ],
   "ids": [
     "en-001",
     "en-003",

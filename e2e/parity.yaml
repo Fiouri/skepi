@@ -1,0 +1,30 @@
+# Retrieval parity run (no LLM): reads parity/queries.json from the content dir, runs every query
+# through retrieve() and writes parity/device.json. Driven by e2e/run-parity.ps1.
+appId: ${APP_ID}
+name: SKEPI retrieval parity
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: tab-bench
+    timeout: 60000
+- tapOn:
+    id: tab-bench
+- extendedWaitUntil:
+    visible:
+      id: bench-parity
+    timeout: 30000
+- tapOn:
+    id: bench-parity
+- extendedWaitUntil:
+    visible:
+      id: parity-status
+      text: "parity: (done|error)"
+    timeout: 600000
+- assertVisible:
+    id: parity-status
+    text: "parity: done"

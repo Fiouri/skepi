@@ -1,0 +1,24 @@
+{
+  "name": "expo-content-store",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Expo module behind ContentStore: system DownloadManager, SAF import, atomic install, embedded signed catalog. The only module that may reach the network.",
+  "license": "GPL-3.0-or-later",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "@skepi/contracts": "workspace:*"
+  }
+}

@@ -20,3 +20,12 @@ export type {
   StopReason,
 } from './inference';
 export type { DeviceProfile, DeviceSnapshot, ThermalState } from './device';
+export type {
+  CatalogEntry,
+  ContentStore,
+  DownloadPhase,
+  DownloadProgress,
+  InstalledPack,
+  PackKind,
+  VerifyResult,
+} from './content';

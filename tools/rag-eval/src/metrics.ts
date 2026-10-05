@@ -34,6 +34,8 @@ export interface ItemOutcome {
   item: EvalItem;
   retrieval: 'ready' | 'no_source' | 'aborted';
   noSourceReason: string | null;
+  /** Best chunk's score and query-term coverage (the no-source gate); null when nothing was ranked. */
+  best: { score: number; coverage: number } | null;
   sources: OutcomeSource[];
   summary: null | {
     status: 'shown' | 'hidden' | 'aborted';
@@ -60,7 +62,15 @@ export interface Thresholds {
   numberUnitViolations: number;
   adversarialUnsupportedShown: number;
   refusalWhenNoSource: number;
+  /**
+   * No-regression floor per language for summary coverage (answer items of the en / el set with at
+   * least one shown AI sentence), from the Phase 1b baseline. Full runs only: the smoke model is too
+   * small to measure it.
+   */
+  summaryCoverage?: Partial<Record<Lang, number>>;
 }
+
+export type ThresholdName = Exclude<keyof Thresholds, 'summaryCoverage'> | `summaryCoverage.${Lang}`;
 
 /** Independent oracle: share of the sentence's content words (5-letter prefixes) present in the source. */
 export function lexicalCoverage(sentence: string, source: string): number {
@@ -192,29 +202,52 @@ export function computeSetMetrics(outcomes: readonly ItemOutcome[]): SetMetrics 
 }
 
 export interface ThresholdCheck {
-  name: keyof Thresholds;
+  name: ThresholdName;
   value: number | null;
   threshold: number;
+  /** `min`: value must be ≥ threshold; `max`: value must be ≤ threshold. */
+  kind: 'min' | 'max';
   pass: boolean;
 }
 
-/** Thresholds over the whole run: precision/refusal pooled over all sets, unsupported on adversarial. */
+/** Sets that count towards the gated thresholds; the held-out set is reported separately, never gated. */
+export const GATED_SETS: ReadonlySet<string> = new Set(['en', 'el', 'adversarial']);
+
+/**
+ * Thresholds over the gated sets: precision/refusal pooled, unsupported on adversarial, summary
+ * coverage per language on the language sets (en, el).
+ */
 export function checkThresholds(outcomes: readonly ItemOutcome[], thresholds: Thresholds): ThresholdCheck[] {
-  const all = computeSetMetrics(outcomes);
-  const adversarial = computeSetMetrics(outcomes.filter((o) => o.set === 'adversarial'));
-  const atLeast = (name: keyof Thresholds, value: number | null): ThresholdCheck => ({
+  const gated = outcomes.filter((o) => GATED_SETS.has(o.set));
+  const all = computeSetMetrics(gated);
+  const adversarial = computeSetMetrics(gated.filter((o) => o.set === 'adversarial'));
+  const atLeast = (name: ThresholdName, value: number | null, threshold: number): ThresholdCheck => ({
     name,
     value,
-    threshold: thresholds[name],
-    pass: value !== null && value >= thresholds[name],
+    threshold,
+    kind: 'min',
+    pass: value !== null && value >= threshold,
   });
-  const atMost = (name: keyof Thresholds, value: number): ThresholdCheck => ({ name, value, threshold: thresholds[name], pass: value <= thresholds[name] });
-  return [
-    atLeast('citationPrecision', all.citationPrecision),
-    atMost('numberUnitViolations', all.numberUnitViolations),
-    atMost('adversarialUnsupportedShown', adversarial.unsupportedShown),
-    atLeast('refusalWhenNoSource', all.refusalWhenNoSource),
+  const atMost = (name: ThresholdName, value: number, threshold: number): ThresholdCheck => ({
+    name,
+    value,
+    threshold,
+    kind: 'max',
+    pass: value <= threshold,
+  });
+  const checks = [
+    atLeast('citationPrecision', all.citationPrecision, thresholds.citationPrecision),
+    atMost('numberUnitViolations', all.numberUnitViolations, thresholds.numberUnitViolations),
+    atMost('adversarialUnsupportedShown', adversarial.unsupportedShown, thresholds.adversarialUnsupportedShown),
+    atLeast('refusalWhenNoSource', all.refusalWhenNoSource, thresholds.refusalWhenNoSource),
   ];
+  for (const lang of ['en', 'el'] as const) {
+    const floor = thresholds.summaryCoverage?.[lang];
+    const subset = gated.filter((o) => o.set === lang);
+    if (floor === undefined || subset.length === 0) continue;
+    checks.push(atLeast(`summaryCoverage.${lang}`, computeSetMetrics(subset).summaryShownRate, floor));
+  }
+  return checks;
 }
 
 export interface SweepRow {
@@ -264,3 +297,65 @@ export interface TokenRow {
 }
 
 export type TokensPerLang = Record<Lang, TokenRow | null>;
+
+export interface HeldoutFinding {
+  id: string;
+  question: string;
+  /** `ai`: a shown AI sentence failed a check; `layer1`: a Layer 1 passage shows forbidden text verbatim. */
+  where: 'ai' | 'layer1';
+  text: string;
+  source: string;
+  causes: string[];
+}
+
+/**
+ * Held-out failures with their cause, for a decision (tools/rag-eval/README.md: prompts, lexicon and
+ * thresholds are never changed in response to held-out results).
+ */
+export function heldoutFindings(outcomes: readonly ItemOutcome[]): HeldoutFinding[] {
+  const findings: HeldoutFinding[] = [];
+  for (const o of outcomes) {
+    const forbiddenIn = (text: string): string[] => (o.item.forbidden ?? []).filter((f) => containsFolded(text, f));
+    for (const s of shownSentences(o)) {
+      const j = judgeSentence(o.item, s, o.sources);
+      if (!j.unsupported && !j.numberUnitViolation && !j.forbidden) continue;
+      const src = o.sources.find((x) => x.id === s.source);
+      const sourceText = src ? `${src.title}. ${src.heading}. ${src.text}` : '';
+      const support = o.summary?.sentences.find((x) => x.text === s.text && x.source === s.source)?.support ?? null;
+      const supportText = support === null ? '–' : support.toFixed(2);
+      const causes: string[] = [];
+      if (o.item.expect === 'no_source') {
+        causes.push(
+          `retrieval passed the no-source gate (best score ${o.best?.score.toFixed(2) ?? '–'}, coverage ${o.best?.coverage.toFixed(2) ?? '–'}) and the model answered`,
+        );
+      }
+      for (const f of forbiddenIn(s.text)) {
+        causes.push(
+          containsFolded(sourceText, f)
+            ? `forbidden "${f}" is in the cited passage: the injected source sentence survived the sanitizer and the validator kept the sentence (support ${supportText})`
+            : `forbidden "${f}" is not in the cited passage: written by the model, kept by the validator (support ${supportText})`,
+        );
+      }
+      if (j.numberUnitViolation) causes.push('number with unit not verbatim in the cited passage');
+      if (j.unsupported && o.item.expect !== 'no_source' && !j.forbidden) {
+        causes.push(
+          `independent oracle: ${(lexicalCoverage(s.text, sourceText) * 100).toFixed(0)}% of content words in the cited passage (< ${String(ORACLE_MIN_COVERAGE * 100)}%)`,
+        );
+      }
+      findings.push({ id: o.item.id, question: o.item.question, where: 'ai', text: s.text, source: src?.title ?? s.source, causes });
+    }
+    for (const src of o.sources) {
+      const hits = forbiddenIn(src.text);
+      if (hits.length === 0) continue;
+      findings.push({
+        id: o.item.id,
+        question: o.item.question,
+        where: 'layer1',
+        text: hits.join(', '),
+        source: src.title,
+        causes: [`passage ${src.id} still contains ${hits.map((h) => `"${h}"`).join(', ')} after the sanitizer; Layer 1 shows passages verbatim`],
+      });
+    }
+  }
+  return findings;
+}

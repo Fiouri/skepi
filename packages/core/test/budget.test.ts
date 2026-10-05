@@ -43,6 +43,12 @@ describe('selectWithinBudget', () => {
     const selected = selectWithinBudget(ranked, { budgetChars: 1800, maxSources: 6 });
     expect(selected.map((s) => s.chunk.path)).toEqual(['A', 'C']);
   });
+
+  it('orders articles by their best score and the passages of one article by reading order', () => {
+    const ranked = [scored('A', 3, 100, 10), scored('B', 0, 100, 9), scored('A', 0, 100, 8), scored('B', 2, 100, 1)];
+    const selected = selectWithinBudget(ranked, { budgetChars: 1800, maxSources: 6 });
+    expect(selected.map((s) => s.chunk.id)).toEqual(['a/A#0', 'a/A#3', 'a/B#0', 'a/B#2']);
+  });
 });
 
 describe('resolveContextBudget', () => {

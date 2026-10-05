@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { Button, ContentGate, styles } from '../../components/ui';
 import { runBench, type BenchReport } from '../../lib/bench';
+import { runParity } from '../../lib/parity';
 import { useActiveProfile, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
 
@@ -21,6 +22,7 @@ export default function BenchScreen() {
   const [lines, setLines] = useState<string[]>([]);
   const [report, setReport] = useState<BenchReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [parity, setParity] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
 
   // Render probe for "sources visible": the bench shows the sources here, like the Ask screen does,
   // and the time of the first frame after React commits them is the measurement.
@@ -61,6 +63,24 @@ export default function BenchScreen() {
       setReport(r);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const startParity = async (): Promise<void> => {
+    setRunning(true);
+    setParity('running');
+    setLines([]);
+    setError(null);
+    try {
+      await runParity((line) => {
+        setLines((prev) => [...prev, line]);
+      });
+      setParity('done');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setParity('error');
     } finally {
       setRunning(false);
     }
@@ -123,6 +143,12 @@ export default function BenchScreen() {
           <Button testID="bench-run" label={running ? t.bench.running : t.bench.run} onPress={() => void start()} disabled={running} />
           <Text style={styles.muted} testID="bench-status">
             {t.bench.status[status]}
+          </Text>
+        </View>
+        <View style={styles.row}>
+          <Button testID="bench-parity" label={t.bench.parity} onPress={() => void startParity()} disabled={running} />
+          <Text style={styles.muted} testID="parity-status">
+            {`parity: ${parity}`}
           </Text>
         </View>
         {probe.length > 0 && (

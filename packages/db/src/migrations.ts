@@ -1,0 +1,40 @@
+/**
+ * Numbered, forward-only migrations shared by mobile (op-sqlite + SQLCipher) and, later, desktop
+ * (rusqlite). A released migration is never edited: a change is a new, higher number. Each migration
+ * runs in one transaction together with its row in `schema_migrations`.
+ */
+export interface Migration {
+  version: number;
+  name: string;
+  statements: readonly string[];
+}
+
+export const MIGRATIONS: readonly Migration[] = [
+  {
+    version: 1,
+    name: 'packs_and_settings',
+    statements: [
+      // Installed packs: the source of truth for what the app may open (architecture: data model).
+      `CREATE TABLE packs (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL CHECK (kind IN ('zim','gguf','pmtiles','places')),
+        version TEXT NOT NULL,
+        title TEXT NOT NULL,
+        path TEXT NOT NULL UNIQUE,
+        size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),
+        sha256 TEXT NOT NULL CHECK (length(sha256) = 64),
+        verified INTEGER NOT NULL CHECK (verified IN (0,1)),
+        catalog_seq INTEGER,
+        license TEXT,
+        source TEXT NOT NULL CHECK (source IN ('download','import','provisioned')),
+        consent_at INTEGER,
+        installed_at INTEGER NOT NULL,
+        last_opened_at INTEGER,
+        CHECK (verified = 1 OR kind = 'zim'),
+        CHECK (verified = 1 OR catalog_seq IS NULL)
+      )`,
+      'CREATE INDEX packs_sha256 ON packs (sha256)',
+      'CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
+    ],
+  },
+];

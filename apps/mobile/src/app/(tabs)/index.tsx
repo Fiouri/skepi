@@ -1,9 +1,10 @@
 import type { SearchHit } from '@skepi/contracts';
+import { DEFAULT_SUGGEST, suggestTitles } from '@skepi/core';
 import { useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import { Button, ContentGate, styles } from '../../components/ui';
-import { knowledge } from '../../lib/content';
+import { Button, ContentGate, styles, UnverifiedLabel } from '../../components/ui';
+import { knowledge, ragArchives } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
 
 interface Timing {
@@ -31,7 +32,10 @@ export default function SearchScreen() {
     }
     try {
       const start = performance.now();
-      const result = await knowledge.search(q, { mode: kind === 'suggest' ? 'suggest' : 'fulltext', limit: 20 });
+      const result =
+        kind === 'suggest'
+          ? await suggestTitles(knowledge, q, { ...DEFAULT_SUGGEST, archives: ragArchives() })
+          : await knowledge.search(q, { mode: 'fulltext', limit: 20 });
       const totalMs = performance.now() - start;
       if (id !== seq.current) return;
       setHits(result);
@@ -92,6 +96,7 @@ export default function SearchScreen() {
               }}
             >
               <Text style={styles.title}>{item.title}</Text>
+              <UnverifiedLabel archiveId={item.archiveId} />
               {item.snippet && item.snippet !== item.title ? <Text style={styles.muted}>{item.snippet}</Text> : null}
             </Pressable>
           )}

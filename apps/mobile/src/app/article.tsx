@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { ExpoZim, ZimArticleView, zimUrl } from 'expo-zim';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { styles } from '../components/ui';
+import { styles, UnverifiedLabel } from '../components/ui';
 import { useMessages } from '../lib/i18n';
 
 export default function ArticleScreen() {
@@ -30,6 +30,9 @@ export default function ArticleScreen() {
   return (
     <View style={{ flex: 1 }}>
       <Stack.Screen options={{ title: params.title ?? t.article.title }} />
+      <View style={{ paddingHorizontal: 8 }}>
+        <UnverifiedLabel archiveId={params.archiveId} />
+      </View>
       <View style={[styles.row, { padding: 8 }]}>
         <Text style={styles.muted} testID="article-open-ms">
           {openMs === null ? t.common.loading : t.article.opened(openMs.toFixed(0))}

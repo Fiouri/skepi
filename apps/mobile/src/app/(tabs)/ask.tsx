@@ -13,8 +13,8 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { EmergencyCardSlot } from '../../components/EmergencyCards';
-import { Button, ContentGate, styles } from '../../components/ui';
-import { ensureModel, knowledge, llama, ragConfigFor, useActiveProfile } from '../../lib/content';
+import { Button, ContentGate, styles, UnverifiedLabel } from '../../components/ui';
+import { ensureModel, knowledge, llama, ragArchives, ragConfigFor, useActiveProfile } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
 
 type Phase = 'idle' | 'loading-model' | 'retrieving' | 'generating' | 'done' | 'error';
@@ -42,6 +42,7 @@ export default function AskScreen() {
   const [summary, setSummary] = useState<SummaryResult | null>(null);
   const [metrics, setMetrics] = useState<Metrics>(NO_METRICS);
   const [error, setError] = useState<string | null>(null);
+  const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const controller = useRef<AbortController | null>(null);
   const tappedAt = useRef<number | null>(null);
 
@@ -73,7 +74,12 @@ export default function AskScreen() {
 
   const runSummary = async (r: RetrievalResult, abort: AbortController): Promise<void> => {
     setPhase('loading-model');
-    const ready = await ensureModel(active);
+    setLoadProgress(0);
+    const ready = await ensureModel(active, (fraction) => {
+      setLoadProgress(Math.round(fraction * 100));
+    }).finally(() => {
+      setLoadProgress(null);
+    });
     if (!ready) return;
     setMetrics((m) => ({ ...m, loadMs: ready.loaded.loadMs, prewarmMs: ready.prewarmMs }));
     if (abort.signal.aborted) return;
@@ -111,6 +117,7 @@ export default function AskScreen() {
       const r = await retrieve(question, knowledge, {
         signal: abort.signal,
         config: ragConfigFor(profile),
+        archives: ragArchives(),
         onEvent: (e) => {
           if (e.type === 'emergency') setEmergency(e.match);
           else if (e.type === 'medical') setMedical(e.intent);
@@ -179,6 +186,14 @@ export default function AskScreen() {
       </View>
       <ScrollView style={styles.screen} contentContainerStyle={{ gap: 8, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         {!model && <Text style={styles.muted}>{t.ask.noModel}</Text>}
+        {phase === 'loading-model' && loadProgress !== null && (
+          <View style={{ gap: 4 }} testID="model-progress" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: loadProgress }}>
+            <Text style={styles.muted}>{t.ask.loadingModel(loadProgress)}</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${loadProgress}%` }]} />
+            </View>
+          </View>
+        )}
         {profile.mode === 't1-simulation' && (
           <Text style={styles.muted} testID="ask-t1-simulation">
             {t.ask.simulationActive}
@@ -313,6 +328,7 @@ function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; in
       <Pressable testID={`layer1-source-${passage.sourceId}`} style={styles.chip} onPress={onOpen}>
         <Text style={styles.chipText}>{label}</Text>
       </Pressable>
+      <UnverifiedLabel archiveId={passage.archiveId} />
       <Text style={styles.text} selectable>
         {shown.map((i, k) => {
           const s = passage.sentences[i];

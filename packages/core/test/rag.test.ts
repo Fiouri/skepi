@@ -154,7 +154,7 @@ describe('retrieve (Layer 1)', () => {
     expect(r.layer1?.passages[0]).toMatchObject({ sourceId: 'S1', anchor: 'Boiling' });
     expect(r.layer1?.passages[0]?.sentences[0]?.highlighted).toBe(true);
     expect(r.budget).toMatchObject({ tier: 'T1', lang: 'en', chars: 1800 });
-    expect(events).toEqual(['retrieved', 'context', 'layer1']);
+    expect(events).toEqual(['retrieved', 'ranked', 'context', 'layer1']);
     expect(r.timings.layer1Ms).toBeGreaterThanOrEqual(0);
   });
 
@@ -259,10 +259,11 @@ describe('retrieve (Layer 1)', () => {
 describe('summarise (Layer 2)', () => {
   const answer = (sentences: { text: string; source: string }[], covered = true): string => JSON.stringify({ covered, sentences });
 
-  it('sends the fixed system prompt, a bounded JSON schema and the 150-token English limit', async () => {
-    const r = await retrieve(WATER_Q, fakeKnowledge(WATER_INDEX), { signal });
+  it('sends the fixed system prompt, a bounded JSON schema and the English answer limit in tokens', async () => {
+    const config = { modelId: 'qwen2.5-1.5b-instruct-q4_0.gguf' };
+    const r = await retrieve(WATER_Q, fakeKnowledge(WATER_INDEX), { signal, config });
     const inference = fakeInference(answer([{ text: 'Boil water for at least 1 minute.', source: 'S1' }]));
-    const s = await summarise(r, inference.engine, { signal });
+    const s = await summarise(r, inference.engine, { signal, config });
     const req = inference.generate.mock.calls[0]?.[0];
     expect(req?.messages[0]).toEqual({ role: 'system', content: SYSTEM_PROMPT });
     expect(req?.maxTokens).toBe(150);

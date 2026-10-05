@@ -1,0 +1,251 @@
+package org.skepi.contentstore
+
+import android.app.DownloadManager
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.Uri
+import android.os.StatFs
+import android.provider.OpenableColumns
+import android.util.Base64
+import android.util.Log
+import expo.modules.kotlin.exception.CodedException
+import expo.modules.kotlin.exception.Exceptions
+import expo.modules.kotlin.modules.Module
+import expo.modules.kotlin.modules.ModuleDefinition
+import java.io.File
+import java.io.FileNotFoundException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+private const val TAG = "SkepiContentStore"
+private const val MAX_SMALL_FILE_BYTES = 4L * 1024 * 1024
+
+internal class ContentStoreException(code: String, message: String) : CodedException(code, message, null)
+
+/** Every URL handed to DownloadManager in this process (zero-egress evidence for E2E). */
+internal object NetworkLog {
+  private val entries = ArrayDeque<Map<String, Any>>()
+
+  @Synchronized
+  fun record(url: String) {
+    val uri = Uri.parse(url)
+    if (entries.size >= 500) entries.removeFirst()
+    entries.addLast(mapOf("host" to (uri.host ?: ""), "port" to uri.port.toDouble(), "path" to (uri.path ?: ""), "atMs" to System.currentTimeMillis().toDouble()))
+    Log.i(TAG, "download requested: https://${uri.host}${if (uri.port > 0) ":${uri.port}" else ""}${uri.path}")
+  }
+
+  @Synchronized
+  fun all(): List<Map<String, Any>> = entries.toList()
+
+  @Synchronized
+  fun clear() = entries.clear()
+}
+
+/**
+ * Native side of the app's ContentStore (apps/mobile/src/lib/contentStore.ts): the only code that
+ * may reach the network, through the system DownloadManager (resumes after interruption and reboot,
+ * honours Wi-Fi-only). It never opens a downloaded file; hashing and catalog checks happen before
+ * `installFile` moves a verified file into place.
+ */
+class ExpoContentStoreModule : Module() {
+  private val context: Context
+    get() = appContext.reactContext?.applicationContext ?: throw Exceptions.ReactContextLost()
+
+  private fun root(): File =
+    context.getExternalFilesDir(null)?.canonicalFile ?: throw ContentStoreException("ERR_CS_NO_STORAGE", "External files dir unavailable")
+
+  private fun content(relativePath: String): File = try {
+    ContentRules.resolve(root(), relativePath)
+  } catch (e: IllegalArgumentException) {
+    throw ContentStoreException("ERR_CS_PATH", e.message ?: "invalid path")
+  }
+
+  private fun downloads(): DownloadManager = context.getSystemService(DownloadManager::class.java)
+
+  private fun catalogDir(): File = File(context.filesDir, "catalog").also { it.mkdirs() }
+
+  private fun status(code: Int): String = when (code) {
+    DownloadManager.STATUS_PENDING -> "pending"
+    DownloadManager.STATUS_RUNNING -> "running"
+    DownloadManager.STATUS_PAUSED -> "paused"
+    DownloadManager.STATUS_SUCCESSFUL -> "successful"
+    DownloadManager.STATUS_FAILED -> "failed"
+    else -> "unknown"
+  }
+
+  override fun definition() = ModuleDefinition {
+    Name("ExpoContentStore")
+    Events("onImportProgress")
+
+    Function("getContentRoot") { root().absolutePath }
+
+    Function("getNetworkState") {
+      val cm = context.getSystemService(ConnectivityManager::class.java)
+      val caps = cm.activeNetwork?.let { cm.getNetworkCapabilities(it) }
+      mapOf(
+        "connected" to (caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true),
+        "wifi" to (caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true || caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true),
+        "metered" to cm.isActiveNetworkMetered,
+      )
+    }
+
+    Function("getFreeBytes") { StatFs(root().path).availableBytes.toDouble() }
+
+    Function("requiredFreeBytes") { sizeBytes: Double -> ContentRules.requiredFreeBytes(sizeBytes.toLong()).toDouble() }
+
+    /** Starts a system download into tmp/<file>.partial. Wi-Fi only unless `allowMetered`. */
+    AsyncFunction("startDownload") { url: String, fileName: String, title: String, allowMetered: Boolean ->
+      if (!ContentRules.isAllowedUrl(url)) throw ContentStoreException("ERR_CS_URL", "Only HTTPS URLs without query strings are allowed")
+      val partial = content("tmp/$fileName.partial")
+      partial.parentFile?.mkdirs()
+      if (partial.exists() && !partial.delete()) throw ContentStoreException("ERR_CS_IO", "Cannot replace ${partial.name}")
+      val request = DownloadManager.Request(Uri.parse(url))
+        .setTitle(title)
+        .addRequestHeader("User-Agent", ContentRules.USER_AGENT)
+        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+        .setDestinationUri(Uri.fromFile(partial))
+        .setAllowedOverRoaming(false)
+        .setAllowedOverMetered(allowMetered)
+        .setAllowedNetworkTypes(
+          if (allowMetered) DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE else DownloadManager.Request.NETWORK_WIFI,
+        )
+      NetworkLog.record(url)
+      downloads().enqueue(request).toDouble()
+    }
+
+    Function("queryDownload") { id: Double ->
+      downloads().query(DownloadManager.Query().setFilterById(id.toLong())).use { c ->
+        if (!c.moveToFirst()) return@Function null
+        mapOf(
+          "status" to status(c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))),
+          "reason" to c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)).toDouble(),
+          "bytes" to c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)).toDouble(),
+          "totalBytes" to c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)).toDouble(),
+        )
+      }
+    }
+
+    /** Cancels a system download (DownloadManager deletes its partial file). */
+    Function("removeDownload") { id: Double -> downloads().remove(id.toLong()) > 0 }
+
+    Function("fileInfo") { relativePath: String ->
+      val f = content(relativePath)
+      mapOf("exists" to f.isFile, "sizeBytes" to (if (f.isFile) f.length() else 0L).toDouble(), "path" to f.absolutePath)
+    }
+
+    Function("listDir") { dir: String ->
+      val base = File(root(), dir).canonicalFile
+      if (dir !in setOf("zim", "models", "maps", "tmp") || !base.path.startsWith(root().path)) {
+        throw ContentStoreException("ERR_CS_PATH", "invalid dir: $dir")
+      }
+      (base.listFiles() ?: emptyArray()).filter { it.isFile }.sortedBy { it.name }.map {
+        mapOf("name" to it.name, "path" to it.absolutePath, "sizeBytes" to it.length().toDouble())
+      }
+    }
+
+    /** Atomic move of a verified file into place (same filesystem), replacing an older copy. */
+    AsyncFunction("installFile") { fromRelative: String, toRelative: String ->
+      val from = content(fromRelative)
+      val to = content(toRelative)
+      if (!from.isFile) throw ContentStoreException("ERR_CS_NOT_FOUND", "Nothing to install at $fromRelative")
+      to.parentFile?.mkdirs()
+      Files.move(from.toPath(), to.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+      to.absolutePath
+    }
+
+    AsyncFunction("deleteFile") { relativePath: String ->
+      val f = content(relativePath)
+      !f.exists() || f.delete()
+    }
+
+    /** Copies a file picked with the Storage Access Framework into tmp/ (libzim needs a real path). */
+    AsyncFunction("importFromUri") { uriString: String, fileName: String ->
+      val uri = Uri.parse(uriString)
+      if (uri.scheme != "content" && uri.scheme != "file") throw ContentStoreException("ERR_CS_URI", "Unsupported URI: ${uri.scheme}")
+      val resolver = context.contentResolver
+      var displayName = fileName
+      var declared = -1L
+      resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
+        if (c.moveToFirst()) {
+          displayName = c.getString(0) ?: fileName
+          declared = if (c.isNull(1)) -1L else c.getLong(1)
+        }
+      }
+      val target = content("tmp/$fileName.partial")
+      target.parentFile?.mkdirs()
+      var copied = 0L
+      var reported = 0L
+      try {
+        val input = resolver.openInputStream(uri) ?: throw FileNotFoundException(uriString)
+        input.use { stream ->
+          target.outputStream().use { out ->
+            val buffer = ByteArray(1 shl 20)
+            while (true) {
+              val read = stream.read(buffer)
+              if (read < 0) break
+              out.write(buffer, 0, read)
+              copied += read
+              if (copied - reported >= 8L * 1024 * 1024) {
+                reported = copied
+                sendEvent("onImportProgress", mapOf("copiedBytes" to copied.toDouble(), "totalBytes" to declared.toDouble()))
+              }
+            }
+          }
+        }
+      } catch (e: Exception) {
+        target.delete()
+        throw ContentStoreException("ERR_CS_IMPORT", "Import failed: ${e.message}")
+      }
+      mapOf("displayName" to displayName, "sizeBytes" to copied.toDouble(), "relativePath" to "tmp/$fileName.partial", "path" to target.absolutePath)
+    }
+
+    /** Small text/binary files under the content root (downloaded catalogs), base64. */
+    AsyncFunction("readSmallFileBase64") { relativePath: String ->
+      val f = content(relativePath)
+      if (!f.isFile) return@AsyncFunction null
+      if (f.length() > MAX_SMALL_FILE_BYTES) throw ContentStoreException("ERR_CS_TOO_LARGE", "$relativePath is too large")
+      Base64.encodeToString(f.readBytes(), Base64.NO_WRAP)
+    }
+
+    /** The signed catalog and pinned keys bundled in the APK (assets/catalog, per build type). */
+    AsyncFunction("readEmbeddedCatalog") {
+      fun asset(name: String): ByteArray? = try {
+        context.assets.open("catalog/$name").use { it.readBytes() }
+      } catch (e: java.io.IOException) {
+        null
+      }
+      val catalog = asset("catalog.json") ?: return@AsyncFunction null
+      val sig = asset("catalog.json.sig") ?: return@AsyncFunction null
+      val keys = asset("keys.json") ?: return@AsyncFunction null
+      mapOf(
+        "catalog" to Base64.encodeToString(catalog, Base64.NO_WRAP),
+        "signature" to String(sig, Charsets.UTF_8),
+        "pinnedKeys" to String(keys, Charsets.UTF_8),
+        // Catalog update sources of this build (debug: the local test mirror; release: none yet).
+        "sources" to asset("sources.json")?.let { String(it, Charsets.UTF_8) },
+      )
+    }
+
+    /** Newest accepted catalog (internal storage), written only after verification in JS. */
+    AsyncFunction("writeAcceptedCatalog") { catalogBase64: String, signature: String ->
+      val dir = catalogDir()
+      val tmp = File(dir, "catalog.json.tmp")
+      tmp.writeBytes(Base64.decode(catalogBase64, Base64.NO_WRAP))
+      File(dir, "catalog.json.sig").writeText(signature, Charsets.UTF_8)
+      Files.move(tmp.toPath(), File(dir, "catalog.json").toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+    }
+
+    AsyncFunction("readAcceptedCatalog") {
+      val dir = catalogDir()
+      val c = File(dir, "catalog.json")
+      val s = File(dir, "catalog.json.sig")
+      if (!c.isFile || !s.isFile) return@AsyncFunction null
+      mapOf("catalog" to Base64.encodeToString(c.readBytes(), Base64.NO_WRAP), "signature" to s.readText(Charsets.UTF_8))
+    }
+
+    Function("getNetworkLog") { NetworkLog.all() }
+
+    Function("clearNetworkLog") { NetworkLog.clear() }
+  }
+}

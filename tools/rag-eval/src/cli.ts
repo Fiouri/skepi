@@ -20,6 +20,8 @@ import { NodeLlamaEngine } from './llamaEngine';
 import {
   checkThresholds,
   computeSetMetrics,
+  GATED_SETS,
+  heldoutFindings,
   sweepSupport,
   type ItemOutcome,
   type SetMetrics,
@@ -28,11 +30,14 @@ import {
 } from './metrics';
 import { renderMarkdown } from './report';
 import { loadSet, sameArticle, type EvalItem, type EvalSet } from './sets';
-import { SidecarZimEngine } from './zimEngine';
+import { SidecarZimEngine, type SidecarArchive } from './zimEngine';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REPO = resolve(ROOT, '..', '..');
-const SET_NAMES = ['en', 'el', 'adversarial'] as const;
+const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout'] as const;
+/** Held-out items run against the packs + eval-heldout.zim; every other set never sees that archive. */
+const HELDOUT_SET = 'adversarial-heldout';
+const HELDOUT_ZIM = 'eval-heldout.zim';
 
 interface Lock {
   zim: Record<string, { file: string; lang: string }>;
@@ -80,10 +85,13 @@ async function main(): Promise<number> {
   const zims =
     args.zim ??
     (args.smoke
-      ? ['eval-smoke-en.zim', 'eval-smoke-el.zim', 'eval-synthetic.zim'].map((f) => requireFile(join(fixtures, f), 'run scripts/build_eval_zims.py'))
+      ? ['eval-smoke-en.zim', 'eval-smoke-el.zim', 'eval-synthetic.zim', HELDOUT_ZIM].map((f) =>
+          requireFile(join(fixtures, f), 'run scripts/build_eval_zims.py'),
+        )
       : [
           ...lock.zimDefault.map((id) => requireFile(join(cacheDir(), lock.zim[id]?.file ?? id), 'run scripts/provision.ps1 -DownloadOnly')),
           requireFile(join(fixtures, 'eval-synthetic.zim'), 'run scripts/build_eval_zims.py'),
+          requireFile(join(fixtures, HELDOUT_ZIM), 'run scripts/build_eval_zims.py'),
         ]);
   const modelPath = args['no-model']
     ? null
@@ -94,14 +102,16 @@ async function main(): Promise<number> {
   for (const name of SET_NAMES) sets.push(await loadSet(join(ROOT, 'sets', `${name}.json`)));
   const wanted = new Set((args.sets ?? SET_NAMES.join(',')).split(',').map((s) => s.trim()));
   let smokeIds: Set<string> | null = null;
+  let smokeSets = new Set<string>();
   if (args.smoke) {
-    const smoke = JSON.parse(await readFile(join(ROOT, 'sets', 'smoke.json'), 'utf8')) as { ids: string[] };
+    const smoke = JSON.parse(await readFile(join(ROOT, 'sets', 'smoke.json'), 'utf8')) as { ids: string[]; sets?: string[] };
     smokeIds = new Set(smoke.ids);
+    smokeSets = new Set(smoke.sets ?? []);
   }
   const items: { set: string; item: EvalItem }[] = sets
     .filter((s) => wanted.has(s.name))
     .flatMap((s) => s.items.map((item) => ({ set: s.name, item })))
-    .filter(({ item }) => smokeIds === null || smokeIds.has(item.id));
+    .filter(({ set, item }) => smokeIds === null || smokeIds.has(item.id) || smokeSets.has(set));
   if (smokeIds) {
     const found = new Set(items.map((i) => i.item.id));
     const missing = [...smokeIds].filter((id) => !found.has(id));
@@ -111,9 +121,14 @@ async function main(): Promise<number> {
 
   const knowledge = new SidecarZimEngine(args.python ?? process.env.SKEPI_PYTHON ?? 'python');
   try {
-    const archives = [];
-    for (const z of zims) archives.push(await knowledge.open(z));
-    console.log(`archives: ${archives.map((a) => `${a.archiveId} (${a.language}, ${a.articleCount})`).join(', ')}`);
+    const archives: (SidecarArchive & { file: string })[] = [];
+    for (const z of zims) archives.push({ ...(await knowledge.open(z)), file: basename(z) });
+    console.log(`archives: ${archives.map((a) => `${a.file} (${a.language}, ${a.articleCount})`).join(', ')}`);
+    const refs = archives.map((a) => ({ archiveId: a.archiveId, language: a.language }));
+    // Held-out items see the packs + eval-heldout.zim; the other sets never see that archive, so adding
+    // the held-out set changes nothing in their results.
+    const withoutFile = (file: string): string[] => archives.filter((a) => a.file !== file).map((a) => a.archiveId);
+    const scope = (set: string): string[] => (set === HELDOUT_SET ? withoutFile('eval-synthetic.zim') : withoutFile(HELDOUT_ZIM));
 
     if (args['check-sets']) return await checkSets(knowledge, archives.map((a) => a.archiveId), limited);
 
@@ -138,12 +153,13 @@ async function main(): Promise<number> {
     const outcomes: ItemOutcome[] = [];
     for (const [i, { set, item }] of limited.entries()) {
       const signal = new AbortController().signal;
-      const r = await retrieve(item.question, knowledge, { signal, config });
+      const r = await retrieve(item.question, knowledge, { signal, config, archives: refs, archiveIds: scope(set) });
       const outcome: ItemOutcome = {
         set,
         item,
         retrieval: r.status,
         noSourceReason: r.noSourceReason,
+        best: r.best,
         sources: r.sources.map((s) => ({ id: s.id, title: s.title, heading: s.heading, path: s.path, text: s.text })),
         summary: null,
         timing: { layer1Ms: r.timings.layer1Ms, ttftMs: null, generateMs: null, promptTokens: null, generatedTokens: null, tokensPerSecond: null },
@@ -189,15 +205,21 @@ async function main(): Promise<number> {
       }
     }
 
+    // Pooled metrics, per-language rows and the sweep cover the gated sets only; the held-out set is
+    // reported in its own section and never gated.
+    const gated = outcomes.filter((o) => GATED_SETS.has(o.set));
+    const heldout = outcomes.filter((o) => o.set === HELDOUT_SET);
     const perSet: Record<string, SetMetrics> = {};
-    for (const name of new Set(outcomes.map((o) => o.set))) perSet[name] = computeSetMetrics(outcomes.filter((o) => o.set === name));
+    for (const name of new Set(gated.map((o) => o.set))) perSet[name] = computeSetMetrics(gated.filter((o) => o.set === name));
     const perLang: Partial<Record<Lang, SetMetrics>> = {};
     for (const lang of ['en', 'el'] as const) {
-      const subset = outcomes.filter((o) => o.item.lang === lang);
+      const subset = gated.filter((o) => o.item.lang === lang);
       if (subset.length > 0) perLang[lang] = computeSetMetrics(subset);
     }
     const checks = inference ? checkThresholds(outcomes, thresholds) : [];
-    const sweep = sweepSupport(outcomes, [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
+    const sweep = sweepSupport(gated, [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
+    const heldoutReport =
+      heldout.length > 0 ? { metrics: computeSetMetrics(heldout), findings: heldoutFindings(heldout), items: heldout.length } : null;
     const report = {
       schema: 1,
       createdAt: new Date().toISOString(),
@@ -210,7 +232,8 @@ async function main(): Promise<number> {
       archives,
       thresholds,
       checks,
-      all: computeSetMetrics(outcomes),
+      all: computeSetMetrics(gated),
+      heldout: heldoutReport,
       perSet,
       perLang,
       tokens,

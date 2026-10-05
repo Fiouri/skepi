@@ -15,30 +15,36 @@ export interface StructuredAnswer {
 }
 
 /**
- * Answer limit in tokens. English: ~150 (architecture). Greek costs ~4x more tokens per character
- * with Qwen2.5, so 150 tokens would leave ~60 characters per sentence; Greek gets 200.
+ * Answer length in characters of sentence text, per language: the unit the reader sees. The token
+ * limit follows from the active model's measured tokens per character (tokens.ts), so a tokenizer
+ * that is cheaper for a language gets the same answer length for fewer tokens. With Qwen2.5
+ * (en 0.25, el 0.95 tokens/char) this gives the Phase 1b limits of 150 / 200 tokens.
  */
-export const ANSWER_MAX_TOKENS: Readonly<Record<Lang, number>> = { en: 150, el: 200 };
+export const ANSWER_MAX_CHARS: Readonly<Record<Lang, number>> = { en: 408, el: 172 };
 export const ANSWER_MAX_SENTENCES: Readonly<Record<Lang, number>> = { en: 3, el: 2 };
 
 /** JSON skeleton and per-sentence wrapper cost in tokens (Qwen2.5 output, rounded up). */
 const JSON_OVERHEAD_TOKENS = 12;
 const SENTENCE_OVERHEAD_TOKENS = 12;
+const MIN_SENTENCE_CHARS = 40;
 const MAX_SENTENCE_CHARS = 220;
 
 export interface AnswerLimits {
+  /** Characters of answer text (all sentences). */
+  maxChars: number;
   maxTokens: number;
   maxSentences: number;
   /** maxLength of each sentence's text in the grammar, so the JSON closes within maxTokens. */
   maxSentenceChars: number;
 }
 
-export function answerLimits(lang: Lang, modelId: string | null, maxTokens = ANSWER_MAX_TOKENS[lang]): AnswerLimits {
+export function answerLimits(lang: Lang, modelId: string | null, maxChars = ANSWER_MAX_CHARS[lang]): AnswerLimits {
   const maxSentences = ANSWER_MAX_SENTENCES[lang];
   const tokensPerChar = tokenizerProfile(modelId).tokensPerChar[lang];
-  const textTokens = maxTokens - JSON_OVERHEAD_TOKENS - SENTENCE_OVERHEAD_TOKENS * maxSentences;
-  const perSentence = Math.floor(textTokens / maxSentences / tokensPerChar);
-  return { maxTokens, maxSentences, maxSentenceChars: Math.max(40, Math.min(MAX_SENTENCE_CHARS, perSentence)) };
+  const maxSentenceChars = Math.max(MIN_SENTENCE_CHARS, Math.min(MAX_SENTENCE_CHARS, Math.floor(maxChars / maxSentences)));
+  const textChars = maxSentenceChars * maxSentences;
+  const maxTokens = Math.ceil(textChars * tokensPerChar) + JSON_OVERHEAD_TOKENS + SENTENCE_OVERHEAD_TOKENS * maxSentences;
+  return { maxChars: textChars, maxTokens, maxSentences, maxSentenceChars };
 }
 
 export function answerJsonSchema(

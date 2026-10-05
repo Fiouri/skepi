@@ -1,5 +1,5 @@
 # ZIM sidecar (zim_sidecar.py) and eval-ZIM builder (scripts/build_eval_zims.py).
-libzim==3.13.0
+libzim==3.10.0
 beautifulsoup4==4.13.4
 soupsieve==2.10
 typing_extensions==4.16.0
