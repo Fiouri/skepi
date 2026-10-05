@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="org.skepi.zim.SealingTest" tests="11" failures="0" errors="0" skipped="0" time="1.473" timestamp="2026-10-05T15:34:49" hostname="localhost">
+  <properties>
+    <property name="device" value="SM-S911B - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":expo-zim" />
+  </properties>
+  <testcase name="javascriptIsDisabled" classname="org.skepi.zim.SealingTest" time="0.226" />
+  <testcase name="inlineScriptDoesNotRunInRealPage" classname="org.skepi.zim.SealingTest" time="0.16" />
+  <testcase name="pathTraversalIsRejected" classname="org.skepi.zim.SealingTest" time="0.057" />
+  <testcase name="nonZimNavigationsNeverLoadAndAreReported" classname="org.skepi.zim.SealingTest" time="0.017" />
+  <testcase name="cspMatchesTheArchitecture" classname="org.skepi.zim.SealingTest" time="0.015" />
+  <testcase name="loadEntryPointsRefuseAnythingButZim" classname="org.skepi.zim.SealingTest" time="0.017" />
+  <testcase name="nonZimSubresourceRequestsAreBlockedAndLogged" classname="org.skepi.zim.SealingTest" time="0.015" />
+  <testcase name="everyZimResponseCarriesTheCsp" classname="org.skepi.zim.SealingTest" time="0.005" />
+  <testcase name="safeBrowsingIsOff" classname="org.skepi.zim.SealingTest" time="0.006" />
+  <testcase name="javascriptInterfaceCannotBeAttached" classname="org.skepi.zim.SealingTest" time="0.006" />
+  <testcase name="fileAndContentAccessAreOff" classname="org.skepi.zim.SealingTest" time="0.007" />
+</testsuite>

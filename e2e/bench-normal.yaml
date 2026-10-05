@@ -1,0 +1,31 @@
+# Bench in normal mode only (T2 model comparisons). T1-simulation must be off (it persists in app.db).
+# Each run writes bench/bench-<mode>-<timestamp>.json under the app's external files dir.
+# Run: maestro test e2e/bench.yaml -e APP_ID=org.skepi.app   (airplane mode, content provisioned)
+appId: ${APP_ID}
+name: SKEPI bench (normal)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: tab-bench
+    timeout: 30000
+- tapOn:
+    id: tab-bench
+- extendedWaitUntil:
+    visible:
+      id: bench-run
+    timeout: 30000
+
+# 1. Normal mode
+- assertVisible: ".*mode normal.*"
+- tapOn:
+    id: bench-run
+- extendedWaitUntil:
+    visible:
+      id: bench-gates
+    timeout: 900000
+- takeScreenshot: e2e/out/bench-normal

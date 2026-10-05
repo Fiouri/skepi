@@ -32,6 +32,17 @@ export const QWEN25_TOKENIZER: TokenizerProfile = {
     'Phase 0 device (llama.rn tokenize, Greek chunks): el 0.95',
 };
 
+/**
+ * Qwen3 (incl. Qwen3-4B-Instruct-2507): the same BPE as Qwen2.5. Checked with tools/rag-eval: identical
+ * token ids for all 452 retrieved golden-set passages (2026-10-05), so the Qwen2.5 measurements apply.
+ */
+export const QWEN3_TOKENIZER: TokenizerProfile = {
+  id: 'qwen3',
+  match: /^qwen3-/,
+  tokensPerChar: QWEN25_TOKENIZER.tokensPerChar,
+  measuredWith: 'identical token ids to Qwen2.5 on 452 rag-eval passages (node-llama-cpp vocab-only, 2026-10-05)',
+};
+
 /** Used for unknown models: conservative (over-estimates) so a budget never overflows the context. */
 export const FALLBACK_TOKENIZER: TokenizerProfile = {
   id: 'fallback',
@@ -40,7 +51,7 @@ export const FALLBACK_TOKENIZER: TokenizerProfile = {
   measuredWith: 'conservative default, not measured',
 };
 
-export const TOKENIZER_PROFILES: readonly TokenizerProfile[] = [QWEN25_TOKENIZER];
+export const TOKENIZER_PROFILES: readonly TokenizerProfile[] = [QWEN25_TOKENIZER, QWEN3_TOKENIZER];
 
 export function tokenizerProfile(modelId: string | null): TokenizerProfile {
   if (modelId === null) return FALLBACK_TOKENIZER;

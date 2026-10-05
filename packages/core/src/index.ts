@@ -110,6 +110,7 @@ export {
   FALLBACK_TOKENIZER,
   makeTokenEstimator,
   QWEN25_TOKENIZER,
+  QWEN3_TOKENIZER,
   TOKENIZER_PROFILES,
   tokenizerProfile,
   type TokenEstimator,

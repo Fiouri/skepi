@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="org.skepi.hash.FileHasherTest" tests="3" failures="0" errors="0" skipped="0" time="1.055" timestamp="2026-10-05T15:34:10" hostname="localhost">
+  <properties>
+    <property name="device" value="SM-S911B - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":expo-hash" />
+  </properties>
+  <testcase name="wholeFileAndChunkDigestsMatchOneShotDigests" classname="org.skepi.hash.FileHasherTest" time="0.03" />
+  <testcase name="exactMultipleOfTheChunkSizeHasNoEmptyTrailingChunk" classname="org.skepi.hash.FileHasherTest" time="0.001" />
+  <testcase name="reportsProgressAndCanBeCancelled" classname="org.skepi.hash.FileHasherTest" time="0.0" />
+</testsuite>

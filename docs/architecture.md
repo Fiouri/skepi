@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -88,14 +88,15 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /expo-zim          Kotlin + Swift binding over libkiwix/libzim, plus the native article viewer
   /expo-device-profile  RAM, thermal state, battery, free storage
   /expo-transfer     Local hotspot, QR pairing, TLS server/client for P2P
-  /expo-hash         Streaming SHA-256 on a native thread
+  /expo-hash         Streaming SHA-256 (whole file + 64 MiB chunks) on a native thread, progress, cancel
+  /expo-content-store  The only network user: system DownloadManager, SAF import, atomic install, embedded catalog
 /crates
   /zim-ffi           Rust FFI to libzim (cxx)
   /desktop-core      Inference, ZIM, hashing, transfer for Tauri
 /native
   /kiwix             Pinned versions + checksums (Maven AAR, xcframework, Windows libs)
 /tools
-  /catalog-builder   Builds, signs and publishes catalog.json
+  /catalog-builder   Builds and signs catalog.json (keygen, pin, build, keylist, verify; key never in the repo or CI)
   /rag-eval          Answer evaluation against golden sets
   /bench             Benchmarks: tokens/s, latency, energy
 /docs                Architecture, ADRs, threat model, SECURITY.md, phase reports
@@ -105,7 +106,7 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
 
 - `core` depends only on `contracts`, never on React, Expo or Tauri.
 - `apps` provide the interface implementations (adapters) and inject them into core.
-- Network access exists only in `ContentStore.download`; a lint rule forbids `fetch` anywhere else.
+- Network access exists only in ContentStore (`apps/mobile/src/lib/contentStore.ts` over `modules/expo-content-store`, the only module that declares INTERNET); ESLint forbids `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, Node network modules and the native downloader anywhere else (tooling exception: `tools/catalog-builder/src/download.ts`).
 - Every native library has a pinned version and checksum in `/native`. Upgrades go through a PR with green CI.
 
 **Core interfaces (`packages/contracts`)**
@@ -157,7 +158,7 @@ The LLM is optional, loads only when needed, and its size is chosen automaticall
 
 **Test devices.** Current reference: Galaxy S23 (8 GB, T2). All T1 gates stay **pending** until a 4 GB device is available. Until then, the app has a **T1-simulation mode** used on the S23 to catch large regressions early; a 4 GB Android emulator covers functional (not performance) checks.
 
-- T1-simulation forces the T1 profile on any device: T1 model (Qwen2.5-1.5B **Q4_0** preferred, Q4_K_M fallback), **2 unpinned threads** (pinning to big cores would hide T1 latency), n_ctx 2048, T1 character budget, AI summary on request. It is a developer setting (Bench tab, in memory until `packages/db` lands) and applies to Ask and the bench.
+- T1-simulation forces the T1 profile on any device: T1 model (Qwen2.5-1.5B **Q4_0** preferred, Q4_K_M fallback), **2 unpinned threads** (pinning to big cores would hide T1 latency), n_ctx 2048, T1 character budget, AI summary on request. It is a developer setting (Bench tab, persisted in app.db since Phase 1c) and applies to Ask and the bench.
 - Normal mode applies the detected tier: T2 uses Q4_0 on the performance cores (pinned), the T2 character budget and automatic AI summaries; T1 uses on-demand summaries; T0 loads no model.
 - The bench JSON (schema 3) records `mode` (`normal` | `t1-simulation`), the backend and the applied profile, and per language Layer 1 latency, sources-visible latency, TTFT, tokens/s, reused prompt tokens and the tokenizer check.
 
@@ -169,14 +170,16 @@ The LLM is optional, loads only when needed, and its size is chosen automaticall
 | T2 | 2,600 chars | 1,000 chars | 4 |
 | T3 | 12,000 chars | 6,000 chars | 8 |
 
-Chunks are ~600 characters (sentence-packed, never across sections). Answer limit: 150 tokens in English, 200 in Greek (Greek costs ~4× more tokens per character); the JSON schema bounds each sentence's length (`maxLength`) so the object closes within the limit.
+Chunks are ~600 characters (sentence-packed, never across sections). **Answer length is set in characters per language** (`ANSWER_MAX_CHARS`: English 408 = 3 × 136, Greek 172 = 2 × 86) and converted to a token limit with the active model's tokens per character plus the JSON overhead (Qwen2.5/Qwen3: 150 / 200 tokens); the JSON schema bounds each sentence's length (`maxLength`) so the object closes within the limit.
+
+**T2 model (Phase 1c).** Qwen3-4B-Instruct-2507 (Apache-2.0 on the model card; Q4_0 quantised by us from the official weights) was evaluated and **not adopted**: English TTFT p95 15.3 s on the S23 (> 15 s), Greek 32 s. T2 keeps Qwen2.5-1.5B Q4_0. Qwen2.5-3B is excluded (Qwen Research licence). Numbers in `docs/phase-1c-report.md`.
 
 **Model selection.** Default family: small Qwen models. The exact model is chosen by `/tools/rag-eval` (English primary set, Greek secondary set), not by reputation. rag-eval also reports **tokens per character** per language: a tokenizer that is efficient for a language directly cuts latency. A new model ships only if it does not regress citation precision or refusal-when-no-source.
 
 **Model lifecycle**
 
 1. **Load:** lazy, on the first AI request. Free RAM is checked first (`loadLlamaModelInfo` + `DeviceProfile`); if it does not fit, a smaller model is proposed.
-2. **Run:** tokens stream to the UI with a stop button. The system prompt is short, fixed and always first; llama.rn keeps the KV cache of the previous request and reuses the longest common token prefix (verified in llama.rn 0.12.9 `rn-completion.cpp`), and the app prefills the system prompt right after loading (`LlamaEngine.prewarm`). Temperature 0.2, answer limit 150 tokens (English) / 200 (Greek).
+2. **Run:** tokens stream to the UI with a stop button. The system prompt is short, fixed and always first; llama.rn keeps the KV cache of the previous request and reuses the longest common token prefix (verified in llama.rn 0.12.9 `rn-completion.cpp`), and the app prefills the system prompt right after loading (`LlamaEngine.prewarm`). Temperature 0.2, answer length in characters (above). The Ask screen shows the load progress (llama.rn `onProgress`).
 3. **Unload:** after 2 minutes idle, when the app goes to background, or on memory warning (`onTrimMemory` / `didReceiveMemoryWarning`).
 
 **Inference settings**
@@ -206,7 +209,7 @@ All knowledge lives in ZIM files read by libkiwix over libzim. Search uses the X
 
 **Two-speed search**
 
-- **Title suggestions** while typing (SuggestionSearcher). Target p95 < 50 ms.
+- **Title suggestions** while typing (SuggestionSearcher, `suggestTitles` in core): packs in the language of the typed text first, every pack capped (8 of 20), packs queried in parallel natively (one thread per pack, up to 4). Target p95 < 50 ms.
 - **Full-text** on Enter (Searcher + Xapian) across all open archives, filterable by pack and language. Target p95 < 300 ms on T1.
 - The home search queries articles, emergency cards and map place names at once.
 
@@ -250,9 +253,9 @@ Every answer comes in **two layers**, both built only from passages found on the
 1. **Language:** detected deterministically from the script (no model).
 2. **Emergency and medical intercept:** fixed lexicons per language (English, Greek). An emergency match shows the emergency number and the card slot immediately; a medical match (doses, drugs, symptoms, diseases, treatment) shows the number and Layer 1 first and gates the AI summary behind a tap.
 3. **Query rewrite (T2+ only, later phase):** the LLM with GBNF outputs `{ queries: { lang: string, terms: string[] }[], intent }`. Today every tier uses the question without stopwords.
-4. **Retrieval:** in each open pack, Xapian full-text with the conjunctive query plus single-keyword queries (always, not only when the conjunctive query is short) and title suggestions for all keywords and adjacent keyword pairs; all lists merged with reciprocal rank fusion, top 8 articles. Folding maps the Greek final ς to σ for matching; queries restore ς because the ZIM index keeps it (Phase 1b fix: Greek single-word questions found nothing).
+4. **Retrieval:** in each open pack, Xapian full-text with the conjunctive query plus single-keyword queries (always, not only when the conjunctive query is short) and title suggestions for all keywords and adjacent keyword pairs; all lists merged with reciprocal rank fusion over the **rank inside each archive** (never the position in an engine's concatenated multi-archive list; Phase 1c parity fix), packs in another language than the question offset by one full list, deterministic tie-breaks; top 8 articles. Folding maps the Greek final ς to σ for matching; queries restore ς because the ZIM index keeps it (Phase 1b fix: Greek single-word questions found nothing).
 5. **Passage selection:** sections are first cleaned of instruction-like sentences (`sanitizeSourceText`), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
-6. **Context budget, in characters** per tier and language, converted with the active model's tokens-per-character (table above). Every passage must pass the no-source bar and contain the question's numbers; when the question names an article (full title match), passages come from that article. Otherwise preference for diversity across articles.
+6. **Context budget, in characters** per tier and language, converted with the active model's tokens-per-character (table above). Every passage must pass the no-source bar and contain the question's numbers; when the question names an article (full title match), passages come from that article. Otherwise preference for diversity across articles. Articles are ordered by their best passage; **passages of one article keep reading order** (lead first) — rag-eval coverage en 60 → 72%, el 40 → 47% (Phase 1c).
 7. **No source:** if the best chunk covers < 60% of the query terms or scores < 0.5, show "No relevant source found". No Layer 1 passages, no generation. Calibrated with rag-eval.
 8. **Prompt and output format:** a short fixed system prompt (`rag-v5-json-short`, KV-cache prefix; asks for `covered: false` on personal and future questions), passages wrapped in `<source id="S1" title="…">…</source>` with tag characters neutralised, then a one-line language instruction and the question. The model must answer in grammar-constrained JSON `{covered, sentences[1..n]{text ≤ maxLength, source ∈ ids}}`. Source text is data, not instructions.
 9. **Post-validation (per sentence, as soon as each sentence object is complete while streaming):**
@@ -320,16 +323,18 @@ Every file the app opens (ZIM, GGUF, PMTiles, places DB) corresponds to an entry
 }
 ```
 
-- Ed25519 signature in a separate `catalog.json.sig`, over the exact bytes (not re-serialised JSON).
+- Ed25519 signature in a separate `catalog.json.sig` (base64 of the 64-byte signature), over the exact bytes (not re-serialised JSON); `@noble/ed25519` 3.2 in `packages/core/src/catalog.ts` (`verifyCatalog`, `verifyKeyList`). Each pack also names its `file` on disk.
 - Two public keys pinned in the app: one active, one offline backup. A new key is accepted only via a key list signed by the old key.
 - `sequence` always increases. The app rejects a catalog with a lower `sequence` than the one it holds (anti-rollback). No reliance on wall-clock time offline.
 - The build ships an embedded catalog, so a phone that never touched the internet can verify packs received via P2P.
 - Hashes are computed by `/tools/catalog-builder` after downloading from the official source. The private signing key never enters CI.
-- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app.
+- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app (later phase; Phase 1c ships the embedded catalog and a catalog-update path tested against the local mirror).
+- Embedded per build type: debug = test catalog + test keys (`catalog/embedded/debug`, `catalog/keys/test.json`); release = real-key catalog + release keys. A release build fails unless the embedded catalog verifies with the release keys (`skepiCheckReleaseCatalog`).
+- The newest accepted catalog is kept in internal storage and re-verified on every start; the highest accepted `sequence` lives in app.db.
 
 **Downloads**
 
-- **Android:** system `DownloadManager` (resumes after interruption and reboot, honours Wi-Fi-only; avoids dataSync foreground-service limits).
+- **Android:** system `DownloadManager` (resumes after interruption and reboot, honours Wi-Fi-only; avoids dataSync foreground-service limits). It applies the app's network security config (HTTPS only, system CAs; debug builds also trust the local test mirror CA for `127.0.0.1`), and the request carries `User-Agent: SKEPI` (its default names the device model). Active downloads are recorded in app.db and resumed after an app restart.
 - **iOS:** background `URLSession`.
 - **Desktop:** Rust downloader with HTTP Range and per-chunk checks.
 - Wi-Fi only by default; on metered networks show size and ask.
@@ -343,7 +348,9 @@ Every file the app opens (ZIM, GGUF, PMTiles, places DB) corresponds to an entry
 4. On mismatch: delete and try the next mirror. No unverified file is ever opened by libzim or llama.cpp.
 5. Updates download beside the old version; the old one is deleted only after the swap. If space is short, the user explicitly chooses "delete the old one first".
 
-**File import:** files from USB, Kiwix or Files are hashed and looked up in the catalog. Match = "verified". Otherwise "unverified": opens only by explicit choice, with a permanent label and JavaScript always off. Unverified GGUF files are not accepted on mobile in v1.
+**File import:** files from USB, Kiwix or Files are copied into app storage, hashed and looked up in the catalog. Match = "verified". Otherwise "unverified": opens only by explicit choice, with a permanent label ("Unverified content — not in the signed catalog" in search, article and Ask sources) and JavaScript always off. Unverified GGUF files are not accepted on mobile in v1 (import rejected; provisioned ones are never loaded; app.db forbids unverified non-ZIM packs).
+
+**Startup:** registered packs get a quick check (exists, size); files the database does not know (e.g. pushed by `scripts/provision.ps1`, which stays a dev tool) are hashed once and registered as verified when the catalog knows them, as unverified ZIM otherwise; stale `tmp/*.partial` files are removed.
 
 ## P2P content sharing
 
@@ -512,7 +519,7 @@ Two moments of use: **preparation** (online; the user chooses and downloads) and
 
 ## Data model and storage
 
-Large data are immutable files. User data live in one encrypted SQLite database. Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only.
+Large data are immutable files. User data live in one encrypted SQLite database (op-sqlite + SQLCipher; 256-bit random key per install, stored with expo-secure-store under an Android Keystore key). Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only; a database from a newer app or an edited migration is refused. Phase 1c ships migration 1 (`packs`, `settings`); the other tables below arrive with their features.
 
 ```
 <content root>/
@@ -529,9 +536,11 @@ Large data are immutable files. User data live in one encrypted SQLite database.
 ```sql
 CREATE TABLE packs (
   id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK (kind IN ('zim','gguf','pmtiles','places')),
-  version TEXT NOT NULL, path TEXT NOT NULL, size_bytes INTEGER NOT NULL,
+  version TEXT NOT NULL, title TEXT NOT NULL, path TEXT NOT NULL UNIQUE, size_bytes INTEGER NOT NULL,
   sha256 TEXT NOT NULL, verified INTEGER NOT NULL CHECK (verified IN (0,1)),
-  catalog_seq INTEGER, license TEXT, installed_at INTEGER NOT NULL, last_opened_at INTEGER
+  catalog_seq INTEGER, license TEXT, source TEXT NOT NULL CHECK (source IN ('download','import','provisioned')),
+  consent_at INTEGER, installed_at INTEGER NOT NULL, last_opened_at INTEGER,
+  CHECK (verified = 1 OR kind = 'zim'), CHECK (verified = 1 OR catalog_seq IS NULL)
 );
 CREATE TABLE conversations (
   id TEXT PRIMARY KEY, title TEXT, model_id TEXT, created_at INTEGER NOT NULL
@@ -574,11 +583,12 @@ No PR merges without a green gate: typecheck, lint, unit tests, release build an
 | Static | `tsc --noEmit` (strict), ESLint, `cargo clippy -D warnings`, ktlint, SwiftLint | Types, "no fetch outside ContentStore", dependency boundaries |
 | Unit (core) | Vitest | RAG (fusion, chunking, char budgets, JSON output parsing, bigram support check, numeric/unit check, no-source path), catalog verification (valid/invalid signature, rollback), guards, emergency lexicon, i18n |
 | Native modules | JUnit + instrumentation (Android), XCTest (iOS), `cargo test` | ZIM open/search on a small fixture, viewer sealing (schemes blocked, JS off, CSP, path traversal), streaming hash |
-| AI quality | `/tools/rag-eval` with llama.cpp on CPU in CI | Golden sets (English primary, Greek secondary) incl. an adversarial set: citation precision, refusal without source, no number/unit absent from the source, tokens per character |
+| AI quality | `/tools/rag-eval` with llama.cpp on CPU in CI | Golden sets (English primary, Greek secondary) incl. an adversarial set: citation precision, refusal without source, no number/unit absent from the source, summary coverage floors per language, tokens per character; a held-out adversarial set reported separately and never used for tuning |
+| Retrieval parity | `e2e/run-parity.ps1` (phone) + `tools/rag-eval` parity | The en + el questions through retrieval only on the device and in rag-eval: identical search lists, fused hits, article text hashes, ranked chunks and sources |
 | E2E Android | Maestro on emulator and device | Onboarding, search, article, Layer 1 + AI answer with sources, map, card, P2P between two emulators — all in airplane mode |
 | E2E iOS | Maestro on simulator | Same flows (AI only on a real device; llama.rn does not support the simulator) |
 | E2E desktop | Playwright on the web UI with mocked commands; tauri-driver smoke on Windows | Main flows and "Station" mode |
-| Zero-egress | Proxy logging every connection during E2E | No connection except explicit download flows to catalog hosts |
+| Zero-egress | `dumpsys netstats` per app UID + ContentStore request log + local mirror log | Offline flows: zero requests and zero bytes on any real interface. Download flow (local HTTPS mirror via `adb reverse`): requests only to the mirror, generic User-Agent, no query strings, zero bytes on real interfaces |
 | Fuzzing | libFuzzer on ZIM, GGUF and PMTiles loaders, nightly | Crashes and OOM on malicious files |
 | Performance | `/tools/bench` on reference devices (+ T1-simulation mode) | Performance targets, tokens/s, % battery per answer |
 | Builds | `gradlew assembleRelease` locally and in CI, `xcodebuild`, `tauri build` | Release builds from source, no prebuilt binaries from postinstall |
@@ -639,13 +649,14 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
 1. **Phase 0 · Android spike — DONE, GO.** libkiwix (official Maven package) · llama.rn · PMTiles map · native viewer. Report: `docs/spike-report.md`.
    - Gate result: search, article, map and APK size passed; first-token latency failed (12–18 s vs 4 s), addressed by the two-layer answer and revised targets.
    - **Phase 1b · two-layer answers, latency, citation hardening — DONE.** Layer 1 extractive answers · labelled AI summary (auto on T2, on demand on T1, on tap for medical intent) · char budgets with measured tokens/char · Q4_0 · prompt v5 + KV prefix reuse · bigram/coherence/relevance/number-unit validation · source sanitizer · `tools/rag-eval` (en 108, el 50, adversarial 30) all thresholds met · CI smoke · GPU/NPU experiment (not usable). Report: `docs/phase-1b-report.md`.
+   - **Phase 1c · 1b follow-ups, signed catalog and downloads — see `docs/phase-1c-report.md`.** Device/eval retrieval parity (158/158) · fusion and passage-order fixes · coverage floors · held-out adversarial set · char-based answer limits · parallel title suggestions · model load progress · T2 4B evaluated (not adopted) · signed catalog (core verification, catalog-builder, rotation) · `packages/db` (SQLCipher) · `expo-hash` · ContentStore (DownloadManager, import, Library) · zero-egress E2E against a local HTTPS mirror · threat model.
    - **Phase 1a · foundation and security hardening — DONE.** Release keystore and fail-closed signing · viewer sealing instrumentation tests · `modules/expo-device-profile` · `packages/i18n` (English default, Greek) · T1-simulation mode · R8 · still no INTERNET permission (downloads arrive in Phase 1c). Report: `docs/phase1a/README.md`.
 2. **Phase 1 · Android MVP (English-first).**
    - Release keystore outside the repo (first task).
    - ~~Two-layer answers with char-based budgets, Q4_0, shorter prompt, KV-cache reuse; GPU/NPU backend experiment~~ (1b).
    - ~~Citation hardening: bigram support check, numeric/unit rule, adversarial set in rag-eval, medical-intent flow~~ (1b).
    - Viewer sealing instrumentation tests.
-   - Signed catalog and downloads; English default packs + Greek locale packs.
+   - ~~Signed catalog and downloads; English default packs + Greek locale packs~~ (1c; public hosting later).
    - Emergency cards (English master + Greek), onboarding, blackout mode, T1-simulation mode.
    - ~~rag-eval (English primary, Greek secondary, tokens/char)~~ (1b, CI smoke subset); Maestro in CI.
    - Gate: Maestro in airplane mode green · zero egress · viewer sealing tests green · rag-eval above threshold · Layer 1 < 1 s and sources < 2 s (T1-simulation) · first token < 15 s on T2 · T1 measured if a device is available.
