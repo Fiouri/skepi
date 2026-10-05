@@ -1,0 +1,87 @@
+# Emergency card flow (release build, airplane mode, English UI, country Greece):
+# home Emergency button -> numbers -> a card with its permanent draft banner and read-aloud;
+# an emergency question in Ask shows the number and the card before anything else; home search finds cards.
+appId: ${APP_ID}
+name: SKEPI emergency cards (offline)
+env:
+  ASK_QUESTION: Someone collapsed and is not breathing. How do I do CPR?
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: home-emergency
+- extendedWaitUntil:
+    visible:
+      id: emergency-numbers
+    timeout: 10000
+- assertVisible: "Call 112"
+- assertVisible: "Ambulance: 166"
+- assertVisible: "Fire service: 199"
+- assertVisible: "Police: 100"
+- takeScreenshot: e2e/out/cards-01-numbers
+- scrollUntilVisible:
+    element:
+      id: card-link-cpr
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: card-link-cpr
+- extendedWaitUntil:
+    visible:
+      id: card-draft-banner
+    timeout: 10000
+- assertVisible: "Draft — not reviewed by first-aid professionals"
+- assertVisible:
+    id: card-step-1
+- assertVisible: "Call 112"
+- tapOn:
+    id: card-read-aloud
+- extendedWaitUntil:
+    visible: "Stop reading"
+    timeout: 10000
+- takeScreenshot: e2e/out/cards-02-cpr
+- tapOn:
+    id: card-read-aloud
+- back
+- back
+# Ask: number and card first
+- tapOn:
+    id: tab-ask
+- tapOn:
+    id: ask-input
+- inputText: ${ASK_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: emergency-banner
+    timeout: 15000
+- assertVisible: "Emergency\\? Call 112"
+- assertVisible:
+    id: inline-card-cpr
+- assertVisible: "Draft — not reviewed by first-aid professionals"
+- takeScreenshot: e2e/out/cards-03-ask-card-first
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 30000
+- tapOn:
+    id: ask-clear
+# Home search finds cards with no pack involved
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- inputText: burn
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: card-link-burns
+    timeout: 10000
+- takeScreenshot: e2e/out/cards-04-search

@@ -4,6 +4,7 @@
 // - Network access only through ContentStore (plugins/withContentStore.js, modules/expo-content-store).
 // - R8 minification for release with SKEPI keep rules (plugins/proguard-rules.skepi.pro).
 // - Release signing with the dedicated keystore (plugins/withReleaseSigning.js).
+// - Release gate for draft emergency cards (plugins/withEmergencyCards.js).
 // - Debug installs side-by-side with release: applicationId suffix ".dev", label "SKEPI Dev".
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +17,7 @@ const {
   withProjectBuildGradle,
 } = require('expo/config-plugins');
 const withContentStore = require('./withContentStore');
+const withEmergencyCards = require('./withEmergencyCards');
 const withReleaseSigning = require('./withReleaseSigning');
 
 const ABI = 'arm64-v8a';
@@ -233,10 +235,10 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withContentStore(withBundleInputs(withAndroidTestPackaging(withDevVariant(
+  withEmergencyCards(withContentStore(withBundleInputs(withAndroidTestPackaging(withDevVariant(
     withReleaseSigning(
       withKeepRules(
         withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
       ),
     ),
-  ))));
+  )))));

@@ -1,0 +1,13 @@
+# Subflow after launchApp: wait for the home screen or onboarding, and skip onboarding if shown.
+appId: ${APP_ID}
+name: App ready
+---
+- extendedWaitUntil:
+    visible:
+      id: "(tab-search|onboarding)"
+    timeout: 60000
+- runFlow:
+    when:
+      visible:
+        id: onboarding
+    file: skip-onboarding.yaml

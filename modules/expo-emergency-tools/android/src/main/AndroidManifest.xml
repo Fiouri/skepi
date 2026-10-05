@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Coordinates and compass (Tools tab): location "while in use" only, GNSS without Play Services.
+       ACCESS_BACKGROUND_LOCATION is never requested (blocked in app.json, checked by the release
+       permission allowlist). The torch needs no permission (CameraManager.setTorchMode). -->
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+  <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
+  <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
+</manifest>

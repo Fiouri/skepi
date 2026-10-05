@@ -16,6 +16,7 @@ name: SKEPI downloads, catalog and import (local test mirror)
 - launchApp:
     clearState: true
     stopApp: true
+- runFlow: app-ready.yaml
 - extendedWaitUntil:
     visible:
       id: tab-library

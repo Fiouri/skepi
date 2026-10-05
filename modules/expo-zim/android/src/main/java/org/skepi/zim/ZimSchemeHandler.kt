@@ -21,6 +21,15 @@ internal object ZimSchemeHandler {
     "Cache-Control" to "no-store",
   )
 
+  /**
+   * Blackout theme: pure black for OLED panels (docs/architecture.md, "Blackout mode"). Inline style is
+   * already allowed by the CSP (`style-src 'unsafe-inline'`); nothing else changes.
+   */
+  const val DARK_CSS =
+    "html,body{background:#000!important;color:#e5e7eb!important}" +
+      "*{background-color:transparent!important;color:inherit!important;border-color:#525252!important}" +
+      "a,a:visited{color:#93c5fd!important}img,video{opacity:.8}"
+
   private val HEAD_OPEN = Regex("<head(\\s[^>]*)?>", RegexOption.IGNORE_CASE)
 
   data class Target(val archiveId: String, val path: String)
@@ -48,14 +57,14 @@ internal object ZimSchemeHandler {
   private fun notFound(): WebResourceResponse =
     WebResourceResponse("text/plain", "utf-8", 404, "Not Found", SECURITY_HEADERS, ByteArrayInputStream(ByteArray(0)))
 
-  fun handle(url: Uri): WebResourceResponse {
+  fun handle(url: Uri, dark: Boolean = false): WebResourceResponse {
     val raw = url.toString()
     val target = parse(url) ?: return blocked(raw, "invalid-zim-url")
     val open = ZimRegistry.find(target.archiveId) ?: return blocked(raw, "archive-not-open")
     return try {
       val item = ZimContent.readItem(open, target.path)
       val (mime, charset) = splitMime(item.mimeType)
-      val body = if (mime == "text/html") injectCsp(item.data) else item.data
+      val body = if (mime == "text/html") injectHead(item.data, dark) else item.data
       WebResourceResponse(mime, charset, 200, "OK", SECURITY_HEADERS, ByteArrayInputStream(body))
     } catch (e: ZimException) {
       Log.i(TAG, "zim:// miss ${target.path}: ${e.message}")
@@ -75,10 +84,11 @@ internal object ZimSchemeHandler {
     return mime to (charset ?: if (mime.startsWith("text/")) "utf-8" else null)
   }
 
-  /** Defence in depth: the CSP also travels inside the document. */
-  private fun injectCsp(html: ByteArray): ByteArray {
+  /** Defence in depth: the CSP also travels inside the document; the blackout CSS follows it. */
+  private fun injectHead(html: ByteArray, dark: Boolean): ByteArray {
     val text = String(html, Charsets.UTF_8)
-    val meta = "<meta http-equiv=\"Content-Security-Policy\" content=\"$CSP\">"
+    val meta = "<meta http-equiv=\"Content-Security-Policy\" content=\"$CSP\">" +
+      if (dark) "<style id=\"skepi-dark\">$DARK_CSS</style>" else ""
     val match = HEAD_OPEN.find(text)
     val out = if (match != null) {
       text.substring(0, match.range.last + 1) + meta + text.substring(match.range.last + 1)

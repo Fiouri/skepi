@@ -18,6 +18,17 @@ export interface CpuInfo {
   abi: string;
 }
 
+export interface BatteryInfo {
+  /** Battery level in percent (EXTRA_LEVEL / EXTRA_SCALE), null if unknown. */
+  levelPct: number | null;
+  /** Remaining charge in µAh (BATTERY_PROPERTY_CHARGE_COUNTER), null where the device does not report it. */
+  chargeCounterUah: number | null;
+  charging: boolean;
+  /** The OS battery saver is on. */
+  powerSave: boolean;
+  timestampMs: number;
+}
+
 export interface DeviceInfo {
   manufacturer: string;
   model: string;

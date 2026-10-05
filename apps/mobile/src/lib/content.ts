@@ -228,6 +228,11 @@ export function useActiveProfile(): ActiveProfile {
   return toActive({ cpu, models, totalRamMb, simulateT1, backend });
 }
 
+/** Key for energy samples: costs differ per tier, and T1-simulation is measured on its own. */
+export function energyTier(profile: InferenceProfile): string {
+  return profile.mode === 't1-simulation' ? 't1-simulation' : profile.effectiveTier;
+}
+
 /** RAG settings that follow the active profile: character budget tier, tokenizer, context size. */
 export function ragConfigFor(profile: InferenceProfile): Partial<RagConfig> {
   return { tier: profile.budgetTier, modelId: profile.modelId, contextSize: profile.load.contextSize };

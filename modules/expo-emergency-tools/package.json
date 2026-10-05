@@ -1,0 +1,21 @@
+{
+  "name": "expo-emergency-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Expo module: SOS torch (Morse timeline), compass, one-shot GNSS fix without Play Services, screen brightness",
+  "license": "GPL-3.0-or-later",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
+}

@@ -2,10 +2,13 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { ExpoZim, ZimArticleView, zimUrl } from 'expo-zim';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { styles, UnverifiedLabel } from '../components/ui';
+import { useStyles, UnverifiedLabel } from '../components/ui';
 import { useMessages } from '../lib/i18n';
+import { usePrefs } from '../lib/prefs';
 
 export default function ArticleScreen() {
+  const styles = useStyles();
+  const blackout = usePrefs((s) => s.blackout);
   const t = useMessages();
   const params = useLocalSearchParams<{ archiveId: string; path: string; title?: string; anchor?: string }>();
   const url = useMemo(
@@ -28,7 +31,7 @@ export default function ArticleScreen() {
   }, [url]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.fill}>
       <Stack.Screen options={{ title: params.title ?? t.article.title }} />
       <View style={{ paddingHorizontal: 8 }}>
         <UnverifiedLabel archiveId={params.archiveId} />
@@ -50,6 +53,7 @@ export default function ArticleScreen() {
         testID="article-view"
         style={{ flex: 1 }}
         url={url}
+        dark={blackout}
         onLoadEnd={() => {
           setOpenMs(performance.now() - startedAt.current);
           void refreshBlocked();

@@ -73,3 +73,22 @@ export function formatEnergy(estimate: EnergyEstimate): string {
   if (estimate.pct < 1) return `≈ ${estimate.pct.toFixed(1)}%`;
   return `≈ ${String(Math.round(estimate.pct))}%`;
 }
+
+/** A battery reading (expo-device-profile `getBattery`). */
+export interface BatteryReading {
+  levelPct: number | null;
+  chargeCounterUah: number | null;
+  charging: boolean;
+}
+
+/** Percent of a full battery used between two readings; null when it cannot be measured. */
+export function batteryDeltaPct(start: BatteryReading, end: BatteryReading): number | null {
+  if (start.charging || end.charging) return null;
+  if (start.chargeCounterUah !== null && end.chargeCounterUah !== null && start.levelPct !== null && start.levelPct > 0) {
+    const fullUah = start.chargeCounterUah / (start.levelPct / 100);
+    if (fullUah <= 0) return null;
+    return Math.max(0, ((start.chargeCounterUah - end.chargeCounterUah) / fullUah) * 100);
+  }
+  if (start.levelPct === null || end.levelPct === null) return null;
+  return Math.max(0, start.levelPct - end.levelPct);
+}

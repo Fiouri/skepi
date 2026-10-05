@@ -1,5 +1,6 @@
 export { migrate, MigrationError, schemaVersion, type Row, type SqlDatabase, type SqlExecutor, type SqlValue } from './db';
 export {
+  batteryDeltaPct,
   ENERGY_ACTIONS,
   ENERGY_SAMPLES_KEPT,
   estimateEnergy,
@@ -7,6 +8,7 @@ export {
   listEnergySamples,
   MIN_ENERGY_SAMPLES,
   recordEnergySample,
+  type BatteryReading,
   type EnergyAction,
   type EnergyEstimate,
   type EnergySample,

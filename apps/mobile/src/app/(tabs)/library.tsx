@@ -1,13 +1,15 @@
 import type { InstalledPack } from '@skepi/contracts';
 import type { CatalogPack } from '@skepi/core';
 import { getDocumentAsync } from 'expo-document-picker';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Switch, Text, View } from 'react-native';
-import { Button, styles } from '../../components/ui';
+import { Button, useStyles } from '../../components/ui';
 import { contentStore, useContent } from '../../lib/content';
 import { ContentError, fetchCatalogUpdate } from '../../lib/contentStore';
 import { formatBytes, useDownloads } from '../../lib/downloads';
 import { useLanguage, useMessages } from '../../lib/i18n';
+import { usePrefs } from '../../lib/prefs';
 
 function confirm(title: string, body: string, accept: string, cancel: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -19,6 +21,9 @@ function confirm(title: string, body: string, accept: string, cancel: string): P
 }
 
 export default function LibraryScreen() {
+  const styles = useStyles();
+  const router = useRouter();
+  const restartOnboarding = usePrefs((s) => s.restartOnboarding);
   const t = useMessages();
   const lang = useLanguage();
   const status = useContent((s) => s.status);
@@ -232,6 +237,15 @@ export default function LibraryScreen() {
           </View>
         );
       })}
+
+      <Button
+        testID="library-onboarding"
+        label={t.onboarding.restart}
+        onPress={() => {
+          restartOnboarding();
+          router.push('/onboarding');
+        }}
+      />
 
       <Text style={styles.mono} testID="network-log">
         {t.library.networkLog({

@@ -197,6 +197,26 @@ class SealingTest {
   }
 
   @Test
+  fun blackoutThemeAddsDarkCssAndKeepsTheCsp() {
+    val dark = ZimSchemeHandler.handle(Uri.parse(zim("index")), dark = true)
+    assertEquals(200, dark.statusCode)
+    assertCsp(dark)
+    val html = dark.data.readBytes().toString(Charsets.UTF_8)
+    val meta = "<meta http-equiv=\"Content-Security-Policy\" content=\"$EXPECTED_CSP\">"
+    assertTrue(html.contains(meta))
+    assertTrue(html.contains("<style id=\"skepi-dark\">"))
+    assertTrue(html.contains("background:#000"))
+    // The style comes after the policy, and no script source is added.
+    assertTrue(html.indexOf(meta) < html.indexOf("skepi-dark"))
+    assertFalse(html.substringAfter("skepi-dark").substringBefore("</style>").contains("script"))
+    val light = ZimSchemeHandler.handle(Uri.parse(zim("index"))).data.readBytes().toString(Charsets.UTF_8)
+    assertFalse(light.contains("skepi-dark"))
+    // Non-HTML responses are untouched.
+    val css = ZimSchemeHandler.handle(Uri.parse(zim("style.css")), dark = true).data.readBytes().toString(Charsets.UTF_8)
+    assertFalse(css.contains("skepi-dark"))
+  }
+
+  @Test
   fun cspMatchesTheArchitecture() {
     assertEquals(EXPECTED_CSP, ZimSchemeHandler.CSP)
   }

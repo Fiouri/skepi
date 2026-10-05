@@ -3,6 +3,7 @@ package org.skepi.zim
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -41,6 +42,17 @@ class SealedWebView(context: Context, private val listener: Listener) : WebView(
     isLongClickable = false
     webViewClient = client
   }
+
+  /** Blackout theme: dark article CSS and a black background (no white flash between pages). */
+  @Volatile
+  var dark: Boolean = false
+    set(value) {
+      if (field == value) return
+      field = value
+      setBackgroundColor(if (value) Color.BLACK else Color.WHITE)
+      val current = url
+      if (current != null && ZimSchemeHandler.parse(Uri.parse(current)) != null) super.loadUrl(current)
+    }
 
   /** Loads a zim:// URL. Returns false (and logs) when the URL is not an allowed zim:// target. */
   fun loadZim(url: String): Boolean {
@@ -92,7 +104,7 @@ class SealedWebView(context: Context, private val listener: Listener) : WebView(
   inner class SealedClient : WebViewClient() {
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse {
       val uri = request.url
-      if (uri.scheme == ZimSchemeHandler.SCHEME) return ZimSchemeHandler.handle(uri)
+      if (uri.scheme == ZimSchemeHandler.SCHEME) return ZimSchemeHandler.handle(uri, dark)
       val url = uri.toString()
       val reason = "scheme:${uri.scheme}"
       // Called on a WebView background thread; listeners run on the UI thread. (View.post would

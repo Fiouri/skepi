@@ -1,11 +1,16 @@
 import type { SearchHit } from '@skepi/contracts';
 import { DEFAULT_SUGGEST, suggestTitles } from '@skepi/core';
+import { findCards } from '@skepi/emergency-cards';
 import { useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import { Button, ContentGate, styles, UnverifiedLabel } from '../../components/ui';
-import { knowledge, ragArchives } from '../../lib/content';
+import { BlackoutControls } from '../../components/Blackout';
+import { CardLinks } from '../../components/EmergencyCards';
+import { Readiness } from '../../components/Readiness';
+import { Button, useStyles, UnverifiedLabel } from '../../components/ui';
+import { knowledge, ragArchives, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
+import { useTheme } from '../../lib/theme';
 
 interface Timing {
   kind: 'suggest' | 'fulltext';
@@ -14,61 +19,80 @@ interface Timing {
   count: number;
 }
 
+/**
+ * Home: the permanent Emergency button, blackout mode, the "You are ready" indicator, and one search
+ * field over emergency cards and articles. Cards and the Emergency button work with no pack at all.
+ */
 export default function SearchScreen() {
   const router = useRouter();
   const t = useMessages();
+  const styles = useStyles();
+  const theme = useTheme();
+  const archives = useContent((s) => s.archives);
+  const status = useContent((s) => s.status);
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [timing, setTiming] = useState<Timing | null>(null);
   const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
+  const canSearchArticles = status === 'ready' && archives.length > 0;
 
-  const run = useCallback(async (q: string, kind: Timing['kind']) => {
-    const id = ++seq.current;
-    if (q.trim().length === 0) {
-      setHits([]);
-      setTiming(null);
-      return;
-    }
-    try {
-      const start = performance.now();
-      const result =
-        kind === 'suggest'
-          ? await suggestTitles(knowledge, q, { ...DEFAULT_SUGGEST, archives: ragArchives() })
-          : await knowledge.search(q, { mode: 'fulltext', limit: 20 });
-      const totalMs = performance.now() - start;
-      if (id !== seq.current) return;
-      setHits(result);
-      setError(null);
-      setTiming({
-        kind,
-        totalMs,
-        nativeMs: kind === 'suggest' ? knowledge.lastNativeMs.suggest : knowledge.lastNativeMs.search,
-        count: result.length,
-      });
-    } catch (e) {
-      if (id === seq.current) setError(e instanceof Error ? e.message : String(e));
-    }
-  }, []);
+  const run = useCallback(
+    async (q: string, kind: Timing['kind']) => {
+      const id = ++seq.current;
+      if (q.trim().length === 0 || !canSearchArticles) {
+        setHits([]);
+        setTiming(null);
+        return;
+      }
+      try {
+        const start = performance.now();
+        const result =
+          kind === 'suggest'
+            ? await suggestTitles(knowledge, q, { ...DEFAULT_SUGGEST, archives: ragArchives() })
+            : await knowledge.search(q, { mode: 'fulltext', limit: 20 });
+        const totalMs = performance.now() - start;
+        if (id !== seq.current) return;
+        setHits(result);
+        setError(null);
+        setTiming({
+          kind,
+          totalMs,
+          nativeMs: kind === 'suggest' ? knowledge.lastNativeMs.suggest : knowledge.lastNativeMs.search,
+          count: result.length,
+        });
+      } catch (e) {
+        if (id === seq.current) setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [canSearchArticles],
+  );
 
   const onChange = (text: string): void => {
     setQuery(text);
     void run(text, 'suggest');
   };
 
-  return (
-    <ContentGate>
-      <View style={styles.screen}>
-        <TextInput
-          testID="search-input"
-          style={styles.input}
-          value={query}
-          onChangeText={onChange}
-          onSubmitEditing={() => void run(query, 'fulltext')}
-          placeholder={t.search.placeholder}
-          returnKeyType="search"
-          autoCorrect={false}
-        />
+  const cards = query.trim().length > 0 ? findCards(query) : [];
+
+  const header = (
+    <View style={{ gap: 10 }}>
+      <Button testID="home-emergency" tone="danger" label={t.home.emergency} hint={t.home.emergencyHint} onPress={() => { router.push('/emergency'); }} />
+      <BlackoutControls />
+      <Readiness />
+      <TextInput
+        testID="search-input"
+        style={styles.input}
+        value={query}
+        onChangeText={onChange}
+        onSubmitEditing={() => void run(query, 'fulltext')}
+        placeholder={t.search.placeholder}
+        placeholderTextColor={theme.muted}
+        accessibilityLabel={t.search.placeholder}
+        returnKeyType="search"
+        autoCorrect={false}
+      />
+      {canSearchArticles && (
         <View style={styles.row}>
           <Button testID="search-fulltext" label={t.search.fullText} onPress={() => void run(query, 'fulltext')} />
           {timing && (
@@ -82,26 +106,43 @@ export default function SearchScreen() {
             </Text>
           )}
         </View>
-        {error && <Text style={styles.error}>{error}</Text>}
-        <FlatList
-          data={hits}
-          keyExtractor={(h) => `${h.archiveId}/${h.path}`}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item, index }) => (
-            <Pressable
-              testID={`search-result-${index}`}
-              style={styles.item}
-              onPress={() => {
-                router.push({ pathname: '/article', params: { archiveId: item.archiveId, path: item.path, title: item.title } });
-              }}
-            >
-              <Text style={styles.title}>{item.title}</Text>
-              <UnverifiedLabel archiveId={item.archiveId} />
-              {item.snippet && item.snippet !== item.title ? <Text style={styles.muted}>{item.snippet}</Text> : null}
-            </Pressable>
-          )}
-        />
-      </View>
-    </ContentGate>
+      )}
+      {status === 'ready' && archives.length === 0 && (
+        <Text style={styles.muted} testID="content-missing">
+          {t.content.missing}
+        </Text>
+      )}
+      {error && <Text style={styles.error}>{error}</Text>}
+      {cards.length > 0 && (
+        <View testID="search-cards">
+          <CardLinks cards={cards} />
+        </View>
+      )}
+    </View>
+  );
+
+  return (
+    <FlatList
+      style={styles.fill}
+      contentContainerStyle={{ padding: 12, paddingBottom: 48 }}
+      data={hits}
+      ListHeaderComponent={header}
+      keyExtractor={(h) => `${h.archiveId}/${h.path}`}
+      keyboardShouldPersistTaps="handled"
+      renderItem={({ item, index }) => (
+        <Pressable
+          testID={`search-result-${String(index)}`}
+          accessibilityRole="link"
+          style={styles.item}
+          onPress={() => {
+            router.push({ pathname: '/article', params: { archiveId: item.archiveId, path: item.path, title: item.title } });
+          }}
+        >
+          <Text style={styles.title}>{item.title}</Text>
+          <UnverifiedLabel archiveId={item.archiveId} />
+          {item.snippet && item.snippet !== item.title ? <Text style={styles.muted}>{item.snippet}</Text> : null}
+        </Pressable>
+      )}
+    />
   );
 }

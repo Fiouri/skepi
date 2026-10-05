@@ -5,8 +5,13 @@
   1. e2e/ask-en.yaml    English UI: search, article, Layer 1 + automatic AI summary with citation, no source, map.
   2. e2e/ask-t1.yaml    English UI, T1-simulation: Layer 1, then "Summarise with AI".
   3. e2e/medical.yaml   English UI: emergency number + Layer 1 first, unverified AI summary on tap.
-  4. e2e/locale-el.yaml Greek UI (app locale el-GR): Greek strings and a Greek Layer 1 answer.
+  4. e2e/onboarding.yaml "Get prepared" offline with the installed packs; readiness indicator.
+  5. e2e/cards.yaml     Emergency button, numbers, a draft card; an emergency question shows number + card first.
+  6. e2e/tools.yaml     SOS torch and screen, compass, GNSS fix, SMS hand-off (location permission granted here).
+  7. e2e/blackout.yaml  Blackout mode with a simulated discharging battery at 25% (dumpsys battery), reset afterwards.
+  8. e2e/locale-el.yaml Greek UI (app locale el-GR): Greek strings, a Greek Layer 1 answer, Greek tools and card.
   The per-app locale (Android 13+) is reset to "follow the system" afterwards.
+  -Only runs a subset (file names without .yaml).
   -AppId selects the installed build: org.skepi.app (release, default) or org.skepi.app.dev (debug).
 #>
 [CmdletBinding()]
@@ -14,7 +19,8 @@ param(
   [string]$Serial = '',
   [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
   [string]$AppId = 'org.skepi.app',
-  [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat')
+  [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat'),
+  [string[]]$Only = @()
 )
 
 Set-StrictMode -Version Latest
@@ -68,19 +74,46 @@ function Invoke-Flow([string]$Flow, [string]$Report) {
 $uid = ((& adb @adbArgs shell dumpsys package $package) | Select-String -Pattern 'appId=(\d+)' | Select-Object -First 1).Matches[0].Groups[1].Value
 $bytesBefore = Get-UidBytes $uid
 $flows = @(
+  @{ Flow = 'e2e/onboarding.yaml'; Report = 'report-onboarding.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/ask-en.yaml'; Report = 'report-en.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/ask-t1.yaml'; Report = 'report-t1.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/medical.yaml'; Report = 'report-medical.xml'; Locale = 'en-US' },
+  @{ Flow = 'e2e/cards.yaml'; Report = 'report-cards.xml'; Locale = 'en-US' },
+  @{ Flow = 'e2e/tools.yaml'; Report = 'report-tools.xml'; Locale = 'en-US' },
+  @{ Flow = 'e2e/blackout.yaml'; Report = 'report-blackout.xml'; Locale = 'en-US'; Battery = $true },
   @{ Flow = 'e2e/locale-el.yaml'; Report = 'report-el.xml'; Locale = 'el-GR' }
 )
+if ($Only.Count -gt 0) { $flows = @($flows | Where-Object { $Only -contains [IO.Path]::GetFileNameWithoutExtension($_.Flow) }) }
+
+# Location "while in use" for the GNSS step of tools.yaml.
+& adb @adbArgs shell pm grant $package android.permission.ACCESS_FINE_LOCATION
+& adb @adbArgs shell pm grant $package android.permission.ACCESS_COARSE_LOCATION
+
+# Blackout flow: a discharging battery at 25% (the phone is on USB power during E2E).
+function Set-SimulatedBattery([bool]$On) {
+  if ($On) {
+    & adb @adbArgs shell dumpsys battery unplug
+    & adb @adbArgs shell dumpsys battery set status 3
+    & adb @adbArgs shell dumpsys battery set level 25
+  } else {
+    & adb @adbArgs shell dumpsys battery reset
+  }
+}
 $results = @()
 Push-Location $root
 try {
   foreach ($f in $flows) {
     Set-AppLocale $f.Locale
-    $results += [pscustomobject]@{ Flow = $f.Flow; Exit = (Invoke-Flow $f.Flow $f.Report) }
+    $battery = $f.ContainsKey('Battery')
+    if ($battery) { Set-SimulatedBattery $true }
+    try {
+      $results += [pscustomobject]@{ Flow = $f.Flow; Exit = (Invoke-Flow $f.Flow $f.Report) }
+    } finally {
+      if ($battery) { Set-SimulatedBattery $false }
+    }
   }
 } finally {
+  Set-SimulatedBattery $false
   Set-AppLocale ''
   Pop-Location
 }

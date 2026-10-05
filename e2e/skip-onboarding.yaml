@@ -1,0 +1,25 @@
+# Subflow: finish "Get prepared" without downloads when the app opens on it (first start, or after
+# clearState on the debug build). The onboarding itself is tested by onboarding.yaml / onboarding-mirror.yaml.
+appId: ${APP_ID}
+name: Skip onboarding
+---
+- tapOn:
+    id: onboarding-next
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-storage
+    timeout: 10000
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-accept
+    timeout: 10000
+- tapOn:
+    id: onboarding-accept
+- extendedWaitUntil:
+    visible:
+      id: home-emergency
+    timeout: 30000

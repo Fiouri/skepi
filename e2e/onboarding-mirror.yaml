@@ -1,0 +1,76 @@
+# "Get prepared" with downloads from the local HTTPS test mirror (debug build org.skepi.app.dev, test
+# catalog; run by run-download-e2e.ps1 before download.yaml). Fresh install: the app opens on onboarding,
+# the 2 GB preset maps to the test packs, they download through ContentStore, and the readiness
+# indicator reflects what was installed.
+appId: ${APP_ID}
+name: SKEPI onboarding with downloads (local test mirror)
+---
+- runScript:
+    file: mirror-mode.js
+    env:
+      MODE: good
+- launchApp:
+    clearState: true
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: onboarding-language
+    timeout: 60000
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-device
+    timeout: 10000
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-storage
+    timeout: 10000
+- tapOn:
+    id: budget-2
+- extendedWaitUntil:
+    visible:
+      id: onboarding-plan
+    timeout: 60000
+- assertVisible: "Test catalog \\(debug build\\).*"
+- assertVisible:
+    id: plan-test-smoke-en
+- takeScreenshot: e2e/out/onbdl-01-plan
+- tapOn:
+    id: onboarding-download
+- extendedWaitUntil:
+    visible:
+      id: plan-state-test-smoke-en
+      text: "installed"
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: plan-state-test-mirror-fallback
+      text: "installed"
+    timeout: 180000
+- scrollUntilVisible:
+    element:
+      id: readiness-encyclopedia-yes
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: e2e/out/onbdl-02-installed
+- scrollUntilVisible:
+    element:
+      id: onboarding-next
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: onboarding-next
+- tapOn:
+    id: onboarding-accept
+- extendedWaitUntil:
+    visible:
+      id: home-emergency
+    timeout: 30000
+- assertVisible:
+    id: readiness-encyclopedia-yes
+- assertVisible:
+    id: readiness-cards-yes
+- takeScreenshot: e2e/out/onbdl-03-home

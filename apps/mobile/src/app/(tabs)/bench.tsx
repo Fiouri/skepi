@@ -2,7 +2,7 @@ import type { InferenceBackend, RagSource } from '@skepi/core';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
-import { Button, ContentGate, styles } from '../../components/ui';
+import { Button, ContentGate, useStyles } from '../../components/ui';
 import { runBench, type BenchReport } from '../../lib/bench';
 import { runParity } from '../../lib/parity';
 import { useActiveProfile, useContent } from '../../lib/content';
@@ -11,6 +11,7 @@ import { useMessages } from '../../lib/i18n';
 const BACKENDS: readonly InferenceBackend[] = ['cpu', 'opencl', 'hexagon'];
 
 export default function BenchScreen() {
+  const styles = useStyles();
   useKeepAwake();
   const t = useMessages();
   const simulateT1 = useContent((s) => s.simulateT1);

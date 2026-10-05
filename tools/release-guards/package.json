@@ -1,0 +1,21 @@
+{
+  "name": "@skepi/release-guards",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "description": "CI guards on the Android release build: permission allowlist (aapt2) and release JS bundle rebuild probe",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run",
+    "permissions": "tsx src/permissions-cli.ts",
+    "bundle-probe": "tsx src/bundle-probe-cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.3"
+  }
+}

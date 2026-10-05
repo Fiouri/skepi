@@ -8,6 +8,7 @@ onFlowComplete:
 - setAirplaneMode: enabled
 - launchApp:
     stopApp: true
+- runFlow: app-ready.yaml
 - extendedWaitUntil:
     visible:
       id: tab-bench

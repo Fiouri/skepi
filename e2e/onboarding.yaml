@@ -1,0 +1,113 @@
+# "Get prepared" offline (release build, airplane mode, packs already installed): language switch,
+# country, tier and free-space detection, storage preset mapped to the installed packs, disclaimer,
+# then the "You are ready" indicator on the home screen. Started from Library -> "Get prepared" again.
+appId: ${APP_ID}
+name: SKEPI onboarding (offline, packs installed)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-library
+- scrollUntilVisible:
+    element:
+      id: library-onboarding
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: library-onboarding
+- extendedWaitUntil:
+    visible:
+      id: onboarding-language
+    timeout: 10000
+- assertVisible: "Step 1 of 4"
+# Language switches live; "Phone language" goes back to the device language (English here).
+- tapOn:
+    id: lang-el
+- assertVisible: "Γλώσσα και χώρα"
+- assertVisible: "Βήμα 1 από 4"
+- tapOn:
+    id: lang-system
+- assertVisible: "Language and country"
+- scrollUntilVisible:
+    element:
+      id: country-GR
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: country-GR
+- takeScreenshot: e2e/out/onb-01-language
+- scrollUntilVisible:
+    element:
+      id: onboarding-next
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-tier-T2
+    timeout: 10000
+- assertVisible:
+    id: onboarding-free-space
+    text: "Free space: .*"
+- takeScreenshot: e2e/out/onb-02-device
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-storage
+    timeout: 10000
+- tapOn:
+    id: budget-2
+- extendedWaitUntil:
+    visible:
+      id: onboarding-plan
+    timeout: 30000
+- assertVisible:
+    id: plan-state-wikipedia_en_top_mini
+    text: "installed"
+- assertVisible:
+    id: plan-state-wikipedia_en_medicine_mini
+    text: "installed"
+- takeScreenshot: e2e/out/onb-03-storage
+- scrollUntilVisible:
+    element:
+      id: readiness
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: readiness-cards-yes
+- assertVisible:
+    id: readiness-encyclopedia-yes
+- scrollUntilVisible:
+    element:
+      id: onboarding-next
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-disclaimer
+    timeout: 10000
+- assertVisible: ".*not medical advice.*"
+- assertVisible: ".*no warranty.*"
+- takeScreenshot: e2e/out/onb-04-disclaimer
+- tapOn:
+    id: onboarding-accept
+- extendedWaitUntil:
+    visible:
+      id: home-emergency
+    timeout: 30000
+- assertVisible:
+    id: readiness-ready
+    text: "You are ready"
+- assertVisible:
+    id: readiness-map-yes
+- assertVisible:
+    id: readiness-ai-yes
+- takeScreenshot: e2e/out/onb-05-ready

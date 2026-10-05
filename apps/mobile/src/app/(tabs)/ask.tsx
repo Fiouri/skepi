@@ -1,5 +1,4 @@
 import {
-  EMERGENCY_NUMBERS_GR,
   retrieve,
   summarise,
   type EmergencyMatch,
@@ -11,11 +10,15 @@ import {
 } from '@skepi/core';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { EmergencyCardSlot } from '../../components/EmergencyCards';
-import { Button, ContentGate, styles, UnverifiedLabel } from '../../components/ui';
-import { ensureModel, knowledge, llama, ragArchives, ragConfigFor, useActiveProfile } from '../../lib/content';
+import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { cardsForQuestion } from '@skepi/emergency-cards';
+import { EmergencyCardSlot, useEmergencyNumbers } from '../../components/EmergencyCards';
+import { Button, ContentGate, UnverifiedLabel, useStyles } from '../../components/ui';
+import { energyTier, ensureModel, knowledge, llama, ragArchives, ragConfigFor, useActiveProfile } from '../../lib/content';
+import { measureEnergy, useEnergyCost } from '../../lib/energy';
 import { useMessages } from '../../lib/i18n';
+import { usePrefs } from '../../lib/prefs';
+import { useTheme } from '../../lib/theme';
 
 type Phase = 'idle' | 'loading-model' | 'retrieving' | 'generating' | 'done' | 'error';
 
@@ -30,9 +33,16 @@ const NO_METRICS: Metrics = { sourcesVisibleMs: null, loadMs: null, prewarmMs: n
 export default function AskScreen() {
   const router = useRouter();
   const t = useMessages();
+  const styles = useStyles();
+  const theme = useTheme();
   const active = useActiveProfile();
   const { profile, model } = active;
+  const blackout = usePrefs((s) => s.blackout);
+  const numbers = useEmergencyNumbers();
+  const aiCost = useEnergyCost('ai-summary', energyTier(profile));
   const [question, setQuestion] = useState('');
+  /** The question as asked (the cards follow it, not the text being edited). */
+  const [asked, setAsked] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [emergency, setEmergency] = useState<EmergencyMatch | null>(null);
   const [medical, setMedical] = useState<MedicalIntent | null>(null);
@@ -62,6 +72,7 @@ export default function AskScreen() {
   }, [sources]);
 
   const reset = (): void => {
+    setAsked('');
     setEmergency(null);
     setMedical(null);
     setSources([]);
@@ -84,13 +95,15 @@ export default function AskScreen() {
     setMetrics((m) => ({ ...m, loadMs: ready.loaded.loadMs, prewarmMs: ready.prewarmMs }));
     if (abort.signal.aborted) return;
     setPhase('generating');
-    const s = await summarise(r, llama, {
-      signal: abort.signal,
-      config: ragConfigFor(profile),
-      onEvent: (e) => {
-        if (e.type === 'sentence') setStreamed((list) => [...list, { text: e.text, source: e.source }]);
-      },
-    });
+    const s = await measureEnergy('ai-summary', energyTier(profile), () =>
+      summarise(r, llama, {
+        signal: abort.signal,
+        config: ragConfigFor(profile),
+        onEvent: (e) => {
+          if (e.type === 'sentence') setStreamed((list) => [...list, { text: e.text, source: e.source }]);
+        },
+      }),
+    );
     setSummary(s);
   };
 
@@ -111,6 +124,7 @@ export default function AskScreen() {
   const ask = (): void => {
     if (busy || question.trim().length === 0) return;
     reset();
+    setAsked(question);
     tappedAt.current = performance.now();
     setPhase('retrieving');
     void withController(async (abort) => {
@@ -125,8 +139,9 @@ export default function AskScreen() {
         },
       });
       setRetrieved(r);
-      // T2+: the AI summary follows Layer 1 automatically, except on medical intent (tap only).
-      if (r.status === 'ready' && model && profile.summaryMode === 'auto' && !r.medical) await runSummary(r, abort);
+      // T2+: the AI summary follows Layer 1 automatically, except on medical intent and in blackout
+      // mode (tap only, with the measured cost).
+      if (r.status === 'ready' && model && profile.summaryMode === 'auto' && !r.medical && !blackout) await runSummary(r, abort);
     });
   };
 
@@ -152,7 +167,8 @@ export default function AskScreen() {
   const shownSentences = summary?.status === 'shown' ? (summary.validation?.kept ?? []) : streamed;
   const unverified = (summary?.label ?? (medical ? 'unverified-ai-summary' : 'ai-summary')) === 'unverified-ai-summary';
   const canSummarise = retrieval?.status === 'ready' && model !== null && summary === null && !busy;
-  const emergencyNumber = emergency?.numbers.general ?? EMERGENCY_NUMBERS_GR.general;
+  const hasCards = asked.length > 0 && cardsForQuestion(asked, emergency?.topics ?? []).length > 0;
+  const onDemand = profile.summaryMode === 'on-demand' || medical !== null || blackout;
 
   return (
     <ContentGate>
@@ -164,6 +180,8 @@ export default function AskScreen() {
           value={question}
           onChangeText={setQuestion}
           placeholder={t.ask.placeholder}
+          placeholderTextColor={theme.muted}
+          accessibilityLabel={t.ask.placeholder}
           multiline
         />
         <View style={styles.row}>
@@ -200,19 +218,27 @@ export default function AskScreen() {
           </Text>
         )}
 
+        {/* Card + number first, before anything else (architecture: "User safety"). */}
         {emergency && (
-          <View style={styles.banner} testID="emergency-banner">
-            <Text style={styles.bannerText}>{t.ask.emergencyCall(emergency.numbers.general)}</Text>
-            <Text style={styles.text}>{t.ask.emergencyServices(emergency.numbers)}</Text>
-            <Text style={styles.muted}>{t.ask.emergencyTopics(emergency.topics.join(', '))}</Text>
+          <View style={styles.banner} testID="emergency-banner" accessibilityRole="alert">
+            <Text style={styles.bannerText}>{t.ask.emergencyCall(numbers.general)}</Text>
+            <Button testID="ask-call" tone="danger" label={t.emergency.call(numbers.general)} onPress={() => void Linking.openURL(`tel:${numbers.general}`).catch(() => undefined)} />
+            <Text style={styles.bannerBody}>{t.ask.emergencyTopics(emergency.topics.join(', '))}</Text>
+            {!numbers.known && <Text style={styles.bannerBody}>{t.emergency.defaultNumber}</Text>}
           </View>
         )}
-        {medical && !emergency && (
-          <View style={styles.banner} testID="medical-notice">
-            <Text style={styles.bannerText}>{t.ask.medicalNotice(emergencyNumber)}</Text>
+        {!emergency && (medical || hasCards) && (
+          <View style={styles.banner} testID="medical-notice" accessibilityRole="alert">
+            <Text style={styles.bannerText}>{t.ask.medicalNotice(numbers.general)}</Text>
+            <Button testID="ask-call" tone="danger" label={t.emergency.call(numbers.general)} onPress={() => void Linking.openURL(`tel:${numbers.general}`).catch(() => undefined)} />
           </View>
         )}
-        {emergency && <EmergencyCardSlot topics={emergency.topics} />}
+        {asked.length > 0 && <EmergencyCardSlot question={asked} topics={emergency?.topics ?? []} />}
+        {blackout && retrieval?.status === 'ready' && model && (
+          <Text style={styles.muted} testID="ask-blackout-ai-off">
+            {t.blackout.aiOff}
+          </Text>
+        )}
 
         {retrieval?.status === 'no_source' && (
           <View style={styles.banner}>
@@ -261,6 +287,7 @@ export default function AskScreen() {
                   {s.text}
                 </Text>
                 <Pressable
+                  accessibilityRole="link"
                   testID={`citation-${s.source}`}
                   style={styles.chip}
                   onPress={() => {
@@ -279,8 +306,8 @@ export default function AskScreen() {
           </Text>
         )}
 
-        {canSummarise && (profile.summaryMode === 'on-demand' || medical !== null) && (
-          <Button testID="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} onPress={summariseOnDemand} />
+        {canSummarise && onDemand && (
+          <Button testID="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} cost={aiCost} onPress={summariseOnDemand} />
         )}
 
         {retrieval && (
@@ -319,13 +346,14 @@ export default function AskScreen() {
  */
 function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; index: number; onOpen: () => void; label: string }) {
   const t = useMessages();
+  const styles = useStyles();
   const [expanded, setExpanded] = useState(false);
   const highlighted = passage.sentences.flatMap((s, i) => (s.highlighted ? [i] : []));
   const shown = expanded || highlighted.length === 0 ? passage.sentences.map((_, i) => i) : highlighted;
   const canExpand = shown.length < passage.sentences.length || expanded;
   return (
     <View style={styles.passage} testID={`layer1-passage-${index}`}>
-      <Pressable testID={`layer1-source-${passage.sourceId}`} style={styles.chip} onPress={onOpen}>
+      <Pressable accessibilityRole="link" testID={`layer1-source-${passage.sourceId}`} style={styles.chip} onPress={onOpen}>
         <Text style={styles.chipText}>{label}</Text>
       </Pressable>
       <UnverifiedLabel archiveId={passage.archiveId} />

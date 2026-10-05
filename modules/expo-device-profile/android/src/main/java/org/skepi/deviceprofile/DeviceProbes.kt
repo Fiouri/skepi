@@ -101,6 +101,29 @@ internal object DeviceProbes {
     )
   }
 
+  /**
+   * Battery state for energy measurements (blackout mode): the level as a fraction, and the charge
+   * counter in µAh where the device reports one (much finer than the 1% level steps).
+   */
+  fun battery(context: Context): Map<String, Any?> {
+    val battery = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+    val level = battery?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+    val scale = battery?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+    val status = battery?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+    val plugged = (battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0
+    val manager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+    val counter = manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
+    val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    return mapOf(
+      "levelPct" to if (level >= 0 && scale > 0) level * 100.0 / scale else null,
+      // Integer.MIN_VALUE or 0: the device does not report it.
+      "chargeCounterUah" to if (counter > 0) counter.toDouble() else null,
+      "charging" to (plugged || status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL),
+      "powerSave" to pm.isPowerSaveMode,
+      "timestampMs" to System.currentTimeMillis().toDouble(),
+    )
+  }
+
   private fun thermal(context: Context): String {
     if (Build.VERSION.SDK_INT < 29) return "nominal"
     val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager

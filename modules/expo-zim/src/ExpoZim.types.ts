@@ -90,6 +90,8 @@ export interface BlockedEventPayload extends UrlEventPayload {
 export interface ZimArticleViewProps {
   /** `zim://<archiveId>/<path>`; anything else is refused and reported. */
   url: string;
+  /** Blackout theme: pure-black article CSS (the CSP is unchanged). */
+  dark?: boolean;
   onLoadStart?: (event: { nativeEvent: UrlEventPayload }) => void;
   onLoadEnd?: (event: { nativeEvent: LoadEndPayload }) => void;
   onBlockedRequest?: (event: { nativeEvent: BlockedEventPayload }) => void;

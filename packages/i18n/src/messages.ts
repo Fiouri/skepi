@@ -11,8 +11,125 @@ export interface Messages {
     search: string;
     ask: string;
     map: string;
+    tools: string;
     library: string;
     bench: string;
+  };
+  home: {
+    emergency: string;
+    emergencyHint: string;
+  };
+  /** "You are ready" indicator on the home screen. */
+  readiness: {
+    ready: string;
+    notReady: string;
+    cards: string;
+    cardsDraft: string;
+    map: string;
+    encyclopedia: string;
+    ai: string;
+    aiUnsupported: string;
+    yes: string;
+    no: string;
+    prepare: string;
+  };
+  emergency: {
+    title: string;
+    call: (number: string) => string;
+    general: string;
+    services: Record<'ambulance' | 'fire' | 'police' | 'coastGuard' | 'poison', string>;
+    defaultNumber: string;
+    noGuarantee: string;
+    country: (name: string) => string;
+    cards: string;
+  };
+  cards: {
+    draftBanner: string;
+    steps: string;
+    whenToCall: string;
+    sources: string;
+    source: (p: { title: string; locator: string }) => string;
+    readAloud: string;
+    stopReading: string;
+    open: string;
+    step: (n: number) => string;
+  };
+  blackout: {
+    title: string;
+    on: string;
+    off: string;
+    hint: string;
+    suggestion: (percent: number) => string;
+    turnOn: string;
+    tipsTitle: string;
+    tips: string[];
+    aiOff: string;
+  };
+  energy: {
+    cost: (estimate: string) => string;
+  };
+  tools: {
+    sosTitle: string;
+    torchStart: string;
+    torchStop: string;
+    torchUnavailable: string;
+    torchError: (message: string) => string;
+    sosHint: string;
+    screenWhite: string;
+    screenRed: string;
+    screenExit: string;
+    locationTitle: string;
+    locate: string;
+    locating: (p: { visible: number; used: number }) => string;
+    cancel: string;
+    decimal: string;
+    dms: string;
+    accuracy: (metres: string) => string;
+    age: (seconds: string) => string;
+    sendSms: string;
+    smsBody: (p: { decimal: string; dms: string; accuracy: string; link: string }) => string;
+    smsUnavailable: string;
+    permissionDenied: string;
+    gpsOff: string;
+    openSettings: string;
+    timeout: string;
+    compassTitle: string;
+    compassStart: string;
+    compassStop: string;
+    heading: (p: { degrees: string; point: string }) => string;
+    compassUnavailable: string;
+    compassCalibrate: string;
+    trueNorth: (declination: string) => string;
+    points: Record<'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW', string>;
+  };
+  onboarding: {
+    title: string;
+    stepOf: (p: { step: number; total: number }) => string;
+    languageTitle: string;
+    language: string;
+    languageSystem: string;
+    country: string;
+    countryHint: string;
+    deviceTitle: string;
+    tier: Record<'T0' | 'T1' | 'T2' | 'T3', string>;
+    freeSpace: (size: string) => string;
+    ram: (size: string) => string;
+    budgetTitle: string;
+    budgetOption: (gb: number) => string;
+    planSummary: (p: { packs: number; size: string; download: string }) => string;
+    installed: string;
+    tooLarge: string;
+    testCatalog: string;
+    download: string;
+    downloading: string;
+    downloadsDone: string;
+    skip: string;
+    next: string;
+    back: string;
+    disclaimerTitle: string;
+    disclaimerBody: string[];
+    accept: string;
+    restart: string;
   };
   content: {
     opening: string;
@@ -85,9 +202,9 @@ export interface Messages {
     /** Model load progress, 0–100. */
     loadingModel: (percent: number) => string;
     emergencyCall: (number: string) => string;
-    emergencyServices: (n: { ambulance: string; fire: string; police: string }) => string;
+    emergencyServices: (services: string) => string;
     emergencyTopics: (topics: string) => string;
-    /** Shown first on medical intent, before Layer 1 (emergency cards join it in Phase 1d). */
+    /** Shown first on medical intent, before Layer 1 (with the matching emergency cards). */
     medicalNotice: (number: string) => string;
     noSource: string;
     noSourceDetail: (p: { reason: string; coverage: string }) => string;

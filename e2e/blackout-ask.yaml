@@ -1,0 +1,37 @@
+# Subflow: one Ask in blackout mode: Layer 1 shown, no automatic AI summary, then the summary on tap.
+appId: ${APP_ID}
+name: Blackout ask
+---
+- tapOn:
+    id: ask-clear
+- tapOn:
+    id: ask-input
+- inputText: ${QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: layer1-passage-0
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 30000
+- assertNotVisible:
+    id: ai-summary
+- assertVisible:
+    id: ask-blackout-ai-off
+- scrollUntilVisible:
+    element:
+      id: ask-summarise
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: ask-summarise
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 180000

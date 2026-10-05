@@ -1,0 +1,114 @@
+# Blackout mode (release build, airplane mode). run-e2e.ps1 simulates a discharging battery at 25%
+# (dumpsys battery unplug / set status / set level) so the app suggests blackout mode and records
+# energy samples, and resets the battery afterwards.
+# Checks: suggestion below 30%, one-tap toggle, power tips, AI off by default with Layer 1 kept, the
+# AI summary on request, the measured battery cost on the button once three summaries were measured,
+# dark article, GPS and compass only on tap.
+appId: ${APP_ID}
+name: SKEPI blackout mode (offline)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- extendedWaitUntil:
+    visible:
+      id: blackout-suggestion
+    timeout: 15000
+- assertVisible: "Battery at 25% and not charging.*"
+- tapOn:
+    id: blackout-suggestion-accept
+- extendedWaitUntil:
+    visible:
+      id: blackout-on
+    timeout: 5000
+- assertVisible:
+    id: power-tips
+- assertNotVisible:
+    id: blackout-suggestion
+- takeScreenshot: e2e/out/blackout-01-home
+# Ask: Layer 1 only, AI on request (three measured summaries)
+- tapOn:
+    id: tab-ask
+- runFlow:
+    file: blackout-ask.yaml
+    env:
+      QUESTION: What is the capital of Australia?
+- takeScreenshot: e2e/out/blackout-02-ask
+- runFlow:
+    file: blackout-ask.yaml
+    env:
+      QUESTION: Who was Julius Caesar?
+- runFlow:
+    file: blackout-ask.yaml
+    env:
+      QUESTION: What is DNA?
+- tapOn:
+    id: ask-clear
+- tapOn:
+    id: ask-input
+- inputText: What is the speed of light?
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: ask-summarise-cost
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: ask-summarise-cost
+    text: ".*battery"
+- takeScreenshot: e2e/out/blackout-03-cost
+- tapOn:
+    id: ask-clear
+# Dark article
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- inputText: Water purification
+- hideKeyboard
+- tapOn:
+    id: search-fulltext
+- extendedWaitUntil:
+    visible:
+      id: search-result-0
+    timeout: 10000
+- tapOn:
+    id: search-result-0
+- extendedWaitUntil:
+    visible:
+      id: article-open-ms
+      text: "Opened in .*"
+    timeout: 15000
+- takeScreenshot: e2e/out/blackout-04-article
+- back
+# Tools: power tips, GPS and compass idle until tapped
+- tapOn:
+    id: tab-tools
+- assertVisible:
+    id: power-tips
+- assertVisible:
+    id: location-locate
+- assertNotVisible:
+    id: location-locating
+- assertVisible:
+    id: compass-start
+- takeScreenshot: e2e/out/blackout-05-tools
+# Back to normal
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: blackout-toggle
+- extendedWaitUntil:
+    visible:
+      id: blackout-off
+    timeout: 5000

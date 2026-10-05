@@ -14,6 +14,7 @@ onFlowComplete:
 - setAirplaneMode: enabled
 - launchApp:
     stopApp: true
+- runFlow: app-ready.yaml
 
 # 1. Search: suggestions while typing, full-text on submit
 - extendedWaitUntil:

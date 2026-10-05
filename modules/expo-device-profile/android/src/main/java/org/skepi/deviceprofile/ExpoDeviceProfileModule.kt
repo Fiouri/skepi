@@ -19,5 +19,7 @@ class ExpoDeviceProfileModule : Module() {
     AsyncFunction("getCpuInfo") { DeviceProbes.cpu() }
 
     AsyncFunction("getDeviceInfo") { DeviceProbes.device() }
+
+    AsyncFunction("getBattery") { DeviceProbes.battery(context) }
   }
 }

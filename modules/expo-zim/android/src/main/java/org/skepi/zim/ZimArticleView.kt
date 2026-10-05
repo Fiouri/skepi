@@ -48,6 +48,10 @@ class ZimArticleView(context: Context, appContext: AppContext) : ExpoView(contex
     webView.loadZim(url)
   }
 
+  fun setDark(dark: Boolean) {
+    webView.dark = dark
+  }
+
   fun destroy() {
     webView.stopLoading()
     webView.destroy()

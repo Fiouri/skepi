@@ -89,6 +89,7 @@ export {
   type SanitizeReport,
   type StructuralReason,
 } from './sanitize';
+export { compassPoint, formatDecimal, formatDms, osmLink } from './geo';
 export { morseTimeline, SOS_TIMELINE, SOS_UNIT_MS } from './morse';
 export {
   planPreset,

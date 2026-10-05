@@ -261,6 +261,10 @@ class ExpoZimModule : Module() {
         view.setUrl(url)
       }
 
+      Prop("dark") { view: ZimArticleView, dark: Boolean? ->
+        view.setDark(dark ?: false)
+      }
+
       OnViewDestroys { view: ZimArticleView ->
         view.destroy()
       }

@@ -3,7 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import baseStyle from '../../../assets/map/style.json';
-import { styles } from '../../components/ui';
+import { useStyles } from '../../components/ui';
 import { llama, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
 
@@ -19,6 +19,7 @@ function offlineStyle(pmtilesPath: string): StyleSpecification {
 }
 
 export default function MapScreen() {
+  const styles = useStyles();
   const t = useMessages();
   const pmtilesPath = useContent((s) => s.pmtilesPath);
   const status = useContent((s) => s.status);

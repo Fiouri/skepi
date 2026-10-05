@@ -1,6 +1,7 @@
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
+  batteryDeltaPct,
   ENERGY_SAMPLES_KEPT,
   estimateEnergy,
   formatEnergy,
@@ -194,5 +195,24 @@ describe('energy samples', () => {
     expect(await getSetting(db, 'blackout.enabled')).toBe(true);
     await expect(setSetting(db, 'region.country', 'greece')).rejects.toThrow();
     await expect(setSetting(db, 'storage.budgetGb', -2)).rejects.toThrow();
+  });
+});
+
+describe('batteryDeltaPct', () => {
+  const r = (levelPct: number | null, chargeCounterUah: number | null, charging = false) => ({ levelPct, chargeCounterUah, charging });
+
+  it('uses the charge counter when both readings have it', () => {
+    // 4,000,000 µAh at 80% → full 5,000,000 µAh; 50,000 µAh used = 1%.
+    expect(batteryDeltaPct(r(80, 4_000_000), r(80, 3_950_000))).toBeCloseTo(1, 6);
+  });
+
+  it('falls back to the level steps, and never goes negative', () => {
+    expect(batteryDeltaPct(r(55, null), r(54, null))).toBe(1);
+    expect(batteryDeltaPct(r(55, 100), r(56, 200))).toBe(0);
+  });
+
+  it('measures nothing while charging or without readings', () => {
+    expect(batteryDeltaPct(r(50, 1000, true), r(49, 900))).toBeNull();
+    expect(batteryDeltaPct(r(null, null), r(40, null))).toBeNull();
   });
 });

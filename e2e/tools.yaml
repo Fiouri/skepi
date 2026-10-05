@@ -1,0 +1,83 @@
+# Tools (release build, airplane mode): SOS torch, red screen SOS, compass, GNSS fix (location
+# permission granted by run-e2e.ps1; the first fix without A-GPS can take minutes) and the SMS hand-off,
+# which only opens the SMS app with the text filled in (nothing is sent).
+appId: ${APP_ID}
+name: SKEPI tools (offline)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-tools
+- extendedWaitUntil:
+    visible:
+      id: tools-screen
+    timeout: 10000
+- tapOn:
+    id: sos-torch-start
+- extendedWaitUntil:
+    visible:
+      id: sos-torch-running
+    timeout: 5000
+- takeScreenshot: e2e/out/tools-01-torch
+- tapOn:
+    id: sos-torch-stop
+- assertVisible:
+    id: sos-torch-start
+- tapOn:
+    id: sos-screen-red
+- extendedWaitUntil:
+    visible:
+      id: sos-screen
+    timeout: 5000
+- takeScreenshot: e2e/out/tools-02-red-screen
+- tapOn:
+    id: sos-screen
+- extendedWaitUntil:
+    visible:
+      id: tools-screen
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: compass-start
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: compass-start
+- extendedWaitUntil:
+    visible:
+      id: compass-heading
+    timeout: 10000
+- takeScreenshot: e2e/out/tools-03-compass
+- tapOn:
+    id: compass-stop
+- scrollUntilVisible:
+    element:
+      id: location-locate
+    direction: UP
+    timeout: 10000
+- tapOn:
+    id: location-locate
+- extendedWaitUntil:
+    visible:
+      id: location-fix
+    timeout: 300000
+- assertVisible:
+    id: location-decimal
+- takeScreenshot: e2e/out/tools-04-fix
+- scrollUntilVisible:
+    element:
+      id: location-sms
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: location-sms
+- extendedWaitUntil:
+    visible: ".*My location: .*openstreetmap.*"
+    timeout: 15000
+- takeScreenshot: e2e/out/tools-05-sms
+- back
+- back

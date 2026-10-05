@@ -11,6 +11,7 @@ onFlowComplete:
 - setAirplaneMode: enabled
 - launchApp:
     stopApp: true
+- runFlow: app-ready.yaml
 - extendedWaitUntil:
     visible:
       id: search-input
@@ -35,3 +36,35 @@ onFlowComplete:
     timeout: 15000
 - assertVisible: "Από τις πηγές"
 - takeScreenshot: e2e/out/el-02-layer1
+# Greek tools tab and emergency card
+- tapOn:
+    id: tab-tools
+- extendedWaitUntil:
+    visible: "Φως SOS"
+    timeout: 10000
+- assertVisible: "Η θέση μου"
+- takeScreenshot: e2e/out/el-03-tools
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: home-emergency
+- extendedWaitUntil:
+    visible: "Κλήση 112"
+    timeout: 10000
+- assertVisible: "ΕΚΑΒ / ασθενοφόρο: 166"
+- scrollUntilVisible:
+    element:
+      id: card-link-cpr
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: card-link-cpr
+- extendedWaitUntil:
+    visible:
+      id: card-draft-banner
+    timeout: 10000
+- assertVisible: "Πρόχειρο — δεν έχει ελεγχθεί από επαγγελματίες πρώτων βοηθειών"
+- assertVisible: "ΚΑΡΠΑ: δεν αντιδρά και δεν αναπνέει \(ενήλικας\)"
+- takeScreenshot: e2e/out/el-04-card
+- back
+- back
