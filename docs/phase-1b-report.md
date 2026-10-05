@@ -168,5 +168,5 @@ rag-eval 8.
    sequentially, including the 700k-entry English pack. T1 target 50 ms; T1-simulation measured 35 ms.
 7. **Cold model load 13.4 s** on the first load after provisioning (Phase 0 saw the same with a cold page cache);
    warm loads 1.3–3.5 s.
-8. **CI smoke** runs a 0.5B model: few summaries, see above. First CI run happens on push.
+8. **CI smoke** runs a 0.5B model: few summaries, see above. GitHub Actions run 37255144892: `verify` and `rag-eval-smoke` green (all four thresholds pass); the first run failed because the root `*.zim` ignore rule had kept the fixture ZIMs out of the repository (fixed).
 9. Emergency numbers remain the Greek set (112 general) until country selection in Phase 1d onboarding.
