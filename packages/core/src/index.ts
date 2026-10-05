@@ -57,6 +57,7 @@ export {
   type SummaryResult,
   type SummaryStatus,
 } from './rag';
+export { isInjection, sanitizeSourceText } from './sanitize';
 export { percentile, summarize, type LatencySummary } from './stats';
 export {
   ANSWER_MAX_SENTENCES,

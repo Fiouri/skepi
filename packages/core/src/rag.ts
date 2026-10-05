@@ -7,6 +7,7 @@ import { buildLayer1, type Layer1Answer } from './extractive';
 import { reciprocalRankFusion } from './fusion';
 import { detectMedicalIntent, type MedicalIntent } from './medical';
 import { buildPrompt, PROMPT_VERSION, SYSTEM_PROMPT, type PromptSource } from './prompt';
+import { sanitizeSourceText } from './sanitize';
 import {
   ANSWER_MAX_TOKENS,
   answerJsonSchema,
@@ -17,7 +18,7 @@ import {
 } from './structured';
 import { contentTerms, detectLanguage, extractKeywords, toQueryTerm, type Lang } from './text';
 import { makeTokenEstimator, tokenizerProfile } from './tokens';
-import { checkSentence, MIN_BIGRAM_SUPPORT } from './validate';
+import { checkSentence, findNumbers, MIN_BIGRAM_SUPPORT } from './validate';
 
 export interface RagConfig {
   /** Articles kept after fusion (spec: top 8). */
@@ -27,9 +28,9 @@ export interface RagConfig {
   /** Title-suggestion queries per question (all keywords + adjacent pairs) and hits kept from each. */
   maxSuggestions: number;
   suggestTopK: number;
-  /** No-source threshold: the best chunk must contain this fraction of the query terms… */
+  /** No-source threshold, applied to every passage: it must contain this fraction of the query terms… */
   minCoverage: number;
-  /** …and reach at least this BM25 score. */
+  /** …and reach at least this score (BM25 + title bonus). */
   minScore: number;
   /** Tier whose character budget applies (T1 in T1-simulation mode). */
   tier: BudgetTier;
@@ -170,9 +171,23 @@ async function search(
   return reciprocalRankFusion(lists).slice(0, cfg.fulltextTopK);
 }
 
+/**
+ * Plain text of the hits, one entry per article: a redirect and its target resolve to the same
+ * article ("Australia Capital Territory" → "Australian Capital Territory") and would otherwise fill
+ * the budget with the same chunks twice.
+ */
 async function extract(knowledge: KnowledgeEngine, hits: readonly SearchHit[]): Promise<ArticleText[]> {
   const settled = await Promise.allSettled(hits.map((h) => knowledge.getPlainText(h.archiveId, h.path)));
-  return settled.flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []));
+  const seen = new Set<string>();
+  return settled.flatMap((s) => {
+    if (s.status !== 'fulfilled') return [];
+    const key = `${s.value.archiveId}
+${s.value.path}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    const sections = s.value.sections.map((sec) => ({ ...sec, text: sanitizeSourceText(sec.text) }));
+    return [{ ...s.value, sections }];
+  });
 }
 
 /** Weight of the title match in the chunk score (BM25 is ~0–10 over a small candidate set). */
@@ -216,6 +231,18 @@ export function toSources(selected: readonly ScoredChunk[]): RagSource[] {
     score: s.score,
     tokens: s.chunk.tokens,
   }));
+}
+
+/**
+ * A passage can answer the question only if it covers enough of its terms and contains every number
+ * the question names ("Who won the 2034 World Cup?" is not answered by a passage about 2022).
+ */
+function isEligible(r: ScoredChunk, question: string, cfg: RagConfig): boolean {
+  if (r.coverage < cfg.minCoverage || r.score < cfg.minScore) return false;
+  const numbers = findNumbers(question);
+  if (numbers.length === 0) return true;
+  const available = new Set(findNumbers(`${r.chunk.articleTitle} ${r.chunk.heading} ${r.chunk.text}`));
+  return numbers.every((n) => available.has(n));
 }
 
 /** Prompt tokens that are not source text: system prompt, chat template, instruction, question, answer. */
@@ -287,9 +314,21 @@ export async function retrieve(question: string, knowledge: KnowledgeEngine, opt
 
   const top = ranked[0];
   const best = top ? { score: top.score, coverage: top.coverage } : null;
-  if (!top || top.coverage < cfg.minCoverage || top.score < cfg.minScore) {
+  // Every passage must pass the same bar as the best one: off-topic chunks that share one term
+  // ("Aristotle's four causes" for "What causes earthquakes?") otherwise fill the budget, show up in
+  // Layer 1 and get cited by the model (rag-eval, Phase 1b).
+  // The no-source gate looks at the best chunk only (as calibrated in Phase 0): a question whose
+  // best match is weak has no source, even if some lower-ranked chunk happens to cover its terms.
+  const eligible = ranked.filter((r) => isEligible(r, question, cfg));
+  if (!top || !isEligible(top, question, cfg)) {
     return noSource('below_threshold', { hits, best });
   }
+
+  // When the question names an article ("Who was Julius Caesar?"), answer from that article: other
+  // eligible articles that share a title word (Gaius Caesar) were the main source of wrong citations.
+  const queryStems = new Set(keywords.flatMap((k) => contentTerms(k)));
+  const focus = eligible.filter((r) => titleOverlap(r.chunk.articleTitle, queryStems) === 1);
+  const candidates = focus.length > 0 ? focus : eligible;
 
   const budget = resolveContextBudget({
     tier: cfg.tier,
@@ -298,7 +337,7 @@ export async function retrieve(question: string, knowledge: KnowledgeEngine, opt
     contextSize: cfg.contextSize,
     reservedTokens: reservedTokens(question, lang, cfg),
   });
-  const sources = toSources(selectWithinBudget(ranked, { budgetChars: budget.chars, maxSources: budget.maxSources }));
+  const sources = toSources(selectWithinBudget(candidates, { budgetChars: budget.chars, maxSources: budget.maxSources }));
   emit({ type: 'context', sources, ms: now() - started });
 
   const layer1 = buildLayer1(question, sources);

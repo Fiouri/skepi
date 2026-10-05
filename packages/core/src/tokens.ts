@@ -26,8 +26,10 @@ export interface TokenizerProfile {
 export const QWEN25_TOKENIZER: TokenizerProfile = {
   id: 'qwen2.5',
   match: /^qwen2\.5-/,
-  tokensPerChar: { en: 0.3, el: 1.0 },
-  measuredWith: 'Phase 0 device calibration (llama.rn tokenize, 10 Greek chunks: 0.95); English pending rag-eval',
+  tokensPerChar: { en: 0.25, el: 0.95 },
+  measuredWith:
+    'rag-eval 2026-10-05, node-llama-cpp tokenize over golden-set passages: en 0.239 (187k chars), el 0.849 (42k chars); ' +
+    'Phase 0 device (llama.rn tokenize, Greek chunks): el 0.95',
 };
 
 /** Used for unknown models: conservative (over-estimates) so a budget never overflows the context. */

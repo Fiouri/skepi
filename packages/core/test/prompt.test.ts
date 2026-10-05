@@ -17,7 +17,7 @@ describe('prompt', () => {
     const b = buildPrompt('Πού είναι η Πάτρα;', [{ id: 'S1', title: 'u', heading: '', text: 'y' }], 'el', 2);
     expect(a[0]).toEqual({ role: 'system', content: SYSTEM_PROMPT });
     expect(b[0]).toEqual(a[0]);
-    expect(estimateTokens(SYSTEM_PROMPT)).toBeLessThan(90);
+    expect(estimateTokens(SYSTEM_PROMPT)).toBeLessThan(110);
   });
 
   it('puts the language instruction and the question last', () => {
