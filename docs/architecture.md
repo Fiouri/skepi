@@ -14,7 +14,7 @@ An open-source, mobile-first app that provides Wikipedia, medical and survival k
 - The AI answers only from sources on the device and shows them in every answer.
 - Content is shared device-to-device without internet.
 - Zero telemetry; no connection without an explicit user action.
-- English-first product (UI default, content, docs). Greek is the first additional locale, shipped in v1.
+- English-only until v1 (UI, content, docs, evaluation). Greek is the first post-v1 locale: its existing strings and tests stay in the code but are frozen and outside the required gates.
 
 **Non-goals**
 
@@ -690,7 +690,7 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 
 | Topic | Decision |
 | --- | --- |
-| Product language | English-first (UI default, content, docs, code). Greek is the first additional locale, shipped in v1. |
+| Product language | English-only until v1 (UI, content, docs, code, required gates). Greek is frozen as the first post-v1 locale; the architecture stays locale-ready (i18n package, per-language budgets and lexicons). Emergency cards are English-only until reviewed. |
 | Platform order | Android → iOS → desktop (Windows, macOS). iOS needs a Mac for debugging the Swift module. |
 | Test devices | Galaxy S23 (T2) now; T1 targets pending; T1-simulation mode until a 4 GB device is available. |
 | Answer model | Two layers: Layer 1 extractive (instant), Layer 2 AI summary (automatic on T2+, on demand on T1). |
