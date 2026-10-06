@@ -11,3 +11,11 @@ name: App ready
       visible:
         id: onboarding
     file: skip-onboarding.yaml
+# Flows start in normal mode (blackout mode persists in app.db; blackout.yaml switches it on and off).
+- runFlow:
+    when:
+      visible:
+        id: blackout-on
+    commands:
+      - tapOn:
+          id: blackout-toggle

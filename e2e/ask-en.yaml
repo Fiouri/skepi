@@ -39,8 +39,8 @@ onFlowComplete:
     timeout: 10000
 - takeScreenshot: e2e/out/01-search
 
-# 2. Open the first result in the sealed zim:// viewer (matching emergency cards are listed above it)
-- hideKeyboard
+# 2. Open the first result in the sealed zim:// viewer (matching emergency cards are listed above it;
+# the app closes the keyboard on full-text search)
 - scrollUntilVisible:
     element:
       id: search-result-0
@@ -84,8 +84,11 @@ onFlowComplete:
     direction: DOWN
     timeout: 20000
 - assertVisible: "AI summary — check the source"
-- assertVisible:
-    id: "citation-S[0-9]+"
+- scrollUntilVisible:
+    element:
+      id: "citation-S[0-9]+"
+    direction: DOWN
+    timeout: 20000
 - assertNotVisible:
     id: summary-hidden
 - takeScreenshot: e2e/out/04-ai-summary

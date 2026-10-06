@@ -56,11 +56,12 @@ internal class Compass(context: Context, private val onHeading: (Double, Int) ->
   private var haveMagnet = false
   private var accuracy = SensorManager.SENSOR_STATUS_UNRELIABLE
   private var lastEmit = 0L
-  private var lastHeading = -1000.0
+  private var lastHeading = Double.NaN
 
   val available: Boolean get() = rotation != null || (accel != null && magnet != null)
 
   fun start() {
+    lastHeading = Double.NaN
     if (rotation != null) {
       manager.registerListener(this, rotation, SensorManager.SENSOR_DELAY_UI)
     } else {
@@ -106,9 +107,12 @@ internal class Compass(context: Context, private val onHeading: (Double, Int) ->
     SensorManager.getOrientation(matrix, orientation)
     val heading = (Math.toDegrees(orientation[0].toDouble()) + 360.0) % 360.0
     val now = System.currentTimeMillis()
-    val delta = Math.abs(((heading - lastHeading + 540.0) % 360.0) - 180.0)
-    // At most ~5 updates per second, and only on a visible change: the UI does no work otherwise.
-    if (now - lastEmit < 200 || delta < 1.0) return
+    // The first reading is always shown; then at most ~5 updates per second, and only on a visible
+    // change (the UI does no work otherwise).
+    if (!lastHeading.isNaN()) {
+      val delta = Math.abs(((heading - lastHeading + 540.0) % 360.0) - 180.0)
+      if (now - lastEmit < 200 || delta < 1.0) return
+    }
     lastEmit = now
     lastHeading = heading
     onHeading(heading, accuracy)

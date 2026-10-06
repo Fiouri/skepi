@@ -1,7 +1,8 @@
-# Tools (release build, airplane mode): SOS torch, red screen SOS, compass, GNSS fix (location
-# permission granted by run-e2e.ps1; the first fix without A-GPS can take minutes) and the SMS hand-off,
-# which only opens the SMS app with the text filled in (nothing is sent). -SimulateGnss feeds the gps
-# provider from a shell test provider when the phone has no sky view.
+# Tools (release build, airplane mode): GNSS fix (location permission granted by run-e2e.ps1; the first
+# fix without A-GPS can take minutes) and the SMS hand-off, which only opens the SMS app with the text
+# filled in (nothing is sent); then the SOS torch, red screen SOS and compass. -SimulateGnss feeds the gps
+# provider from a shell test provider when the phone has no sky view. The location steps come first:
+# on the S23, test-provider positions stopped arriving once the torch had been switched on.
 appId: ${APP_ID}
 name: SKEPI tools (offline)
 onFlowComplete:
@@ -17,58 +18,26 @@ onFlowComplete:
     visible:
       id: tools-screen
     timeout: 10000
-- tapOn:
-    id: sos-torch-start
-- extendedWaitUntil:
-    visible:
-      id: sos-torch-running
-    timeout: 5000
-- takeScreenshot: e2e/out/tools-01-torch
-- tapOn:
-    id: sos-torch-stop
-- assertVisible:
-    id: sos-torch-start
-- tapOn:
-    id: sos-screen-red
-- extendedWaitUntil:
-    visible:
-      id: sos-screen
-    timeout: 5000
-- takeScreenshot: e2e/out/tools-02-red-screen
-- tapOn:
-    id: sos-screen
-- extendedWaitUntil:
-    visible:
-      id: tools-screen
-    timeout: 5000
-- scrollUntilVisible:
-    element:
-      id: compass-start
-    direction: DOWN
-    timeout: 10000
-- tapOn:
-    id: compass-start
-- extendedWaitUntil:
-    visible:
-      id: compass-heading
-    timeout: 10000
-- takeScreenshot: e2e/out/tools-03-compass
-- tapOn:
-    id: compass-stop
+# Location: one fix on tap
 - scrollUntilVisible:
     element:
       id: location-locate
-    direction: UP
+    direction: DOWN
     timeout: 10000
 - tapOn:
     id: location-locate
 - extendedWaitUntil:
-    visible:
-      id: location-fix
+    notVisible:
+      id: location-locating
     timeout: 300000
+- scrollUntilVisible:
+    element:
+      id: location-fix
+    direction: DOWN
+    timeout: 15000
 - assertVisible:
     id: location-decimal
-- takeScreenshot: e2e/out/tools-04-fix
+- takeScreenshot: e2e/out/tools-01-fix
 - scrollUntilVisible:
     element:
       id: location-sms
@@ -82,5 +51,57 @@ onFlowComplete:
     notVisible:
       id: tools-screen
     timeout: 15000
-- back
-- back
+- launchApp:
+    stopApp: false
+- tapOn:
+    id: tab-tools
+- extendedWaitUntil:
+    visible:
+      id: tools-screen
+    timeout: 15000
+# SOS torch and red screen
+- scrollUntilVisible:
+    element:
+      id: sos-torch-start
+    direction: UP
+    timeout: 10000
+- tapOn:
+    id: sos-torch-start
+- extendedWaitUntil:
+    visible:
+      id: sos-torch-running
+    timeout: 5000
+- takeScreenshot: e2e/out/tools-02-torch
+- tapOn:
+    id: sos-torch-stop
+- assertVisible:
+    id: sos-torch-start
+- tapOn:
+    id: sos-screen-red
+- extendedWaitUntil:
+    visible:
+      id: sos-screen
+    timeout: 5000
+- takeScreenshot: e2e/out/tools-03-red-screen
+- tapOn:
+    id: sos-screen
+- extendedWaitUntil:
+    visible:
+      id: tools-screen
+    timeout: 5000
+# Compass
+- scrollUntilVisible:
+    element:
+      id: compass-start
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: compass-start
+- scrollUntilVisible:
+    element:
+      id: compass-heading
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: e2e/out/tools-04-compass
+- tapOn:
+    id: compass-stop

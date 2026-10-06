@@ -1,0 +1,63 @@
+test GPS provider active (simulated fix, Patras)
+
+Waiting for flows to complete...
+[Passed] SKEPI tools (offline) (1m 8s)
+
+1/1 Flow Passed in 1m 8s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI onboarding (offline, packs installed) (47s)
+
+1/1 Flow Passed in 47s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI English flow (offline) (1m 28s)
+
+1/1 Flow Passed in 1m 28s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI T1-simulation flow (offline) (1m 2s)
+
+1/1 Flow Passed in 1m 2s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI medical flow (offline) (48s)
+
+1/1 Flow Passed in 48s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI emergency cards (offline) (57s)
+
+1/1 Flow Passed in 57s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI blackout mode (offline) (2m 41s)
+
+1/1 Flow Passed in 2m 41s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI Greek UI (offline) (41s)
+
+1/1 Flow Passed in 41s
+
+Maestro exit code (e2e/tools.yaml): 0
+Maestro exit code (e2e/onboarding.yaml): 0
+Maestro exit code (e2e/ask-en.yaml): 0
+Maestro exit code (e2e/ask-t1.yaml): 0
+Maestro exit code (e2e/medical.yaml): 0
+Maestro exit code (e2e/cards.yaml): 0
+Maestro exit code (e2e/blackout.yaml): 0
+Maestro exit code (e2e/locale-el.yaml): 0
+Blocked WebView requests during E2E: 0
+ContentStore download requests during E2E: 0
+Bytes of UID 10400 over real interfaces during E2E: 0
+SMS hand-off intents (VIEW sms:): 1
+E2E PASS
+exit=0

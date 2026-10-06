@@ -64,7 +64,7 @@ onFlowComplete:
       id: card-draft-banner
     timeout: 10000
 - assertVisible: "Πρόχειρο — δεν έχει ελεγχθεί από επαγγελματίες πρώτων βοηθειών"
-- assertVisible: "ΚΑΡΠΑ: δεν αντιδρά και δεν αναπνέει \(ενήλικας\)"
+- assertVisible: 'ΚΑΡΠΑ: δεν αντιδρά και δεν αναπνέει \(ενήλικας\)'
 - takeScreenshot: e2e/out/el-04-card
 - back
 - back
