@@ -3,7 +3,8 @@
   Download/catalog/import E2E against the local HTTPS test mirror, with a zero-egress check.
   1. Starts e2e/mirror/server.mjs (https://127.0.0.1:8443, admin on host-only :8444) and
      `adb reverse tcp:8443 tcp:8443`; pushes an unknown ZIM to /sdcard/Download for the import step.
-  2. Runs e2e/download.yaml on the debug build (test catalog; build with
+  2. Runs e2e/onboarding-mirror.yaml ("Get prepared" on a fresh install: the 2 GB preset downloads the
+     test packs from the mirror, readiness indicator), then e2e/download.yaml on the debug build (test catalog; build with
      `gradlew assembleDebug -PskepiBundleDebug=true`). Wi-Fi must be connected (DownloadManager needs a network).
   3. Asserts that the app contacted only the mirror: every URL ContentStore handed to DownloadManager
      targets 127.0.0.1:8443 (logcat), the mirror saw no query strings and only the generic User-Agent,
@@ -62,10 +63,14 @@ try {
 
   Push-Location $root
   try {
-    $maestroArgs = @('test', 'e2e/download.yaml', '-e', "APP_ID=$AppId", '--format', 'junit', '--output', (Join-Path $out 'report-download.xml'), '--test-output-dir', $out)
-    if ($Serial) { $maestroArgs = @('--device', $Serial) + $maestroArgs }
-    & $Maestro @maestroArgs | Out-Host
-    $flowExit = $LASTEXITCODE
+    $flowExit = 0
+    foreach ($flow in @(@('e2e/onboarding-mirror.yaml', 'report-onboarding-mirror.xml'), @('e2e/download.yaml', 'report-download.xml'))) {
+      $maestroArgs = @('test', $flow[0], '-e', "APP_ID=$AppId", '--format', 'junit', '--output', (Join-Path $out $flow[1]), '--test-output-dir', $out)
+      if ($Serial) { $maestroArgs = @('--device', $Serial) + $maestroArgs }
+      & $Maestro @maestroArgs | Out-Host
+      Write-Host "Maestro exit code ($($flow[0])): $LASTEXITCODE"
+      if ($LASTEXITCODE -ne 0 -and $flowExit -eq 0) { $flowExit = $LASTEXITCODE }
+    }
   } finally {
     Pop-Location
   }

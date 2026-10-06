@@ -107,14 +107,17 @@ function Start-TestGps {
   & adb @adbArgs shell appops set com.android.shell MOCK_LOCATION allow | Out-Null
   & adb @adbArgs shell cmd location providers add-test-provider gps --requiresSatellite | Out-Null
   & adb @adbArgs shell cmd location providers set-test-provider-enabled gps true | Out-Null
-  # The loop runs in the device shell; stopping the adb client ends it.
+  # A detached loop on the device (independent of the adb client), stopped by Stop-TestGps.
   $loop = 'while true; do cmd location providers set-test-provider-location gps --location 38.24664,21.73457 --accuracy 8; sleep 2; done'
-  return Start-Process -FilePath adb -ArgumentList ($adbArgs + @('shell', "`"$loop`"")) -PassThru -WindowStyle Hidden
+  & adb @adbArgs shell "setsid sh -c '$loop' < /dev/null > /dev/null 2>&1 &" | Out-Null
+  Start-Sleep -Seconds 4
+  $last = (& adb @adbArgs shell dumpsys location) | Select-String -SimpleMatch 'last location=Location[gps 38.246640,21.734570' | Select-Object -First 1
+  if (-not $last) { Write-Warning 'test GPS provider is not delivering locations' } else { Write-Host 'test GPS provider active (simulated fix, Patras)' }
 }
-function Stop-TestGps($proc) {
-  if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
-  & adb @adbArgs shell cmd location providers remove-test-provider gps
-  & adb @adbArgs shell appops set com.android.shell MOCK_LOCATION deny
+function Stop-TestGps {
+  & adb @adbArgs shell "pkill -f set-test-provider-location" | Out-Null
+  & adb @adbArgs shell cmd location providers remove-test-provider gps | Out-Null
+  & adb @adbArgs shell appops set com.android.shell MOCK_LOCATION deny | Out-Null
 }
 
 # Blackout flow: a discharging battery at 25% (the phone is on USB power during E2E).
@@ -133,15 +136,14 @@ try {
   foreach ($f in $flows) {
     Set-AppLocale $f.Locale
     $location = $f.Flow -eq 'e2e/tools.yaml'
-    $gpsJob = $null
-    if ($location) { Set-Location $true; if ($SimulateGnss) { $gpsJob = Start-TestGps } }
+    if ($location) { Set-Location $true; if ($SimulateGnss) { Start-TestGps } }
     $battery = $f.ContainsKey('Battery')
     if ($battery) { Set-SimulatedBattery $true }
     try {
       $results += [pscustomobject]@{ Flow = $f.Flow; Exit = (Invoke-Flow $f.Flow $f.Report) }
     } finally {
       if ($battery) { Set-SimulatedBattery $false }
-      if ($location -and $SimulateGnss) { Stop-TestGps $gpsJob }
+      if ($location -and $SimulateGnss) { Stop-TestGps }
       if ($location -and -not $locationWasOn) { Set-Location $false }
     }
   }

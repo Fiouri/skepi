@@ -3,7 +3,7 @@ import { DEFAULT_SUGGEST, suggestTitles } from '@skepi/core';
 import { findCards } from '@skepi/emergency-cards';
 import { useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import { BlackoutControls, PowerTips } from '../../components/Blackout';
 import { CardLinks } from '../../components/EmergencyCards';
 import { Readiness } from '../../components/Readiness';
@@ -86,7 +86,10 @@ export default function SearchScreen() {
         style={styles.input}
         value={query}
         onChangeText={onChange}
-        onSubmitEditing={() => void run(query, 'fulltext')}
+        onSubmitEditing={() => {
+          Keyboard.dismiss();
+          void run(query, 'fulltext');
+        }}
         placeholder={t.search.placeholder}
         placeholderTextColor={theme.muted}
         accessibilityLabel={t.search.placeholder}
@@ -95,7 +98,14 @@ export default function SearchScreen() {
       />
       {canSearchArticles && (
         <View style={styles.row}>
-          <Button testID="search-fulltext" label={t.search.fullText} onPress={() => void run(query, 'fulltext')} />
+          <Button
+            testID="search-fulltext"
+            label={t.search.fullText}
+            onPress={() => {
+              Keyboard.dismiss();
+              void run(query, 'fulltext');
+            }}
+          />
           {timing && (
             <Text style={styles.muted} testID="search-timing">
               {t.search.timing({

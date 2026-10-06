@@ -39,7 +39,13 @@ onFlowComplete:
     timeout: 10000
 - takeScreenshot: e2e/out/01-search
 
-# 2. Open the first result in the sealed zim:// viewer
+# 2. Open the first result in the sealed zim:// viewer (matching emergency cards are listed above it)
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: search-result-0
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: search-result-0
 - extendedWaitUntil:
