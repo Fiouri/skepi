@@ -113,8 +113,9 @@ function Get-MapExtract {
   $exe = Get-PmtilesCli
   $partial = "$target.partial"
   if (Test-Path $partial) { Remove-Item -Force $partial }
-  Write-Host "  extracting $($map.bbox) z0-$($map.maxzoom) from $($map.source)"
-  & $exe extract $map.source $partial "--bbox=$($map.bbox)" "--maxzoom=$($map.maxzoom)"
+  $region = Join-Path (Split-Path -Parent $PSScriptRoot) $map.region
+  Write-Host "  extracting $($map.region) z0-$($map.maxzoom) from $($map.source)"
+  & $exe extract $map.source $partial "--region=$region" "--maxzoom=$($map.maxzoom)"
   if ($LASTEXITCODE -ne 0) {
     throw "pmtiles extract failed. Protomaps daily builds expire; update map.source/sha256 in content.lock.json."
   }
@@ -186,6 +187,11 @@ if ($WithCompareModel) {
 }
 if (-not $SkipMap) {
   $items += @{ Path = (Get-MapExtract); Kind = 'maps' }
+  # Places pack (catalog pack places-gr): built by tools/catalog-builder into the cache.
+  $places = Join-Path $CacheDir $lock.places.file
+  if (-not (Test-Path $places)) { throw "missing ${places}: build it with tools/catalog-builder (catalog build, see its README)" }
+  Assert-Sha256 $places $lock.places.sha256
+  $items += @{ Path = $places; Kind = 'maps' }
 }
 if ($WithIcu) {
   $items += @{ Path = (Get-IcuData); Kind = 'icu' }

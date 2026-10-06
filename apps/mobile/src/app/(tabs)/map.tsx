@@ -219,7 +219,7 @@ export default function MapScreen() {
         {failed ? t.map.failed : renderMs === null ? t.map.loading : t.map.ready(renderMs.toFixed(0))}
       </Text>
       <Text style={[styles.muted, { paddingHorizontal: 6, paddingBottom: 6 }]} testID="map-attribution">
-        {[t.map.attribution, ...attribution].filter((a, i, all) => all.indexOf(a) === i).join(' · ')}
+        {[t.map.attribution, ...attribution.filter((a) => !a.includes('OpenStreetMap contributors'))].join(' · ')}
       </Text>
     </View>
   );

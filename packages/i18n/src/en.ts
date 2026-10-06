@@ -268,7 +268,7 @@ export const en: Messages = {
     poiCount: (n) => `${n} emergency ${n === 1 ? 'point' : 'points'} in view`,
     zoomForPois: 'Zoom in to see emergency points',
     noPlaces: 'No verified places pack: emergency points are not available.',
-    attribution: '© OpenStreetMap contributors · Protomaps',
+    attribution: '© OpenStreetMap contributors (ODbL 1.0) · Protomaps',
   },
   bench: {
     run: 'Run bench',

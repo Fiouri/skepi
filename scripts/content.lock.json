@@ -69,13 +69,20 @@
     "note": "tools/rag-eval CI smoke model (cached in CI); same tokenizer as the mobile model"
   },
   "map": {
-    "file": "achaia-20261001.pmtiles",
-    "source": "https://build.protomaps.com/20261001.pmtiles",
+    "file": "map-gr-20261005.pmtiles",
+    "source": "https://build.protomaps.com/20261005.pmtiles",
     "basemapVersion": "4.15.2",
-    "bbox": "21.30,37.85,22.45,38.40",
+    "region": "catalog/regions/greece.geojson",
     "maxzoom": 15,
-    "sha256": "34309a90c55a8cbee04cfd0251c098dc9e1a29c838dbc1b01144b728d246f493",
-    "license": "ODbL-1.0 (OpenStreetMap contributors)"
+    "sha256": "e4b648dc5cad91469416157abf0ac2fcc26d96f23208de58ea5cc621aa1ebaad",
+    "license": "ODbL-1.0 (OpenStreetMap contributors)",
+    "note": "Catalog pack map-gr (catalog/manifest.json): the app opens only maps of the signed catalog"
+  },
+  "places": {
+    "file": "places-gr-20261004.sqlite",
+    "sha256": "2431125abc15897e5fba32d18ff48791c579b1c1d1a9723f4d4811d85875f509",
+    "license": "ODbL-1.0 (OpenStreetMap contributors)",
+    "note": "Catalog pack places-gr, built by tools/catalog-builder (catalog build ... writes it to the cache)"
   },
   "pmtilesCli": {
     "version": "1.31.2",

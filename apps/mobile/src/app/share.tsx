@@ -113,12 +113,16 @@ export default function ShareScreen() {
     setSharing(null);
   };
 
-  /** Debug: fault on the n-th chunk of the first shared pack (offset from its catalog entry). */
+  /** Debug: fault on the n-th chunk of the shared pack with the most chunks (offset from its catalog entry). */
   const chunkOffset = (n: number): { pack: string; offset: number } | null => {
-    const first = sharing?.packs[0];
-    const entry = first ? currentCatalog()?.packs.find((p) => p.id === first.id) : undefined;
-    if (!first || !entry) return null;
-    return { pack: first.id, offset: chunkRange(entry, Math.min(n, entry.chunkSha256.length - 1)).offset };
+    const catalog = currentCatalog();
+    const entries = (sharing?.packs ?? []).flatMap((p) => {
+      const e = catalog?.packs.find((c) => c.id === p.id);
+      return e ? [e] : [];
+    });
+    const entry = entries.sort((a, b) => b.chunkSha256.length - a.chunkSha256.length || a.id.localeCompare(b.id))[0];
+    if (!entry) return null;
+    return { pack: entry.id, offset: chunkRange(entry, Math.min(n, entry.chunkSha256.length - 1)).offset };
   };
 
   return (

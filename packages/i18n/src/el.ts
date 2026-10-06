@@ -269,7 +269,7 @@ export const el: Messages = {
     poiCount: (n) => `${n} ${n === 1 ? 'σημείο' : 'σημεία'} έκτακτης ανάγκης στην οθόνη`,
     zoomForPois: 'Μεγέθυνε για να δεις τα σημεία έκτακτης ανάγκης',
     noPlaces: 'Δεν υπάρχει επαληθευμένο πακέτο τοποθεσιών: τα σημεία έκτακτης ανάγκης δεν είναι διαθέσιμα.',
-    attribution: '© OpenStreetMap contributors · Protomaps',
+    attribution: '© OpenStreetMap contributors (ODbL 1.0) · Protomaps',
   },
   bench: {
     run: 'Εκτέλεση bench',

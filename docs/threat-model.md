@@ -1,7 +1,8 @@
 # SKEPI threat model
 
 Started in Phase 1c (catalog, downloads, import, viewer); Phase 1d added the structural source filter,
-release guards, emergency cards, location and the tools. Updated with every feature that adds an input,
+release guards, emergency cards, location and the tools; Phase 2a added P2P sharing, app propagation,
+and the map and places packs. Updated with every feature that adds an input,
 a parser or a network path. Architecture context: `docs/architecture.md` ("Security", "Content pipeline").
 
 ## Assets
@@ -24,7 +25,9 @@ a parser or a network path. Architecture context: `docs/architecture.md` ("Secur
 6. **Article text as model input** (prompt injection inside ZIM passages; see "Source text").
 7. **Bundled emergency cards and numbers** (safety-critical static content).
 8. **Device sensors and intents** (GNSS, compass, torch, SMS/dialler hand-off; Phase 1d).
-9. Later: P2P transfer (Phase 2).
+9. **P2P transfer** (Phase 2a): a host phone on the local network (shared LAN or LocalOnlyHotspot), the
+   pairing QR code, and the local APK page.
+10. **Map and places packs** (Phase 2a): PMTiles parsed by MapLibre, places SQLite parsed by SQLite.
 
 ## Source text (prompt injection)
 
@@ -45,11 +48,47 @@ a parser or a network path. Architecture context: `docs/architecture.md` ("Secur
 
 | Threat | Mitigation | Verified by |
 | --- | --- | --- |
-| Permission creep in release builds | Allowlist on the release APK (`aapt2 dump permissions`): INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION (+ the app's own signature-level dynamic-receiver permission). ACCESS_BACKGROUND_LOCATION, CAMERA and RECORD_AUDIO are removed in the manifest. | `tools/release-guards` in CI (`android-release-guards`) |
+| Permission creep in release builds | Allowlist on the release APK (`aapt2 dump permissions`): INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, and since Phase 2a exactly CHANGE_WIFI_STATE, CHANGE_NETWORK_STATE, NEARBY_WIFI_DEVICES (`neverForLocation`) and CAMERA (QR scanning only, asked on the Receive screen) (+ the app's own signature-level dynamic-receiver permission). ACCESS_BACKGROUND_LOCATION, REQUEST_INSTALL_PACKAGES and RECORD_AUDIO are forbidden. | `tools/release-guards` in CI (`android-release-guards`) |
 | Location tracking | GPS provider only (no Play Services, no network location), one fix per tap, updates removed after the fix or timeout; no history stored; the compass and GNSS stop when the Tools tab loses focus or the app goes to background. | `ExpoEmergencyToolsModule`; `e2e/tools.yaml` |
 | Silent SMS or calls | No SEND_SMS / CALL_PHONE permission: the app only opens the SMS app (`sms:?body=`) or the dialler (`tel:`); the user sends or calls. | permission allowlist; `run-e2e.ps1` (VIEW `sms:` intent) |
 | Torch left on | The Morse player switches off on its own thread after stop, on errors and when the app goes to background. | `MorsePlayerTest` |
 | Stale release bundle (old core code in a release) | Bundle task inputs include `packages/` and `modules/`; CI probe edits one file in each and requires a rebuilt bundle containing the change. | `tools/release-guards` bundle probe |
+
+## P2P sharing (Phase 2a)
+
+Design: `docs/architecture.md` ("P2P content sharing"); code: `packages/core/src/transfer.ts` (decisions),
+`modules/expo-transfer` (sockets, TLS, hotspot, QR), `apps/mobile/src/lib/transfer.ts` (the only caller).
+The receiver trusts files only through the signed catalog, never through the host.
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| **LAN attacker** reads or alters a transfer, or impersonates the host | TLS 1.3 only, per-session self-signed certificate (fresh EC P-256 key, memory only); the receiver pins the certificate SHA-256 from the QR code and trusts no CA; every request carries the 128-bit session token (constant-time compare). A broken channel still cannot change content: every chunk is checked against the signed catalog. | `TransferServerTest` (other certificate refused, TLS 1.2 refused, token required); `transfer.test.ts` |
+| LAN attacker probes the host for other files | The server maps only the selected pack ids to files; no URL reaches the filesystem (`/pack/<id>` with a strict id pattern, everything else 404, GET only). Conversations, notes, settings and app.db have no route. | `TransferServerTest.neverServesUnselectedPacksOrUserData` (traversal, encoded variants, other ids, app.db) |
+| **Malicious host** sends altered or malicious bytes | A pack is accepted only when SHA-256, size and kind match the receiver's signed catalog; each chunk (64 MiB; 64 KiB for test packs) is hashed natively on arrival and compared with `chunkSha256`; a bad chunk is re-requested alone, at most 3 attempts, then the pack is rejected and its partial file deleted. The whole file is hashed again before the atomic install (as for downloads). Nothing under `tmp/` is opened. | `transfer.test.ts`; E2E `p2p-receive.yaml` (`propagate`, `tampered`) |
+| Malicious host sends a forged, foreign-key or older catalog | Used only when the signature verifies with the receiver's trusted keys over the exact bytes and the sequence is higher (rollback and sequence reuse rejected); otherwise packs are checked against the receiver's own catalog. | `transfer.test.ts`; E2E `bad-signature`, `rollback` |
+| Malicious host offers files outside any catalog (parser exploits) | Shown as unverified, never auto-selected; only a ZIM can be taken, by explicit choice, and it stays unverified (labelled, consent before opening, JavaScript off). Models, maps and places outside the catalog are refused. | `classifyOffers` tests; app.db `CHECK (verified = 1 OR kind = 'zim')` |
+| Malicious host exhausts resources | Manifest ≤ 4 MiB and ≤ 256 packs, strict schema; responses must match the requested range and length; headers ≤ 8 KiB; free-space rules as downloads. | `transfer.test.ts`, `Http.kt` |
+| **Malicious receiver** abuses the host | Read-only server (GET only), 4 concurrent connections, 30 s socket timeouts; the session ends when the host stops or after 30 minutes without a request; only packs the host selected are listed. | `TransferServerTest` (idle stop, methods) |
+| **QR replay** (a photographed or old QR) | Token, key and certificate are per session: a new session means a new pin and token, and the old QR stops working when the session ends (stop or 30 minutes idle). Physical proximity is the trust channel; the code is shown only on the host's Share screen. | `sessionCertificatesAreFreshAndSelfConsistent`; idle stop test |
+| A QR code that points to the internet | The pairing parser and the native client accept only local-network addresses (RFC 1918, link-local, IPv6 ULA/link-local); hostnames are refused (no DNS). | `transfer.test.ts`, `clientRefusesNonLocalHosts` |
+| Hotspot credentials | LocalOnlyHotspot: random SSID and WPA2 password per start, no internet; the receiver joins it as a local-only network (WifiNetworkSpecifier, the user confirms). Both end with the session. | manual (hotspot E2E pending a second physical device) |
+| Fault injection reaching users | Corrupt/drop/catalog faults exist only when the module's `BuildConfig.DEBUG` is true; release builds refuse them. | `capabilities().faultInjection` |
+
+**App propagation (APK page).** The host can serve its own APK on `http://<host>:<port>/`, the only
+cleartext server (outgoing cleartext stays forbidden by the network security config). It serves `/` and
+`/skepi.apk` only, never packs or user data, and only while the user shares the app. The page shows the
+signing-certificate SHA-256 to compare with the published fingerprint; Android refuses later updates
+signed with another key. Residual risk: a LAN attacker can replace the cleartext page for a phone that
+does not have the app yet; the fingerprint check is the defence. No `REQUEST_INSTALL_PACKAGES`. Split
+(store) installs cannot be shared as one APK and are refused.
+
+## Map and places packs (Phase 2a)
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| Malicious PMTiles (MapLibre parser) or places SQLite | Only packs of a valid signed catalog are opened (verified `pmtiles` / `places` packs); unknown files in `maps/` are listed as ignored and never opened; app.db forbids unverified non-ZIM packs; places packs open read-only. | `reconcile` (`rejectedMaps`), `places.yaml` |
+| Injection through place search | User text becomes quoted FTS5 prefix terms (`placesMatch`); no SQL is built from input. | `places.test.ts` |
+| ODbL attribution | Stored in each places pack (`meta`) and shown on the map with the basemap attribution. | `places.test.ts`, `places.yaml` |
 
 ## Catalog
 
@@ -75,7 +114,7 @@ of key lists arrives with catalog hosting.
 | Corrupt or malicious file from a mirror | Download to `tmp/<file>.partial`; streaming SHA-256 on a native thread (`modules/expo-hash`); only a file whose hash and size match the signed catalog is moved into place (atomic rename) and registered. A mismatch deletes the file and tries the next mirror. Nothing under `tmp/` is ever opened by libzim or llama.cpp. | E2E: corrupt first mirror → next mirror; corrupt everywhere → rejected, never installed |
 | Downgrade to HTTP / MITM | HTTPS only (ContentStore and catalog schema); network security config forbids cleartext and trusts only system CAs. DownloadManager uses the app's network security config. Integrity does not depend on TLS (signed hashes). | `ContentRulesTest`; unit tests |
 | Tracking through requests | Generic `User-Agent: SKEPI` (DownloadManager's default contains the device model), no query strings, no device identifiers; URLs come only from the signed catalog. | mirror log in `e2e/run-download-e2e.ps1` |
-| Network use outside ContentStore | INTERNET comes only from `modules/expo-content-store`; ESLint forbids `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, Node network modules and the native downloader outside `apps/mobile/src/lib/contentStore.ts` (tooling exception: `tools/catalog-builder/src/download.ts`). | `pnpm lint`; zero-egress checks |
+| Network use outside ContentStore | Internet downloads only through `modules/expo-content-store`; local-network P2P only through `modules/expo-transfer`, called from `apps/mobile/src/lib/transfer.ts` alone (ESLint rule); ESLint forbids `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, Node network modules and the native downloader outside `apps/mobile/src/lib/contentStore.ts` (tooling exception: `tools/catalog-builder/src/download.ts`). | `pnpm lint`; zero-egress checks |
 | Unexpected egress | Offline E2E (airplane mode): zero ContentStore requests and zero bytes for the app's UID on any real interface (`dumpsys netstats`). Download E2E: requests only to `127.0.0.1:8443` (the local mirror via `adb reverse`) and zero bytes on real interfaces. | `e2e/run-e2e.ps1`, `e2e/run-download-e2e.ps1` |
 | Mobile data cost | Wi-Fi only by default; on a metered network the size is shown and the user confirms. | Library screen |
 | Disk exhaustion | Free space ≥ size + 10% + 1 GB before a download starts. | `ContentRulesTest` |
@@ -102,7 +141,9 @@ app.db is SQLCipher (op-sqlite); the 256-bit key is random per install and store
 
 ## Open items
 
-- Catalog hosting and key-list distribution (later phase); maps (PMTiles) join the catalog then.
+- Catalog hosting and key-list distribution (later phase). Maps and places joined the catalog in Phase 2a;
+  their mirror (GitHub release assets) is uploaded by the maintainer.
+- Hotspot-mode P2P between two physical devices (only one was available in Phase 2a).
 - Fuzzing of libzim / llama.cpp loaders (Phase 2 gate).
 - Held-out adversarial set: used for the Phase 1d decision (structural filter); a fresh unseen set is needed
   before the public release.

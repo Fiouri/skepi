@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -81,13 +81,13 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /core              Domain, RAG orchestrator, safety layer, catalog/verify, pack manager
   /contracts         TS interfaces: KnowledgeEngine, InferenceEngine, ContentStore, TransferService, DeviceProfile
   /db                SQL migrations + typed queries (shared mobile/desktop)
-  /i18n              English (default) / Greek strings, typed catalogs + locale resolution
-  /emergency-cards   Curated static emergency cards (typed data + per-step sources), English master + Greek; per-country emergency numbers; release check for draft cards
+  /i18n              English strings; Greek kept but frozen until after v1 (developer flag); typed catalogs + locale resolution
+  /emergency-cards   Curated static emergency cards (typed data + per-step sources), English master (shown); Greek translation kept, not shown until reviewed; per-country emergency numbers; release check for draft cards
   /ui-tokens         Colours, type scale, touch targets, light and blackout themes (WCAG AA checked in tests)
 /modules
   /expo-zim          Kotlin + Swift binding over libkiwix/libzim, plus the native article viewer
   /expo-device-profile  RAM, thermal state, battery, free storage
-  /expo-transfer     Local hotspot, QR pairing, TLS server/client for P2P
+  /expo-transfer     P2P (Phase 2a): TLS 1.3 server with a per-session pinned certificate, pinned client hashing every chunk, LocalOnlyHotspot + WifiNetworkSpecifier, QR encode/scan (ZXing, CameraX), local APK page
   /expo-hash         Streaming SHA-256 (whole file + 64 MiB chunks) on a native thread, progress, cancel
   /expo-content-store  The only network user: system DownloadManager, SAF import, atomic install, embedded catalog
   /expo-emergency-tools  SOS torch (Morse timeline), compass, one-shot GNSS fix (GPS provider, no Play Services), screen brightness
@@ -108,7 +108,7 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
 
 - `core` depends only on `contracts`, never on React, Expo or Tauri.
 - `apps` provide the interface implementations (adapters) and inject them into core.
-- Network access exists only in ContentStore (`apps/mobile/src/lib/contentStore.ts` over `modules/expo-content-store`, the only module that declares INTERNET); ESLint forbids `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, Node network modules and the native downloader anywhere else (tooling exception: `tools/catalog-builder/src/download.ts`).
+- Internet access exists only in ContentStore (`apps/mobile/src/lib/contentStore.ts` over `modules/expo-content-store`); local-network P2P only in `apps/mobile/src/lib/transfer.ts` over `modules/expo-transfer` (local addresses only, enforced in core and natively); ESLint forbids `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, Node network modules and the native downloader anywhere else (tooling exception: `tools/catalog-builder/src/download.ts`).
 - Every native library has a pinned version and checksum in `/native`. Upgrades go through a PR with green CI.
 
 **Core interfaces (`packages/contracts`)**
@@ -176,7 +176,7 @@ Chunks are ~600 characters (sentence-packed, never across sections). **Answer le
 
 **T2 model (Phase 1c).** Qwen3-4B-Instruct-2507 (Apache-2.0 on the model card; Q4_0 quantised by us from the official weights) was evaluated and **not adopted**: English TTFT p95 15.3 s on the S23 (> 15 s), Greek 32 s. T2 keeps Qwen2.5-1.5B Q4_0. Qwen2.5-3B is excluded (Qwen Research licence). Numbers in `docs/phase-1c-report.md`.
 
-**Model selection.** Default family: small Qwen models. The exact model is chosen by `/tools/rag-eval` (English primary set, Greek secondary set), not by reputation. rag-eval also reports **tokens per character** per language: a tokenizer that is efficient for a language directly cuts latency. A new model ships only if it does not regress citation precision or refusal-when-no-source.
+**Model selection.** Default family: small Qwen models. The exact model is chosen by `/tools/rag-eval` (English set; the Greek set runs only with `--greek` and is not gated until after v1), not by reputation. rag-eval also reports **tokens per character** per language: a tokenizer that is efficient for a language directly cuts latency. A new model ships only if it does not regress citation precision or refusal-when-no-source.
 
 **Model lifecycle**
 
@@ -240,7 +240,7 @@ HTML is converted to text natively (jsoup on Android, SwiftSoup on iOS, scraper 
 - English Wikipedia: small edition (top articles) and no-pictures edition. Default.
 - WikiMed, Kiwix's medical encyclopedia. Default.
 - Wikivoyage, for local information and travel.
-- Locale packs: e.g. Greek Wikipedia (no-pictures and full), suggested when the device language is Greek.
+- Locale packs: e.g. Greek Wikipedia (no-pictures and full). Frozen until after v1: offered only when the Greek UI developer flag is on.
 - Our own "Survival" pack in ZIM format, from public-domain or openly licensed material (government manuals, civil-protection guides), built with zim-tools.
 
 ## RAG pipeline and grounding
@@ -280,10 +280,10 @@ Maps are vector tiles in one PMTiles file per region, rendered by MapLibre direc
 
 | Component | Implementation |
 | --- | --- |
-| Map data | Protomaps basemap (OpenStreetMap), cut per country or region with `pmtiles extract` in the catalog-builder |
+| Map data | Protomaps basemap (OpenStreetMap), cut per region with `pmtiles extract` from a pinned daily build in the catalog-builder (`pmtiles-extract` source; daily builds expire, so the extract is kept and mirrored by the project). First pack: Greece (`map-gr`, build 20261005, Geofabrik boundary, z0–15, 507 MB). Only a verified pack renders. |
 | Style, fonts, sprites | Bundled. Fonts cover Latin, Greek and the scripts of shipped locales. Style rewritten at runtime with absolute file paths. |
-| Place search | Small SQLite FTS5 per region (name, name:en, name:<locale>, type, coordinates) from OSM, built in the catalog-builder |
-| Emergency POIs | Hospitals, pharmacies, fire stations, police, water sources, shelters, as a separate filterable layer |
+| Place search | SQLite FTS5 per region (`places-gr`: 37k places, 5.3 MB) from a dated Geofabrik extract (`osm-places` source: pyosmium → `@skepi/core` `classifyOsm` → folded names of name, name:en, name:<locale>, plus an English kind word), opened read-only. Home search queries articles, cards and places together; results show the English name with the local name. |
+| Emergency POIs | Hospitals, pharmacies, fire stations, police, drinking water, shelters (incl. emergency assembly points and mountain huts) from the same places pack, as a GeoJSON layer with per-category filters (zoom ≥ 10, visible area only). ODbL attribution in the pack and on the map. |
 | User position | GNSS works without internet (first fix without A-GPS is slower). Accuracy and coordinates shown for copying or sending by SMS. |
 | User places | Meeting points, water sources and notes in SQLite. Export to GeoJSON and share via P2P. |
 | Desktop | MapLibre GL JS in the webview; pmtiles JS reads through a custom Tauri protocol serving range requests from disk. |
@@ -330,7 +330,7 @@ Every file the app opens (ZIM, GGUF, PMTiles, places DB) corresponds to an entry
 - `sequence` always increases. The app rejects a catalog with a lower `sequence` than the one it holds (anti-rollback). No reliance on wall-clock time offline.
 - The build ships an embedded catalog, so a phone that never touched the internet can verify packs received via P2P.
 - Hashes are computed by `/tools/catalog-builder` after downloading from the official source. The private signing key never enters CI.
-- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app (later phase; Phase 1c ships the embedded catalog and a catalog-update path tested against the local mirror).
+- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app (later phase; Phase 1c ships the embedded catalog and a catalog-update path tested against the local mirror). Map and places packs are built by the catalog-builder and mirrored as GitHub release assets (`packs-2026-10`).
 - Embedded per build type: debug = test catalog + test keys (`catalog/embedded/debug`, `catalog/keys/test.json`); release = real-key catalog + release keys. A release build fails unless the embedded catalog verifies with the release keys (`skepiCheckReleaseCatalog`).
 - The newest accepted catalog is kept in internal storage and re-verified on every start; the highest accepted `sequence` lives in app.db.
 
@@ -391,6 +391,13 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
 
 **App propagation (Android only):** the host serves its own APK with the signing-certificate fingerprint; a phone without the app opens `http://<host>:<port>/` in any browser. iOS does not allow sideloading.
 
+**Implementation (Phase 2a, Android).**
+
+- `packages/core/src/transfer.ts` (unit-tested, no sockets): QR payload (`parsePairing` refuses non-local addresses, tokens other than 128-bit hex, pins other than SHA-256), manifest (exactly the selected packs; never unverified non-ZIM files), host-catalog decision (`evaluateHostCatalog`: adopt only with a valid signature and a higher sequence), offer classification (`classifyOffers`: the receiver's catalog decides; host claims are never trusted), the chunk loop (`receiveChunks`: up to 3 attempts per chunk, `tampered` / `interrupted` outcomes) and the resume point (`verifiedPrefix` of the partial file's chunk hashes).
+- `modules/expo-transfer` (Kotlin): `SessionCert` (fresh EC P-256 key, minimal DER self-signed certificate per session), `TransferServer` (TLS 1.3 only, token, `GET /manifest`, `GET /pack/<id>` with Range, 4 connections, 30 s timeouts, 30 min idle stop), `TransferClient` (pinning trust manager, local addresses only, chunk written at its offset and hashed while writing), `LocalNetwork` (LAN address, LocalOnlyHotspot, WifiNetworkSpecifier join, socket factory of the matching network), `ApkServer` (cleartext `/` and `/skepi.apk` only), `Qr` + `QrScannerView` (ZXing core, CameraX). Debug builds only: corrupt/drop/tamper faults and the pairing file for the two-emulator E2E.
+- App: Library → "Share packs nearby" / "Receive packs nearby". Partial files live in `tmp/<file>.p2p.partial` and survive restarts for resuming; installs go through ContentStore (`installReceived`: whole-file hash, atomic rename, `packs.source = 'p2p'`, migration 3).
+- Permissions: INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE (LAN); CHANGE_WIFI_STATE plus NEARBY_WIFI_DEVICES (`neverForLocation`, Android 13+) or ACCESS_FINE_LOCATION (Android 8–12) for LocalOnlyHotspot; CHANGE_NETWORK_STATE for WifiNetworkSpecifier (Android 10+; older receivers join the hotspot in Wi-Fi settings); CAMERA for the QR code only, asked on the Receive screen. No REQUEST_INSTALL_PACKAGES, no foreground service (the Share/Receive screens keep the screen awake).
+
 ## Security
 
 The biggest risk is a malicious file (ZIM, GGUF, PMTiles) reaching a C++ parser. The central defence: nothing opens without a signed hash. The threat model lives in `/docs/threat-model.md` and is updated with every feature.
@@ -426,7 +433,7 @@ Nothing leaves the device: no account, backend, analytics or third-party crash r
 - **Errors:** local rotating log (~1 MB); the user exports it manually after seeing its content. Never contains query text or coordinates.
 - **Location:** no location history; only places the user saves explicitly.
 - **AI history:** "save conversations" toggle (on by default) and one-tap delete all.
-- **Permissions:** minimal. Release allowlist (CI, `tools/release-guards`): INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION; never background location. The torch needs no permission (`CameraManager.setTorchMode`); SMS and calls are hand-offs (`sms:`, `tel:`), never sent by the app. Camera (QR) arrives with P2P. No contacts or photos.
+- **Permissions:** minimal. Release allowlist (CI, `tools/release-guards`): INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, and for P2P (Phase 2a) CHANGE_WIFI_STATE, CHANGE_NETWORK_STATE, NEARBY_WIFI_DEVICES (`neverForLocation`) and CAMERA (pairing QR only); never background location, REQUEST_INSTALL_PACKAGES or RECORD_AUDIO. The torch needs no permission (`CameraManager.setTorchMode`); SMS and calls are hand-offs (`sms:`, `tel:`), never sent by the app. No contacts or photos.
 - **Store forms:** "no data collected" on Play Data Safety and Apple Privacy Nutrition Label; true only while the zero-egress test passes.
 
 ## Performance, energy and blackout mode
@@ -462,7 +469,7 @@ One tap from the home screen (switch, persisted in app.db); suggested when the b
 - AI off by default: no automatic summary, the model is unloaded on entry; "Summarise with AI" on request. Layer 1 answers remain.
 - GPS and compass on tap only; no periodic work at all in blackout mode.
 - A power-saving tips card (airplane mode, brightness, OS battery saver, close apps).
-- Costly buttons (AI summary, GPS fix, SOS torch per minute) show the median of the last measured costs on this device ("≈ 1% battery") once three samples exist. Samples (`energy_samples`) come from the battery charge counter (µAh) or the 1% level steps between the start and the end of the action; nothing is recorded while charging.
+- Costly buttons (AI summary, GPS fix, SOS torch per minute) show the median of the last measured costs on this device ("≈ 1% battery") once three samples exist. Samples (`energy_samples`) come from the battery charge counter (µAh) or the 1% level steps between the start and the end of the action; nothing is recorded while charging. Reference values are measured unplugged over wireless adb (`e2e/adb-wireless.ps1`, `e2e/run-energy.ps1`; Bench → clear/export samples).
 
 **Desktop:** the "station" powered by a UPS or portable power station, with an AI power cap (threads, GPU layers) and a "library and distribution only" mode.
 
@@ -474,7 +481,7 @@ In an emergency, first-aid instructions are never generated by the LLM. A 1–4B
 
 - Initial topics: CPR, bleeding, choking, burns, fractures, hypothermia, heatstroke, poisoning, water purification, earthquake, fire, flood.
 - Each card: numbered steps, "when to call for help", public-domain or openly licensed source, review date.
-- Written in English first, then translated (Greek first). Every change needs review by people with first-aid training (CODEOWNERS on the folder) — the only folder with a mandatory external reviewer.
+- Written in English; shown in English only until reviewed (the Greek translation stays in the data and its tests; translations ship after v1). Every change needs review by people with first-aid training (CODEOWNERS on the folder) — the only folder with a mandatory external reviewer.
 - Bundled in the app, no pack dependency; available from the first second after install.
 
 **AI rules**
@@ -502,7 +509,7 @@ Two moments of use: **preparation** (online; the user chooses and downloads) and
 
 **Onboarding "Get prepared"**
 
-1. Language (phone language, English, Greek) and country (drives emergency numbers; default from the OS region, never the network).
+1. Language (phone language or English; Greek only with the developer flag until after v1) and country (drives emergency numbers; default from the OS region, never the network).
 2. Automatic tier and free-space detection.
 3. Storage budget 2 / 8 / 32 GB → preset (`planPreset` in core): English defaults, the default model when the tier runs AI, then the locale's own packs (the largest that fits); capped by free space minus the OS reserve. Downloads go through ContentStore; installed packs are kept. Debug builds with the test catalog plan only test packs (local mirror).
 4. Disclaimer (educational content, not medical advice, no warranty) before the app opens.
@@ -518,11 +525,11 @@ Two moments of use: **preparation** (online; the user chooses and downloads) and
 
 **Accessibility:** dynamic type (no fixed text heights; system font scale honoured) and touch targets ≥ 48 dp (`MIN_TOUCH_DP`); WCAG AA contrast in both themes (every text/background pair in `packages/ui-tokens` is tested); TalkBack/VoiceOver labels and roles on buttons, links, radios, headers and alerts; emergency cards read aloud with the OS TTS (expo-speech).
 
-**Language:** every UI string lives in `packages/i18n` (English master, Greek; a missing key is a type error). The app follows the device's first preferred language: Greek → Greek, anything else → English. Android 13+ per-app language is supported (`localeConfig` with `en`, `el`, via expo-localization).
+**Language:** every UI string lives in `packages/i18n` (English master; Greek kept complete and tested; a missing key is a type error). English-only until v1: the UI is English unless the developer flag "Greek UI (frozen locale)" (Bench, `dev.greekUi`, off in every build) is on; then a Greek device language or a Greek choice gives Greek. `localeConfig` lists `en` only.
 
 ## Data model and storage
 
-Large data are immutable files. User data live in one encrypted SQLite database (op-sqlite + SQLCipher; 256-bit random key per install, stored with expo-secure-store under an Android Keystore key). Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only; a database from a newer app or an edited migration is refused. Phase 1c ships migration 1 (`packs`, `settings`), Phase 1d migration 2 (`energy_samples`; typed settings for onboarding, disclaimer, UI language, country, storage budget and blackout mode); the other tables below arrive with their features.
+Large data are immutable files. User data live in one encrypted SQLite database (op-sqlite + SQLCipher; 256-bit random key per install, stored with expo-secure-store under an Android Keystore key). Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only; a database from a newer app or an edited migration is refused. Phase 1c ships migration 1 (`packs`, `settings`), Phase 1d migration 2 (`energy_samples`; typed settings for onboarding, disclaimer, UI language, country, storage budget and blackout mode), Phase 2a migration 3 (`packs.source` gains `p2p`; the table is rebuilt with the same rules; developer setting `dev.greekUi`); the other tables below arrive with their features.
 
 ```
 <content root>/
@@ -541,7 +548,7 @@ CREATE TABLE packs (
   id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK (kind IN ('zim','gguf','pmtiles','places')),
   version TEXT NOT NULL, title TEXT NOT NULL, path TEXT NOT NULL UNIQUE, size_bytes INTEGER NOT NULL,
   sha256 TEXT NOT NULL, verified INTEGER NOT NULL CHECK (verified IN (0,1)),
-  catalog_seq INTEGER, license TEXT, source TEXT NOT NULL CHECK (source IN ('download','import','provisioned')),
+  catalog_seq INTEGER, license TEXT, source TEXT NOT NULL CHECK (source IN ('download','import','provisioned','p2p')),
   consent_at INTEGER, installed_at INTEGER NOT NULL, last_opened_at INTEGER,
   CHECK (verified = 1 OR kind = 'zim'), CHECK (verified = 1 OR catalog_seq IS NULL)
 );
@@ -586,9 +593,9 @@ No PR merges without a green gate: typecheck, lint, unit tests, release build an
 | Static | `tsc --noEmit` (strict), ESLint, `cargo clippy -D warnings`, ktlint, SwiftLint | Types, "no fetch outside ContentStore", dependency boundaries |
 | Unit (core) | Vitest | RAG (fusion, chunking, char budgets, JSON output parsing, bigram support check, numeric/unit check, no-source path), catalog verification (valid/invalid signature, rollback), guards, emergency lexicon, i18n |
 | Native modules | JUnit + instrumentation (Android), XCTest (iOS), `cargo test` | ZIM open/search on a small fixture, viewer sealing (schemes blocked, JS off, CSP, path traversal), streaming hash |
-| AI quality | `/tools/rag-eval` with llama.cpp on CPU in CI | Golden sets (English primary, Greek secondary) incl. an adversarial set: citation precision, refusal without source, no number/unit absent from the source, summary coverage floors per language, tokens per character; a held-out adversarial set reported separately and never used for tuning |
-| Retrieval parity | `e2e/run-parity.ps1` (phone) + `tools/rag-eval` parity | The en + el questions through retrieval only on the device and in rag-eval: identical search lists, fused hits, article text hashes, ranked chunks and sources |
-| E2E Android | Maestro on emulator and device | Onboarding, search, article, Layer 1 + AI answer with sources, map, card, P2P between two emulators — all in airplane mode |
+| AI quality | `/tools/rag-eval` with llama.cpp on CPU in CI | Golden sets (English gated; Greek items only with `--greek`, reported and never gated until after v1) incl. an adversarial set: citation precision, refusal without source, no number/unit absent from the source, summary coverage floors per language, tokens per character; a held-out adversarial set reported separately and never used for tuning |
+| Retrieval parity | `e2e/run-parity.ps1` (phone) + `tools/rag-eval` parity | The English questions (Greek with `-IncludeGreek`) through retrieval only on the device and in rag-eval: identical search lists, fused hits, article text hashes, ranked chunks and sources |
+| E2E Android | Maestro on emulator and device | Onboarding, search, article, Layer 1 + AI answer with sources, map, places/POIs, card — in airplane mode; P2P between two emulators on one virtual Wi-Fi (`e2e/run-p2p.ps1`, `-wifi-server-port`/`-wifi-client-port`) with faults (corrupted chunk, drop + resume, tampering host, bad-signature and older catalogs) |
 | E2E iOS | Maestro on simulator | Same flows (AI only on a real device; llama.rn does not support the simulator) |
 | E2E desktop | Playwright on the web UI with mocked commands; tauri-driver smoke on Windows | Main flows and "Station" mode |
 | Zero-egress | `dumpsys netstats` per app UID + ContentStore request log + local mirror log | Offline flows: zero requests and zero bytes on any real interface. Download flow (local HTTPS mirror via `adb reverse`): requests only to the mirror, generic User-Agent, no query strings, zero bytes on real interfaces |
@@ -596,7 +603,7 @@ No PR merges without a green gate: typecheck, lint, unit tests, release build an
 | Performance | `/tools/bench` on reference devices (+ T1-simulation mode) | Performance targets, tokens/s, % battery per answer |
 | Builds | `gradlew assembleRelease` locally and in CI, `xcodebuild`, `tauri build` | Release builds from source, no prebuilt binaries from postinstall |
 
-**Fixtures:** a small ZIM (English + Greek articles), a tiny GGUF for CI, a one-city PMTiles, a test catalog signed with a test key that never ships in a release build.
+**Fixtures:** small ZIMs (English; Greek kept for the frozen locale), `e2e/fixtures/p2p-propagation.zim` (known only to the newer test catalog), an OSM-candidates NDJSON for the places builder, a tiny GGUF for CI, a test catalog signed with a test key that never ships in a release build.
 
 ## Build, release and distribution
 
@@ -664,7 +671,9 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - ~~Emergency cards (English master + Greek), onboarding, blackout mode~~ (1d; cards are drafts until reviewed); ~~T1-simulation mode~~ (1a).
    - ~~rag-eval (English primary, Greek secondary, tokens/char)~~ (1b, CI smoke subset); Maestro in CI.
    - Gate: Maestro in airplane mode green · zero egress · viewer sealing tests green · rag-eval above threshold · Layer 1 < 1 s and sources < 2 s (T1-simulation) · first token < 15 s on T2 · T1 measured if a device is available.
-3. **Phase 2 · iOS and P2P.** iOS from the same Expo app · Swift binding with CoreKiwix.xcframework · iOS native viewer · internal TestFlight · place search and POIs · P2P with hotspot and QR on Android and iOS · APK propagation.
+3. **Phase 2 · iOS and P2P.**
+   - **Phase 2a · P2P sharing and places (Android) — see `docs/phase-2a-report.md`.** English-only gates (Greek frozen behind a developer flag) · `modules/expo-transfer` (LAN + LocalOnlyHotspot, QR pairing, pinned TLS 1.3, per-chunk verification, resume, catalog propagation, APK page) · places pack (OSM → SQLite FTS5) and Greece map pack in the catalog · home search over articles, cards and places · emergency POI layer · release allowlist for the P2P permissions · wireless adb for unplugged battery costs.
+   - **Phase 2b · iOS** (needs a Mac): iOS from the same Expo app · Swift binding with CoreKiwix.xcframework · iOS native viewer · internal TestFlight · P2P receiver on iOS.
    - Gate: Maestro green on iOS · verified transfer Android→iPhone · fuzzing without crashes.
 4. **Phase 3 · Desktop and public release.** Tauri app for Windows and macOS with "Station" · GitHub Releases, F-Droid, Play, App Store · security review of the threat model.
    - Gate: store approvals · emergency cards reviewed by first-aid professionals · T1 targets measured on a real 4 GB device.
@@ -700,7 +709,7 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | ICU | Excluded (ADR). Re-test any new locale without ICU. |
 | Files from SAF | Copied into app-specific storage (fd-only breaks the Xapian index). |
 | PMTiles on iOS / React Native | Supported; one `file://` test on an iPhone remains. |
-| Model shortlist for rag-eval | T1: Qwen ~1.5–2B · T2: Qwen ~3–4B · T3: Qwen ~7–8B; Meltemi 7B (Apache-2.0) for the Greek set. Krikri excluded (Llama 3.1 licence). |
+| Model shortlist for rag-eval | T1: Qwen ~1.5–2B · T2: Qwen ~3–4B · T3: Qwen ~7–8B; Meltemi 7B (Apache-2.0) for the Greek set after v1. Krikri excluded (Llama 3.1 licence). |
 | Release signing | Dedicated keystore outside the repo; fingerprint published with the first public release. |
 | Emergency cards | Public-domain or permitted material only; review by at least 2 certified first-aid instructors; no release without review. |
 | Catalog hosting | Own domain CNAME'd to GitHub Pages, raw GitHub fallback in the app. |
