@@ -16,11 +16,14 @@ interface PrefsState {
   country: string | null;
   budgetGb: number | null;
   blackout: boolean;
+  /** Developer flag: the frozen Greek UI (English-only until v1; off by default in every build). */
+  greekUi: boolean;
   load: () => Promise<void>;
   setLocale: (locale: UiLocaleSetting) => void;
   setCountry: (country: string) => void;
   setBudgetGb: (gb: number) => void;
   setBlackout: (on: boolean) => void;
+  setGreekUi: (on: boolean) => void;
   acceptDisclaimer: () => void;
   completeOnboarding: () => void;
   restartOnboarding: () => void;
@@ -44,15 +47,17 @@ export const usePrefs = create<PrefsState>((set) => ({
   country: null,
   budgetGb: null,
   blackout: false,
+  greekUi: false,
   load: async () => {
     const db = await appDb();
-    const [onboardingCompletedAt, disclaimerAcceptedAt, locale, country, budgetGb, blackout] = await Promise.all([
+    const [onboardingCompletedAt, disclaimerAcceptedAt, locale, country, budgetGb, blackout, greekUi] = await Promise.all([
       getSetting(db, 'onboarding.completedAt'),
       getSetting(db, 'disclaimer.acceptedAt'),
       getSetting(db, 'ui.locale'),
       getSetting(db, 'region.country'),
       getSetting(db, 'storage.budgetGb'),
       getSetting(db, 'blackout.enabled'),
+      getSetting(db, 'dev.greekUi'),
     ]);
     set({
       loaded: true,
@@ -62,6 +67,7 @@ export const usePrefs = create<PrefsState>((set) => ({
       country,
       budgetGb,
       blackout: blackout ?? false,
+      greekUi: greekUi ?? false,
     });
   },
   setLocale: (locale) => {
@@ -79,6 +85,10 @@ export const usePrefs = create<PrefsState>((set) => ({
   setBlackout: (blackout) => {
     set({ blackout });
     persist('blackout.enabled', blackout);
+  },
+  setGreekUi: (greekUi) => {
+    set({ greekUi });
+    persist('dev.greekUi', greekUi);
   },
   acceptDisclaimer: () => {
     const now = Date.now();

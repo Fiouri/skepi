@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-  Device/eval retrieval parity: runs the en + el golden-set questions through retrieval only (no LLM)
+  Device/eval retrieval parity: runs the English golden-set questions (+ Greek with -IncludeGreek: frozen
+  locale, optional) through retrieval only (no LLM)
   on the phone and in tools/rag-eval (python-libzim), and fails on any difference.
   1. tools/rag-eval writes the query list; adb pushes it to <content>/parity/queries.json.
   2. Maestro (e2e/parity.yaml) taps Bench -> "Run retrieval parity" in airplane mode.
@@ -13,7 +14,9 @@ param(
   [string]$Serial = '',
   [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
   [string]$AppId = 'org.skepi.app',
-  [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat')
+  [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat'),
+  # Greek questions and the Greek pack (frozen locale; the device must hold zimLocale too).
+  [switch]$IncludeGreek
 )
 
 Set-StrictMode -Version Latest
@@ -32,7 +35,8 @@ $device = Join-Path $out 'parity-device.json'
 
 Push-Location $root
 try {
-  & pnpm --filter @skepi/rag-eval exec tsx src/parity.ts --write-queries $queries
+  $greekArgs = if ($IncludeGreek) { @('--greek') } else { @() }
+  & pnpm --filter @skepi/rag-eval exec tsx src/parity.ts --write-queries $queries @greekArgs
   if ($LASTEXITCODE -ne 0) { throw 'could not write the parity queries' }
   & adb @adbArgs shell "mkdir -p '$remote' && rm -f '$remote/device.json'"
   & adb @adbArgs push $queries "$remote/queries.json" | Out-Host
@@ -45,7 +49,7 @@ try {
 
   & adb @adbArgs pull "$remote/device.json" $device | Out-Host
   if ($LASTEXITCODE -ne 0) { throw 'adb pull failed' }
-  & pnpm --filter @skepi/rag-eval exec tsx src/parity.ts --device $device
+  & pnpm --filter @skepi/rag-eval exec tsx src/parity.ts --device $device @greekArgs
   $code = $LASTEXITCODE
 } finally {
   Pop-Location

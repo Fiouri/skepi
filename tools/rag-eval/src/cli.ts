@@ -20,7 +20,8 @@ import { NodeLlamaEngine } from './llamaEngine';
 import {
   checkThresholds,
   computeSetMetrics,
-  GATED_SETS,
+  GATED_LANGUAGES,
+  gatedOutcomes,
   heldoutFindings,
   sweepSupport,
   type ItemOutcome,
@@ -42,6 +43,8 @@ const HELDOUT_ZIM = 'eval-heldout.zim';
 interface Lock {
   zim: Record<string, { file: string; lang: string }>;
   zimDefault: string[];
+  /** Frozen-locale packs (Greek), used only with --greek. */
+  zimLocale: string[];
   model: { file: string };
   evalTinyModel: { file: string };
 }
@@ -63,6 +66,8 @@ const { values: args } = parseArgs({
     'check-sets': { type: 'boolean', default: false },
     python: { type: 'string' },
     'min-coverage': { type: 'string' },
+    // English-only until v1: Greek items and packs run only on request, reported and never gated.
+    greek: { type: 'boolean', default: false },
   },
 });
 
@@ -85,11 +90,13 @@ async function main(): Promise<number> {
   const zims =
     args.zim ??
     (args.smoke
-      ? ['eval-smoke-en.zim', 'eval-smoke-el.zim', 'eval-synthetic.zim', HELDOUT_ZIM].map((f) =>
+      ? ['eval-smoke-en.zim', ...(args.greek ? ['eval-smoke-el.zim'] : []), 'eval-synthetic.zim', HELDOUT_ZIM].map((f) =>
           requireFile(join(fixtures, f), 'run scripts/build_eval_zims.py'),
         )
       : [
-          ...lock.zimDefault.map((id) => requireFile(join(cacheDir(), lock.zim[id]?.file ?? id), 'run scripts/provision.ps1 -DownloadOnly')),
+          ...[...lock.zimDefault, ...(args.greek ? lock.zimLocale : [])].map((id) =>
+            requireFile(join(cacheDir(), lock.zim[id]?.file ?? id), 'run scripts/provision.ps1 -DownloadOnly'),
+          ),
           requireFile(join(fixtures, 'eval-synthetic.zim'), 'run scripts/build_eval_zims.py'),
           requireFile(join(fixtures, HELDOUT_ZIM), 'run scripts/build_eval_zims.py'),
         ]);
@@ -117,7 +124,8 @@ async function main(): Promise<number> {
     const missing = [...smokeIds].filter((id) => !found.has(id));
     if (missing.length > 0) throw new Error(`smoke.json references unknown ids: ${missing.join(', ')}`);
   }
-  const limited = args.limit ? items.slice(0, Number(args.limit)) : items;
+  const inScope = items.filter(({ item }) => args.greek || GATED_LANGUAGES.has(item.lang));
+  const limited = args.limit ? inScope.slice(0, Number(args.limit)) : inScope;
 
   const knowledge = new SidecarZimEngine(args.python ?? process.env.SKEPI_PYTHON ?? 'python');
   try {
@@ -195,7 +203,7 @@ async function main(): Promise<number> {
     const tokens: TokensPerLang = { en: null, el: null };
     if (inference && modelId) {
       const estimate = makeTokenEstimator(tokenizerProfile(modelId));
-      for (const lang of ['en', 'el'] as const) {
+      for (const lang of args.greek ? (['en', 'el'] as const) : (['en'] as const)) {
         const texts = [...new Set(outcomes.filter((o) => o.item.lang === lang).flatMap((o) => o.sources.map((s) => s.text)))];
         const chars = texts.reduce((n, t) => n + t.length, 0);
         if (chars === 0) continue;
@@ -205,15 +213,15 @@ async function main(): Promise<number> {
       }
     }
 
-    // Pooled metrics, per-language rows and the sweep cover the gated sets only; the held-out set is
-    // reported in its own section and never gated.
-    const gated = outcomes.filter((o) => GATED_SETS.has(o.set));
+    // Pooled metrics, per-set rows and the sweep cover the gated (English) items only; the held-out set
+    // is reported in its own section and never gated; Greek (--greek) is a per-language row only.
+    const gated = gatedOutcomes(outcomes);
     const heldout = outcomes.filter((o) => o.set === HELDOUT_SET);
     const perSet: Record<string, SetMetrics> = {};
     for (const name of new Set(gated.map((o) => o.set))) perSet[name] = computeSetMetrics(gated.filter((o) => o.set === name));
     const perLang: Partial<Record<Lang, SetMetrics>> = {};
     for (const lang of ['en', 'el'] as const) {
-      const subset = gated.filter((o) => o.item.lang === lang);
+      const subset = outcomes.filter((o) => o.set !== HELDOUT_SET && o.item.lang === lang);
       if (subset.length > 0) perLang[lang] = computeSetMetrics(subset);
     }
     const checks = inference ? checkThresholds(outcomes, thresholds) : [];
@@ -231,6 +239,7 @@ async function main(): Promise<number> {
       schema: 1,
       createdAt: new Date().toISOString(),
       mode,
+      greek: args.greek,
       promptVersion: PROMPT_VERSION,
       minBigramSupport: MIN_BIGRAM_SUPPORT,
       model: modelId,
@@ -254,7 +263,7 @@ async function main(): Promise<number> {
     await writeFile(join(outDir, `rag-eval-${mode}.md`), md);
     console.log(md);
     await inference?.unload();
-    const failed = checks.filter((c) => !c.pass);
+    const failed = checks.filter((c) => c.gated && !c.pass);
     if (failed.length > 0) {
       console.error(`THRESHOLDS MISSED: ${failed.map((c) => `${c.name}=${String(c.value)} (need ${c.threshold})`).join(', ')}`);
       return 1;

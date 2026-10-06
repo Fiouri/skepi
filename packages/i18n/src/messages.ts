@@ -241,6 +241,8 @@ export interface Messages {
     developer: string;
     t1Simulation: string;
     t1SimulationHint: string;
+    greekUi: string;
+    greekUiHint: string;
     profile: (p: {
       tier: string;
       mode: string;

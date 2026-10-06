@@ -20,18 +20,24 @@ import { ExpoDeviceProfile, type CpuInfo, type DeviceInfo, type MemoryInfo } fro
 import { ExpoZim, type ZimArchiveInfo } from 'expo-zim';
 import { ensureModel, knowledge, llama, ragArchives, ragConfigFor, useContent } from './content';
 
-/** Title prefixes typed into the suggestion box (English primary, Greek secondary). */
-export const SUGGEST_QUERIES = [
-  'Lond', 'Wat', 'Earth', 'Phot', 'Shak', 'Mount', 'Elec', 'Vacc', 'Rome', 'Gree',
-  'Αθ', 'Πάτ', 'Ελλ', 'Θεσ', 'Κρή', 'σεισ', 'νερ', 'Όλυμ', 'Αριστ', 'Βυζ',
-];
+/**
+ * Title prefixes typed into the suggestion box. English-only until v1: the Greek queries run only with
+ * the developer flag (frozen locale, informational, never gated).
+ */
+export const SUGGEST_QUERIES: Record<Lang, readonly string[]> = {
+  en: ['Lond', 'Wat', 'Earth', 'Phot', 'Shak', 'Mount', 'Elec', 'Vacc', 'Rome', 'Gree', 'Hosp', 'Pois', 'Fire', 'Flo', 'Burn', 'Hyp', 'Ant', 'Bri', 'Sun', 'Riv'],
+  el: ['Αθ', 'Πάτ', 'Ελλ', 'Θεσ', 'Κρή', 'σεισ', 'νερ', 'Όλυμ', 'Αριστ', 'Βυζ'],
+};
 
-/** Full-text queries (single and multi-term), English and Greek. */
-export const FULLTEXT_QUERIES = [
-  'water purification', 'earthquake', 'photosynthesis', 'World War II', 'Mount Everest', 'electricity',
-  'vaccine', 'Roman Empire', 'Greece', 'heart blood',
-  'Πάτρα', 'Αθήνα', 'σεισμός', 'νερό', 'πυρκαγιά', 'Όλυμπος', 'δημοκρατία', 'Αριστοτέλης', 'Αχαΐα', 'Ευρωπαϊκή Ένωση',
-];
+/** Full-text queries (single and multi-term); Greek as for SUGGEST_QUERIES. */
+export const FULLTEXT_QUERIES: Record<Lang, readonly string[]> = {
+  en: [
+    'water purification', 'earthquake', 'photosynthesis', 'World War II', 'Mount Everest', 'electricity',
+    'vaccine', 'Roman Empire', 'Greece', 'heart blood', 'hypothermia', 'snake bite', 'wildfire', 'flood',
+    'antibiotic', 'fracture', 'dehydration', 'tsunami', 'solar energy', 'first aid',
+  ],
+  el: ['Πάτρα', 'Αθήνα', 'σεισμός', 'νερό', 'πυρκαγιά', 'Όλυμπος', 'δημοκρατία', 'Αριστοτέλης', 'Αχαΐα', 'Ευρωπαϊκή Ένωση'],
+};
 
 /** Same words in different case/accent forms: shows whether ICU data changes matching. */
 export const ACCENT_PROBE = ['Πάτρα', 'πατρα', 'ΠΑΤΡΑ', 'σεισμός', 'σεισμος', 'ΣΕΙΣΜΟΣ', 'Αχαΐα', 'αχαια'];
@@ -83,6 +89,8 @@ export interface BenchOptions {
   backend: InferenceBackend;
   /** Renders the sources in the bench screen and resolves with the time of the first frame that shows them. */
   renderSources: (sources: RagSource[]) => Promise<number>;
+  /** Also run the frozen Greek queries (developer flag; informational, never gated). */
+  greek: boolean;
 }
 
 interface Timed {
@@ -125,7 +133,9 @@ export interface LangSummary {
 }
 
 export interface BenchReport {
-  schema: 4;
+  schema: 5;
+  /** Languages measured: English always; Greek only with the developer flag. */
+  languages: Lang[];
   createdAt: string;
   promptVersion: string;
   /** 't1-simulation' when the T1 profile was forced on this device. */
@@ -165,9 +175,9 @@ export interface BenchReport {
     reasonNoGpu: string;
   };
   ask: AskSample[];
-  perLang: Record<Lang, LangSummary>;
+  perLang: Partial<Record<Lang, LangSummary>>;
   /** Real tokenizer vs the core estimator, over the retrieved source passages. */
-  tokenizer: Record<Lang, { chars: number; actual: number; estimated: number; actualPerChar: number; profilePerChar: number; ratio: number }> | null;
+  tokenizer: Partial<Record<Lang, { chars: number; actual: number; estimated: number; actualPerChar: number; profilePerChar: number; ratio: number }>> | null;
   memory: MemoryInfo;
   gates: Record<string, { value: number | null; gate: number | null; pass: boolean | null }>;
   reportPath: string | null;
@@ -218,17 +228,20 @@ export async function runBench(log: (line: string) => void, options: BenchOption
       `${profile.load.threads} threads, n_ctx ${profile.load.contextSize}, budget ${profile.budgetTier}, backend ${profile.backend}`,
   );
   log(`archives: ${archives.map((a) => `${a.name} (${a.language})`).join(', ')}`);
+  const languages: Lang[] = options.greek ? ['en', 'el'] : ['en'];
+  const suggestQueries = languages.flatMap((l) => SUGGEST_QUERIES[l]);
+  const fulltextQueries = languages.flatMap((l) => FULLTEXT_QUERIES[l]);
 
   // Warm-up (first Xapian open is not representative of steady state).
   const suggestScope = { ...DEFAULT_SUGGEST, archives: ragArchives() };
   await suggestTitles(knowledge, 'A', suggestScope);
   await ExpoZim.search('water', 8, null, false);
-  await ExpoZim.search('Ελλάδα', 8, null, false);
+  if (options.greek) await ExpoZim.search('Ελλάδα', 8, null, false);
 
   const suggest: Timed[] = [];
   const suggestCounts: number[] = [];
   // As typed in the Search screen: active-language packs first, packs in parallel, capped per pack.
-  for (const q of SUGGEST_QUERIES) {
+  for (const q of suggestQueries) {
     const start = performance.now();
     const hits = await suggestTitles(knowledge, q, suggestScope);
     suggest.push({ totalMs: performance.now() - start, nativeMs: knowledge.lastNativeMs.suggest });
@@ -239,7 +252,7 @@ export async function runBench(log: (line: string) => void, options: BenchOption
   const fulltext: Timed[] = [];
   const fulltextCounts: number[] = [];
   const topHits: { archiveId: string; path: string }[] = [];
-  for (const q of FULLTEXT_QUERIES) {
+  for (const q of fulltextQueries) {
     const { value, t } = await timed(() => ExpoZim.search(q, 8, null, false));
     fulltext.push(t);
     fulltextCounts.push(value.hits.length);
@@ -249,7 +262,7 @@ export async function runBench(log: (line: string) => void, options: BenchOption
   log(`full-text p95 ${summarize(fulltext.map((s) => s.totalMs)).p95.toFixed(1)} ms`);
 
   const accentProbe: BenchReport['accentProbe'] = [];
-  for (const q of ACCENT_PROBE) {
+  for (const q of options.greek ? ACCENT_PROBE : []) {
     const sg = await ExpoZim.suggest(q, 3, null);
     const ft = await ExpoZim.search(q, 3, null, false);
     accentProbe.push({ query: q, suggest: sg.hits.map((h) => h.path), fulltext: ft.hits.map((h) => h.path), fulltextEstimated: ft.estimatedMatches ?? 0 });
@@ -295,7 +308,7 @@ export async function runBench(log: (line: string) => void, options: BenchOption
 
   const ask: AskSample[] = [];
   const passages: Record<Lang, string[]> = { en: [], el: [] };
-  for (const lang of ['en', 'el'] as const) {
+  for (const lang of languages) {
     for (const [i, question] of BENCH_QUESTIONS[lang].entries()) {
       const signal = new AbortController().signal;
       const start = performance.now();
@@ -353,7 +366,7 @@ export async function runBench(log: (line: string) => void, options: BenchOption
   await options.renderSources([]);
 
   const perLang = Object.fromEntries(
-    (['en', 'el'] as const).map((lang) => {
+    languages.map((lang) => {
       const samples = ask.filter((a) => a.lang === lang);
       const withSummary = samples.flatMap((a) => (a.summary ? [a.summary] : []));
       return [
@@ -367,19 +380,17 @@ export async function runBench(log: (line: string) => void, options: BenchOption
         },
       ];
     }),
-  ) as Record<Lang, LangSummary>;
+  ) as Partial<Record<Lang, LangSummary>>;
 
   let tokenizer: BenchReport['tokenizer'] = null;
   const ctx = llama.tokenizer;
   if (ctx) {
     const profileTok = tokenizerProfile(profile.modelId);
     const estimate = makeTokenEstimator(profileTok);
-    const out: NonNullable<BenchReport['tokenizer']> = {
-      en: { chars: 0, actual: 0, estimated: 0, actualPerChar: 0, profilePerChar: profileTok.tokensPerChar.en, ratio: 0 },
-      el: { chars: 0, actual: 0, estimated: 0, actualPerChar: 0, profilePerChar: profileTok.tokensPerChar.el, ratio: 0 },
-    };
-    for (const lang of ['en', 'el'] as const) {
-      const row = out[lang];
+    const out: NonNullable<BenchReport['tokenizer']> = {};
+    for (const lang of languages) {
+      const row = { chars: 0, actual: 0, estimated: 0, actualPerChar: 0, profilePerChar: profileTok.tokensPerChar[lang], ratio: 0 };
+      out[lang] = row;
       for (const text of new Set(passages[lang])) {
         row.chars += text.length;
         row.estimated += estimate(text);
@@ -401,7 +412,8 @@ export async function runBench(log: (line: string) => void, options: BenchOption
   const t1 = profile.mode === 't1-simulation' || profile.effectiveTier === 'T1';
   const t2 = profile.effectiveTier === 'T2' && profile.mode === 'normal';
   const report: BenchReport = {
-    schema: 4,
+    schema: 5,
+    languages,
     createdAt: new Date().toISOString(),
     promptVersion: PROMPT_VERSION,
     mode: profile.mode,
@@ -446,12 +458,17 @@ export async function runBench(log: (line: string) => void, options: BenchOption
       articleHtmlP95Ms: gate(htmlStats.total.p95, GATES.articleOpenMs),
       modelLoadMs: gate(modelReport?.warmLoadMs, GATES.modelLoadMs),
       modelFirstLoadMs: gate(modelReport?.loadMs, null),
-      layer1EnP95Ms: gate(perLang.en.layer1?.p95, t1 ? GATES.layer1P95Ms : null),
-      layer1ElP95Ms: gate(perLang.el.layer1?.p95, t1 ? GATES.layer1P95Ms : null),
-      sourcesVisibleEnP95Ms: gate(perLang.en.sourcesVisible?.p95, t1 ? GATES.sourcesVisibleP95Ms : null),
-      sourcesVisibleElP95Ms: gate(perLang.el.sourcesVisible?.p95, t1 ? GATES.sourcesVisibleP95Ms : null),
-      ttftEnP95Ms: gate(perLang.en.ttft?.p95, t2 ? GATES.ttftT2P95Ms : null),
-      ttftElP95Ms: gate(perLang.el.ttft?.p95, null),
+      layer1EnP95Ms: gate(perLang.en?.layer1?.p95, t1 ? GATES.layer1P95Ms : null),
+      sourcesVisibleEnP95Ms: gate(perLang.en?.sourcesVisible?.p95, t1 ? GATES.sourcesVisibleP95Ms : null),
+      ttftEnP95Ms: gate(perLang.en?.ttft?.p95, t2 ? GATES.ttftT2P95Ms : null),
+      // Greek is frozen until after v1: reported with the developer flag, never gated.
+      ...(perLang.el
+        ? {
+            layer1ElP95Ms: gate(perLang.el.layer1?.p95, null),
+            sourcesVisibleElP95Ms: gate(perLang.el.sourcesVisible?.p95, null),
+            ttftElP95Ms: gate(perLang.el.ttft?.p95, null),
+          }
+        : {}),
     },
     reportPath: null,
   };

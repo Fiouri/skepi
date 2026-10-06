@@ -262,6 +262,8 @@ export const en: Messages = {
     status: { idle: 'idle', running: 'running', done: 'done', error: 'error' },
     developer: 'Developer',
     t1Simulation: 'T1 simulation',
+    greekUi: 'Greek UI (frozen locale)',
+    greekUiHint: 'English-only until v1. Shows the frozen Greek strings for development; emergency cards stay English.',
     t1SimulationHint:
       'Forces the T1 profile (T1 model, 2 threads, context 2048, T1 budget, AI summary on request) for Ask and the bench.',
     profile: ({ tier, mode, model, threads, contextSize, budget, summary, backend }) =>

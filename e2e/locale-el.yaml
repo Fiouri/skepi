@@ -1,17 +1,27 @@
-# Greek UI flow: run-e2e.ps1 sets the app locale to el-GR (per-app language, Android 13+) before
-# this flow and resets it afterwards. Greek UI strings, then a Greek question answered by Layer 1
-# from the Greek pack.
+# Greek UI flow (frozen locale; optional: run-e2e.ps1 -IncludeGreek). English-only until v1, so the
+# Greek UI appears only behind the developer flag, which this flow turns on and off again.
+# run-e2e.ps1 sets the app locale to el-GR (per-app language, Android 13+) before this flow and resets
+# it afterwards. Greek UI strings, a Greek question answered by Layer 1 from the Greek pack (zimLocale),
+# and emergency cards that stay English (translations come after review).
 appId: ${APP_ID}
-name: SKEPI Greek UI (offline)
+name: SKEPI Greek UI (offline, frozen locale)
 env:
   ASK_QUESTION: Πού βρίσκεται η Πάτρα;
 onFlowComplete:
+  - runFlow:
+      file: set-greek.yaml
+      env:
+        GREEK_UI: 'false'
   - setAirplaneMode: disabled
 ---
 - setAirplaneMode: enabled
 - launchApp:
     stopApp: true
 - runFlow: app-ready.yaml
+- runFlow:
+    file: set-greek.yaml
+    env:
+      GREEK_UI: 'true'
 - extendedWaitUntil:
     visible:
       id: search-input
@@ -64,7 +74,8 @@ onFlowComplete:
       id: card-draft-banner
     timeout: 10000
 - assertVisible: "Πρόχειρο — δεν έχει ελεγχθεί από επαγγελματίες πρώτων βοηθειών"
-- assertVisible: 'ΚΑΡΠΑ: δεν αντιδρά και δεν αναπνέει \(ενήλικας\)'
+# Cards stay English until reviewed (the UI around them is Greek).
+- assertVisible: 'CPR: unresponsive and not breathing \(adult\)'
 - takeScreenshot: e2e/out/el-04-card
 - back
 - back

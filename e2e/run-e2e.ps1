@@ -9,7 +9,8 @@
   5. e2e/cards.yaml     Emergency button, numbers, a draft card; an emergency question shows number + card first.
   6. e2e/tools.yaml     SOS torch and screen, compass, GNSS fix, SMS hand-off (location permission granted here).
   7. e2e/blackout.yaml  Blackout mode with a simulated discharging battery at 25% (dumpsys battery), reset afterwards.
-  8. e2e/locale-el.yaml Greek UI (app locale el-GR): Greek strings, a Greek Layer 1 answer, Greek tools and card.
+  8. e2e/locale-el.yaml Greek UI (frozen locale, only with -IncludeGreek): turns on the developer flag, app
+     locale el-GR, Greek strings, a Greek Layer 1 answer (needs the zimLocale pack), English cards.
   The per-app locale (Android 13+) is reset to "follow the system" afterwards.
   -Only runs a subset (file names without .yaml).
   -AppId selects the installed build: org.skepi.app (release, default) or org.skepi.app.dev (debug).
@@ -22,7 +23,9 @@ param(
   [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat'),
   [string[]]$Only = @(),
   # tools.yaml: feed the gps provider from a shell test provider (indoors, no sky view).
-  [switch]$SimulateGnss
+  [switch]$SimulateGnss,
+  # The frozen Greek UI flow (English-only until v1: optional, never part of the required suite).
+  [switch]$IncludeGreek
 )
 
 Set-StrictMode -Version Latest
@@ -85,9 +88,9 @@ $flows = @(
   @{ Flow = 'e2e/ask-t1.yaml'; Report = 'report-t1.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/medical.yaml'; Report = 'report-medical.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/cards.yaml'; Report = 'report-cards.xml'; Locale = 'en-US' },
-  @{ Flow = 'e2e/blackout.yaml'; Report = 'report-blackout.xml'; Locale = 'en-US'; Battery = $true },
-  @{ Flow = 'e2e/locale-el.yaml'; Report = 'report-el.xml'; Locale = 'el-GR' }
+  @{ Flow = 'e2e/blackout.yaml'; Report = 'report-blackout.xml'; Locale = 'en-US'; Battery = $true }
 )
+if ($IncludeGreek) { $flows += @{ Flow = 'e2e/locale-el.yaml'; Report = 'report-el.xml'; Locale = 'el-GR' } }
 # -Only a,b arrives as one string through powershell -File: split it.
 $Only = @($Only | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if ($Only.Count -gt 0) { $flows = @($flows | Where-Object { $Only -contains [IO.Path]::GetFileNameWithoutExtension($_.Flow) }) }

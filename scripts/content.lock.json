@@ -39,7 +39,9 @@
   },
   "zimDefault": [
     "en_top_mini",
-    "en_medicine_mini",
+    "en_medicine_mini"
+  ],
+  "zimLocale": [
     "el_top_mini"
   ],
   "model": {

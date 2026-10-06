@@ -1,0 +1,30 @@
+# Sets the persisted "Greek UI (frozen locale)" developer switch (Bench tab) to ${GREEK_UI} (true|false).
+# English-only until v1: the Greek UI exists only behind this flag.
+appId: ${APP_ID}
+---
+- tapOn:
+    id: tab-bench
+- extendedWaitUntil:
+    visible:
+      id: dev-greek-ui
+    timeout: 30000
+- runFlow:
+    when:
+      true: ${GREEK_UI == 'true'}
+      visible:
+        id: dev-greek-ui
+        checked: false
+    commands:
+      - tapOn:
+          id: dev-greek-ui
+- runFlow:
+    when:
+      true: ${GREEK_UI == 'false'}
+      visible:
+        id: dev-greek-ui
+        checked: true
+    commands:
+      - tapOn:
+          id: dev-greek-ui
+- tapOn:
+    id: tab-search

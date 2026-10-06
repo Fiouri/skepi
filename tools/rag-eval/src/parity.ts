@@ -18,17 +18,16 @@ import { SidecarZimEngine } from './zimEngine';
 
 /**
  * Device/eval retrieval parity (no LLM).
- *   --write-queries <file>  query list from the en and el golden sets (pushed to the phone)
+ *   --write-queries <file>  query list from the en golden set (+ el with --greek; frozen locale, manual)
  *   --device <file>         the phone's parity/device.json: rerun the same list here and compare
  * Exit 1 on any difference; the report names the first pipeline step where each question diverges.
  */
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REPO = resolve(ROOT, '..', '..');
-const PARITY_SETS = ['en', 'el'] as const;
-
 interface Lock {
   zim: Record<string, { file: string }>;
   zimDefault: string[];
+  zimLocale: string[];
   model: { file: string };
 }
 
@@ -41,8 +40,12 @@ const { values: args } = parseArgs({
     zim: { type: 'string', multiple: true },
     python: { type: 'string' },
     out: { type: 'string' },
+    // English-only until v1: the Greek questions (and the Greek pack) only on request.
+    greek: { type: 'boolean', default: false },
   },
 });
+
+const PARITY_SETS = args.greek ? (['en', 'el'] as const) : (['en'] as const);
 
 function cacheDir(): string {
   return process.env.SKEPI_CACHE_DIR ?? join(process.env.TEMP ?? tmpdir(), 'skepi', 'cache');
@@ -94,7 +97,7 @@ async function main(): Promise<number> {
   const devicePath = args.device;
   if (!devicePath) throw new Error('use --write-queries <file> or --device <device.json>');
   const device = JSON.parse(await readFile(devicePath, 'utf8')) as ParityReport;
-  const zims = args.zim ?? lock.zimDefault.map((id) => join(cacheDir(), lock.zim[id]?.file ?? id));
+  const zims = args.zim ?? [...lock.zimDefault, ...(args.greek ? lock.zimLocale : [])].map((id) => join(cacheDir(), lock.zim[id]?.file ?? id));
   for (const z of zims) if (!existsSync(z)) throw new Error(`missing ${z} (scripts/provision.ps1 -DownloadOnly)`);
 
   const knowledge = new SidecarZimEngine(args.python ?? process.env.SKEPI_PYTHON ?? 'python');

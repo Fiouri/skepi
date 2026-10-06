@@ -104,6 +104,20 @@ describe('computeSetMetrics / checkThresholds', () => {
     });
   });
 
+  it('gates English items only (Greek frozen)', () => {
+    const greekLeak = outcome(item({ lang: 'el', expect: 'no_source', articles: [] }), [kept('Paris is the capital of France.', 'S1')], 'adversarial');
+    const refused = outcome(item({ expect: 'no_source', articles: [] }), [], 'adversarial');
+    const checks = checkThresholds([greekLeak, refused], {
+      citationPrecision: 0.9,
+      numberUnitViolations: 0,
+      adversarialUnsupportedShown: 0,
+      refusalWhenNoSource: 0.95,
+    });
+    const byName = Object.fromEntries(checks.map((c) => [c.name, c]));
+    expect(byName.refusalWhenNoSource).toMatchObject({ value: 1, pass: true });
+    expect(byName.adversarialUnsupportedShown).toMatchObject({ value: 0, pass: true });
+  });
+
   it('gates summary coverage per language set and never gates the held-out set', () => {
     const answered = outcome(item(), [kept('Paris is the capital of France.', 'S1')], 'en');
     const silent = outcome(item(), [], 'en', 'hidden');
@@ -113,7 +127,9 @@ describe('computeSetMetrics / checkThresholds', () => {
     const checks = checkThresholds([answered, silent, greek, heldoutLeak], { ...base, summaryCoverage: { en: 0.5, el: 0.4 } });
     const byName = Object.fromEntries(checks.map((c) => [c.name, c]));
     expect(byName['summaryCoverage.en']).toMatchObject({ value: 0.5, pass: true, kind: 'min' });
-    expect(byName['summaryCoverage.el']).toMatchObject({ value: 0, pass: false });
+    // Greek is frozen until after v1: reported, never gated.
+    expect(byName['summaryCoverage.el']).toMatchObject({ value: 0, pass: false, gated: false });
+    expect(byName['summaryCoverage.en']?.gated).toBe(true);
     // The held-out no-source leak does not count towards refusal.
     expect(byName.refusalWhenNoSource?.value).toBeNull();
   });

@@ -9,6 +9,12 @@ import type { EmergencyTopic } from '@skepi/core';
 export const CARD_LOCALES = ['en', 'el'] as const;
 export type CardLocale = (typeof CARD_LOCALES)[number];
 
+/**
+ * The language cards are shown in: English only until the cards are reviewed (translations come after
+ * v1). The Greek translation stays in the data and its tests, but is never displayed.
+ */
+export const CARD_DISPLAY_LOCALE: CardLocale = 'en';
+
 export const CARD_IDS = [
   'cpr',
   'bleeding',

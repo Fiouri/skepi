@@ -7,6 +7,7 @@ import { runBench, type BenchReport } from '../../lib/bench';
 import { runParity } from '../../lib/parity';
 import { useActiveProfile, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
+import { usePrefs } from '../../lib/prefs';
 
 const BACKENDS: readonly InferenceBackend[] = ['cpu', 'opencl', 'hexagon'];
 
@@ -18,6 +19,8 @@ export default function BenchScreen() {
   const setSimulateT1 = useContent((s) => s.setSimulateT1);
   const backend = useContent((s) => s.backend);
   const setBackend = useContent((s) => s.setBackend);
+  const greekUi = usePrefs((s) => s.greekUi);
+  const setGreekUi = usePrefs((s) => s.setGreekUi);
   const { profile } = useActiveProfile();
   const [running, setRunning] = useState(false);
   const [lines, setLines] = useState<string[]>([]);
@@ -59,7 +62,7 @@ export default function BenchScreen() {
         (line) => {
           setLines((prev) => [...prev, line]);
         },
-        { simulateT1, backend, renderSources },
+        { simulateT1, backend, renderSources, greek: greekUi },
       );
       setReport(r);
     } catch (e) {
@@ -105,6 +108,11 @@ export default function BenchScreen() {
             <Text style={styles.text}>{t.bench.t1Simulation}</Text>
           </View>
           <Text style={styles.muted}>{t.bench.t1SimulationHint}</Text>
+          <View style={styles.row}>
+            <Switch testID="dev-greek-ui" accessibilityLabel={t.bench.greekUi} value={greekUi} onValueChange={setGreekUi} disabled={running} />
+            <Text style={styles.text}>{t.bench.greekUi}</Text>
+          </View>
+          <Text style={styles.muted}>{t.bench.greekUiHint}</Text>
           <Text style={styles.text}>{t.bench.backend}</Text>
           <View style={styles.row}>
             {BACKENDS.map((b) => (

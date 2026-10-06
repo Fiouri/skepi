@@ -208,25 +208,39 @@ export interface ThresholdCheck {
   /** `min`: value must be ≥ threshold; `max`: value must be ≤ threshold. */
   kind: 'min' | 'max';
   pass: boolean;
+  /** False for a frozen locale (Greek until after v1): reported, never fails the run. */
+  gated: boolean;
 }
 
-/** Sets that count towards the gated thresholds; the held-out set is reported separately, never gated. */
+/** Sets that count towards the thresholds; the held-out set is reported separately, never gated. */
 export const GATED_SETS: ReadonlySet<string> = new Set(['en', 'el', 'adversarial']);
 
 /**
- * Thresholds over the gated sets: precision/refusal pooled, unsupported on adversarial, summary
- * coverage per language on the language sets (en, el).
+ * English-only until v1: only English items gate. Greek items (the `el` set and the Greek adversarial
+ * items) run with `--greek` and are reported as a frozen locale, never gated.
+ */
+export const GATED_LANGUAGES: ReadonlySet<Lang> = new Set(['en']);
+
+/** Outcomes that count towards the gated thresholds. */
+export function gatedOutcomes(outcomes: readonly ItemOutcome[]): ItemOutcome[] {
+  return outcomes.filter((o) => GATED_SETS.has(o.set) && GATED_LANGUAGES.has(o.item.lang));
+}
+
+/**
+ * Thresholds over the gated English items: precision/refusal pooled, unsupported on adversarial,
+ * summary coverage per language set. Coverage of a frozen locale is reported with `gated: false`.
  */
 export function checkThresholds(outcomes: readonly ItemOutcome[], thresholds: Thresholds): ThresholdCheck[] {
-  const gated = outcomes.filter((o) => GATED_SETS.has(o.set));
+  const gated = gatedOutcomes(outcomes);
   const all = computeSetMetrics(gated);
   const adversarial = computeSetMetrics(gated.filter((o) => o.set === 'adversarial'));
-  const atLeast = (name: ThresholdName, value: number | null, threshold: number): ThresholdCheck => ({
+  const atLeast = (name: ThresholdName, value: number | null, threshold: number, isGated = true): ThresholdCheck => ({
     name,
     value,
     threshold,
     kind: 'min',
     pass: value !== null && value >= threshold,
+    gated: isGated,
   });
   const atMost = (name: ThresholdName, value: number, threshold: number): ThresholdCheck => ({
     name,
@@ -234,6 +248,7 @@ export function checkThresholds(outcomes: readonly ItemOutcome[], thresholds: Th
     threshold,
     kind: 'max',
     pass: value <= threshold,
+    gated: true,
   });
   const checks = [
     atLeast('citationPrecision', all.citationPrecision, thresholds.citationPrecision),
@@ -243,9 +258,9 @@ export function checkThresholds(outcomes: readonly ItemOutcome[], thresholds: Th
   ];
   for (const lang of ['en', 'el'] as const) {
     const floor = thresholds.summaryCoverage?.[lang];
-    const subset = gated.filter((o) => o.set === lang);
+    const subset = outcomes.filter((o) => o.set === lang);
     if (floor === undefined || subset.length === 0) continue;
-    checks.push(atLeast(`summaryCoverage.${lang}`, computeSetMetrics(subset).summaryShownRate, floor));
+    checks.push(atLeast(`summaryCoverage.${lang}`, computeSetMetrics(subset).summaryShownRate, floor, GATED_LANGUAGES.has(lang)));
   }
   return checks;
 }

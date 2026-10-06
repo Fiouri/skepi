@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { el, en, getMessages, resolveLocale, SUPPORTED_LOCALES } from '../src';
+import { effectiveLocale, el, en, enabledLocales, getMessages, resolveLocale, SUPPORTED_LOCALES } from '../src';
 
 type Leaf = string | ((...args: never[]) => string);
 
@@ -39,6 +39,24 @@ describe('resolveLocale', () => {
   it('follows only the first preferred language', () => {
     expect(resolveLocale(['el-GR', 'en-US'])).toBe('el');
     expect(resolveLocale([null, 'el-GR'])).toBe('el');
+  });
+});
+
+describe('English-only until v1 (Greek frozen)', () => {
+  it('offers only English unless the developer flag enables Greek', () => {
+    expect(enabledLocales(false)).toEqual(['en']);
+    expect(enabledLocales(true)).toEqual(['en', 'el']);
+  });
+
+  it('ignores a Greek device language while Greek is frozen', () => {
+    expect(resolveLocale(['el-GR'], enabledLocales(false))).toBe('en');
+    expect(resolveLocale(['el-GR'], enabledLocales(true))).toBe('el');
+  });
+
+  it('falls back to English for a Greek choice made before the freeze', () => {
+    expect(effectiveLocale('el', enabledLocales(false))).toBe('en');
+    expect(effectiveLocale('el', enabledLocales(true))).toBe('el');
+    expect(effectiveLocale('en', enabledLocales(false))).toBe('en');
   });
 });
 

@@ -10,14 +10,17 @@
   Nothing is downloaded by the app itself. Compatible with Windows PowerShell 5.1 and PowerShell 7.
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1                 # English primary + Greek secondary
+  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1                 # English packs (zimDefault)
+  powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -IncludeGreek   # + the frozen Greek pack (zimLocale)
   powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -Packs el_all_mini -WithIcu
   powershell -ExecutionPolicy Bypass -File scripts\provision.ps1 -AppId org.skepi.app.dev   # debug build
 #>
 [CmdletBinding()]
 param(
-  # ZIM packs from content.lock.json (zim.*); default: zimDefault (English packs first, Greek locale pack).
+  # ZIM packs from content.lock.json (zim.*); default: zimDefault (English packs; English-only until v1).
   [string[]]$Packs = @(),
+  # Also the frozen-locale packs (zimLocale: Greek), for the optional Greek runs.
+  [switch]$IncludeGreek,
   [switch]$WithIcu,
   # Also push the Q4_K_M quantisation so the bench can compare prefill speed against the Q4_0 default.
   [switch]$WithCompareModel,
@@ -168,6 +171,7 @@ function Push-IfChanged([string]$Local, [string]$Kind) {
 
 Write-Host '== Downloading / verifying content'
 if ($Packs.Count -eq 0) { $Packs = @($lock.zimDefault) }
+if ($IncludeGreek) { $Packs = @($Packs) + @($lock.zimLocale) }
 $items = @()
 foreach ($pack in $Packs) {
   $zim = $lock.zim.$pack

@@ -1,5 +1,6 @@
 import type { EmergencyTopic } from '@skepi/core';
 import {
+  CARD_DISPLAY_LOCALE,
   cardsForQuestion,
   countryList,
   formatNumber,
@@ -113,8 +114,7 @@ function ReadAloud({ card }: { card: LocalizedCard }) {
 export function CardView({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const styles = useStyles();
-  const lang = useLanguage();
-  const c = localizeCard(card, lang);
+  const c = localizeCard(card, CARD_DISPLAY_LOCALE);
   return (
     <View style={{ gap: 12 }} testID={`card-${card.id}`}>
       <Text style={styles.heading} accessibilityRole="header">
@@ -158,8 +158,7 @@ function InlineCard({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const styles = useStyles();
   const router = useRouter();
-  const lang = useLanguage();
-  const c = localizeCard(card, lang);
+  const c = localizeCard(card, CARD_DISPLAY_LOCALE);
   return (
     <View style={styles.card} testID={`inline-card-${card.id}`}>
       <Text style={styles.title} accessibilityRole="header">
@@ -205,12 +204,11 @@ export function EmergencyCardSlot({ question, topics }: { question: string; topi
 export function CardLinks({ cards }: { cards: readonly EmergencyCard[] }) {
   const styles = useStyles();
   const router = useRouter();
-  const lang = useLanguage();
   const t = useMessages();
   return (
     <View>
       {cards.map((card) => {
-        const c = localizeCard(card, lang);
+        const c = localizeCard(card, CARD_DISPLAY_LOCALE);
         return (
           <Pressable
             key={card.id}

@@ -8,7 +8,7 @@ import { Readiness } from '../components/Readiness';
 import { Button, useStyles } from '../components/ui';
 import { contentStore, useContent } from '../lib/content';
 import { formatBytes, useDownloads } from '../lib/downloads';
-import { useLanguage, useMessages } from '../lib/i18n';
+import { useEnabledLocales, useLanguage, useMessages } from '../lib/i18n';
 import { deviceRegion, usePrefs } from '../lib/prefs';
 
 const MB = 1024 * 1024;
@@ -49,6 +49,7 @@ export default function OnboardingScreen() {
   const styles = useStyles();
   const router = useRouter();
   const lang = useLanguage();
+  const enabled = useEnabledLocales();
   const prefs = usePrefs();
   const status = useContent((s) => s.status);
   const catalogState = useContent((s) => s.catalog);
@@ -128,7 +129,9 @@ export default function OnboardingScreen() {
           <View style={styles.row} accessibilityRole="radiogroup">
             <Choice testID="lang-system" label={t.onboarding.languageSystem} selected={prefs.locale === 'system'} onPress={() => { prefs.setLocale('system'); }} />
             <Choice testID="lang-en" label="English" selected={prefs.locale === 'en'} onPress={() => { prefs.setLocale('en'); }} />
-            <Choice testID="lang-el" label="Ελληνικά" selected={prefs.locale === 'el'} onPress={() => { prefs.setLocale('el'); }} />
+            {enabled.includes('el') && (
+              <Choice testID="lang-el" label="Ελληνικά" selected={prefs.locale === 'el'} onPress={() => { prefs.setLocale('el'); }} />
+            )}
           </View>
           <Text style={styles.title}>{t.onboarding.country}</Text>
           <Text style={styles.muted}>{t.onboarding.countryHint}</Text>

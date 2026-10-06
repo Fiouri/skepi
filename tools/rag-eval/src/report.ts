@@ -66,7 +66,8 @@ export function renderMarkdown(r: ReportInput): string {
     lines.push('| --- | --- | --- | --- |');
     for (const c of r.checks) {
       const value = c.value === null ? '–' : c.kind === 'min' ? pct(c.value) : String(c.value);
-      lines.push(`| ${c.name} | ${value} | ${c.kind === 'min' ? '≥' : '≤'} ${c.threshold} | ${c.pass ? 'PASS' : 'FAIL'} |`);
+      const result = c.pass ? 'PASS' : 'FAIL';
+      lines.push(`| ${c.name} | ${value} | ${c.kind === 'min' ? '≥' : '≤'} ${c.threshold} | ${c.gated ? result : `${result} (frozen locale, not gated)`} |`);
     }
     lines.push('');
   }

@@ -263,6 +263,8 @@ export const el: Messages = {
     status: { idle: 'αναμονή', running: 'εκτελείται', done: 'ολοκληρώθηκε', error: 'σφάλμα' },
     developer: 'Προγραμματιστής',
     t1Simulation: 'Προσομοίωση T1',
+    greekUi: 'Ελληνικό περιβάλλον (παγωμένο)',
+    greekUiHint: 'Μόνο αγγλικά έως την v1. Δείχνει τα παγωμένα ελληνικά κείμενα για ανάπτυξη· οι κάρτες έκτακτης ανάγκης μένουν στα αγγλικά.',
     t1SimulationHint:
       'Επιβάλλει το προφίλ T1 (μοντέλο T1, 2 νήματα, context 2048, προϋπολογισμός T1, σύνοψη AI κατ’ απαίτηση) στο Ρώτα και στο bench.',
     profile: ({ tier, mode, model, threads, contextSize, budget, summary, backend }) =>

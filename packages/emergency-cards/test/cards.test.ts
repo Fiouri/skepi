@@ -1,6 +1,7 @@
 import { detectEmergency } from '@skepi/core';
 import { describe, expect, it } from 'vitest';
 import {
+  CARD_DISPLAY_LOCALE,
   CARD_IDS,
   CARDS,
   cardById,
@@ -15,6 +16,10 @@ import {
 } from '../src';
 
 describe('emergency cards', () => {
+  it('are shown in English only until reviewed (Greek translation kept, not displayed)', () => {
+    expect(CARD_DISPLAY_LOCALE).toBe('en');
+  });
+
   it('bundles one card per required topic', () => {
     expect(CARDS.map((c) => c.id)).toEqual([...CARD_IDS]);
   });

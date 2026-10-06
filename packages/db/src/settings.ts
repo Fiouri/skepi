@@ -14,6 +14,8 @@ export interface TrustedKeySetting {
 export interface Settings {
   /** Developer setting: force the T1 profile (Bench tab). */
   'dev.simulateT1': boolean;
+  /** Developer setting: show the frozen Greek UI (English-only until v1). */
+  'dev.greekUi': boolean;
   /** Highest catalog accepted on this device (anti-rollback). */
   'catalog.accepted': SequenceSetting;
   /** Highest key list accepted (rotation); its keys replace the pinned ones. */
@@ -56,6 +58,7 @@ const isSequence = (v: unknown): v is SequenceSetting =>
 
 const VALIDATORS: { [K in SettingKey]: (v: unknown) => v is Settings[K] } = {
   'dev.simulateT1': (v): v is boolean => typeof v === 'boolean',
+  'dev.greekUi': (v): v is boolean => typeof v === 'boolean',
   'catalog.accepted': isSequence,
   'catalog.keyList': (v): v is Settings['catalog.keyList'] => {
     if (!isSequence(v) || !isObject(v)) return false;
