@@ -160,7 +160,7 @@ Bench (S23, release, 3 packs; [`phase1d/bench/`](phase1d/bench/)):
 - `./gradlew assembleRelease` with the release key and `-PskepiAllowDraftCards=true`: 49.5 MB, signing certificate
   SHA-256 `7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e`; without the flag the build fails.
 - `connectedAndroidTest`, Maestro on the S23, parity, bench: above.
-- GitHub Actions run 37397902353 (PR #1, `phase-1d`): `verify`, `rag-eval-smoke`, `android-release-guards` green.
+- GitHub Actions runs 37397902353 and 37406557319 (PR #1, `phase-1d`, final commit `f0cb776`): `verify`, `rag-eval-smoke`, `android-release-guards` green.
 
 ## Deviations and open items
 
