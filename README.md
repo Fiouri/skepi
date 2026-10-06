@@ -4,9 +4,10 @@
 knowledge library (ZIM / Wikipedia), offline vector maps (PMTiles) and an on-device AI assistant that
 answers only from local sources, with citations.
 
-> Status: **Phase 1b (Android only):** two-layer answers (extractive Layer 1 + labelled AI summary),
-> citation hardening and rag-eval. Not usable by end users yet. See [`docs/architecture.md`](docs/architecture.md)
-> and [`docs/phase-1b-report.md`](docs/phase-1b-report.md).
+> Status: **Phase 1d (Android only):** structural prompt-injection filter, release guards in CI, draft
+> emergency cards (English + Greek) and per-country numbers, onboarding, blackout mode and a Tools tab. Not
+> usable by end users yet: the emergency cards are unreviewed drafts. See [`docs/architecture.md`](docs/architecture.md),
+> [`docs/phase-1d-report.md`](docs/phase-1d-report.md) and the [Phase 1 gate](docs/phase-1-gate.md).
 
 ## Layout
 
@@ -15,8 +16,12 @@ apps/mobile          Expo (dev build, New Architecture) app
 packages/contracts   TS interfaces (KnowledgeEngine, InferenceEngine, DeviceProfile)
 packages/core        Pure TS: retrieval, Layer 1, char budgets, prompts, post-validation, emergency/medical lexicons
 packages/i18n        English (default) / Greek UI strings
+packages/db          SQL migrations + typed queries (packs, settings, energy samples)
+packages/emergency-cards  Draft emergency cards (public-domain sources per step) + per-country emergency numbers
+packages/ui-tokens   Light and blackout themes, touch targets (WCAG AA tested)
 modules/expo-zim     Kotlin Expo module over libkiwix/libzim (java-libkiwix AAR) + sealed zim:// viewer
-modules/expo-device-profile  RAM, CPU topology, battery, thermal
+modules/expo-device-profile  RAM, CPU topology, battery (incl. charge counter), thermal
+modules/expo-emergency-tools  SOS torch (Morse), compass, one-shot GNSS fix, screen brightness
 native/kiwix         Pinned libkiwix version + checksum
 tools/rag-eval       Answer-quality eval (node-llama-cpp on CPU + python-libzim), golden sets, CI smoke
 scripts/             provision.ps1 (download + verify + adb push content)

@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="org.skepi.tools.MorsePlayerTest" tests="3" failures="0" errors="0" skipped="0" time="1.681" timestamp="2026-10-06T02:50:32" hostname="localhost">
+  <properties>
+    <property name="device" value="SM-S911B - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":expo-emergency-tools" />
+  </properties>
+  <testcase name="playsTheTimelineOnceAndEndsOff" classname="org.skepi.tools.MorsePlayerTest" time="0.35" />
+  <testcase name="loopsUntilStoppedAndStopSwitchesOff" classname="org.skepi.tools.MorsePlayerTest" time="0.417" />
+  <testcase name="rejectsInvalidTimelines" classname="org.skepi.tools.MorsePlayerTest" time="0.002" />
+</testsuite>

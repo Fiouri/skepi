@@ -1,0 +1,909 @@
+{
+  "schema": 4,
+  "createdAt": "2026-10-06T02:45:18.980Z",
+  "promptVersion": "rag-v5-json-short",
+  "mode": "normal",
+  "profile": {
+    "detectedTier": "T2",
+    "effectiveTier": "T2",
+    "budgetTier": "T2",
+    "summaryMode": "auto",
+    "backend": "cpu",
+    "modelId": "qwen2.5-1.5b-instruct-q4_0.gguf",
+    "threads": 5,
+    "cpuAffinity": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "contextSize": 2048,
+    "gpuLayers": 0
+  },
+  "device": {
+    "manufacturer": "samsung",
+    "model": "SM-S911B",
+    "device": "dm1q",
+    "soc": "SM8550",
+    "sdkInt": 36,
+    "release": "16"
+  },
+  "cpu": {
+    "cores": 8,
+    "performanceCores": 5,
+    "performanceCoreIds": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "maxFreqKhz": [
+      2016000,
+      2016000,
+      2016000,
+      2803200,
+      2803200,
+      2803200,
+      2803200,
+      3360000
+    ],
+    "abi": "arm64-v8a"
+  },
+  "snapshotBefore": {
+    "totalRamMb": 7072,
+    "freeRamMb": 3373,
+    "freeDiskMb": 43122,
+    "batteryPct": 96,
+    "charging": true,
+    "thermal": "nominal"
+  },
+  "runtime": {
+    "contentDir": "/storage/emulated/0/Android/data/org.skepi.app/files",
+    "icuDataDir": null,
+    "nativeInitMs": 12
+  },
+  "archives": [
+    {
+      "archiveId": "fef7bff0-40eb-7f1d-09e1-9c0de646f461",
+      "name": "wikipedia_el_top",
+      "title": "Το καλύτερο της Βικιπαίδειας",
+      "language": "ell",
+      "articleCount": 102609,
+      "sizeBytes": 117988988,
+      "openMs": 27.14724,
+      "hasFulltextIndex": true
+    },
+    {
+      "archiveId": "0e321673-038b-dba3-0470-c30430c4a24b",
+      "name": "wikipedia_en_medicine",
+      "title": "WikiMed Medical Encyclopedia",
+      "language": "eng",
+      "articleCount": 362501,
+      "sizeBytes": 162855323,
+      "openMs": 14.316354,
+      "hasFulltextIndex": true
+    },
+    {
+      "archiveId": "9da28041-e531-d51f-6963-b34339ad454c",
+      "name": "wikipedia_en_top",
+      "title": "Best of Wikipedia",
+      "language": "eng",
+      "articleCount": 703608,
+      "sizeBytes": 296858160,
+      "openMs": 14.418958,
+      "hasFulltextIndex": true
+    }
+  ],
+  "suggest": {
+    "total": {
+      "count": 20,
+      "min": 4.08448001742363,
+      "p50": 9.054374992847443,
+      "p95": 18.204374998807907,
+      "max": 31.237552016973495,
+      "mean": 11.18918240070343
+    },
+    "native": {
+      "count": 20,
+      "min": 3.708489,
+      "p50": 8.383125,
+      "p95": 17.401614,
+      "max": 30.51323,
+      "mean": 10.6592083
+    },
+    "results": [
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      16,
+      20,
+      20,
+      12,
+      9,
+      16,
+      9,
+      9,
+      8,
+      8,
+      12,
+      10,
+      9
+    ]
+  },
+  "fulltext": {
+    "total": {
+      "count": 20,
+      "min": 2.6940099895000458,
+      "p50": 6.101146012544632,
+      "p95": 16.09546798467636,
+      "max": 17.832603991031647,
+      "mean": 7.585848900675773
+    },
+    "native": {
+      "count": 20,
+      "min": 2.364062,
+      "p50": 5.601198,
+      "p95": 15.632604,
+      "max": 17.382187,
+      "mean": 7.1798670000000016
+    },
+    "results": [
+      16,
+      20,
+      16,
+      19,
+      9,
+      17,
+      17,
+      18,
+      24,
+      21,
+      8,
+      11,
+      9,
+      8,
+      8,
+      9,
+      14,
+      10,
+      9,
+      9
+    ]
+  },
+  "articleHtml": {
+    "total": {
+      "count": 10,
+      "min": 2.1804690062999725,
+      "p50": 3.871823012828827,
+      "p95": 10.283333003520966,
+      "max": 10.283333003520966,
+      "mean": 4.405026000738144
+    },
+    "native": {
+      "count": 10,
+      "min": 1.864219,
+      "p50": 3.575209,
+      "p95": 10.004948,
+      "max": 10.004948,
+      "mean": 4.079275999999999
+    },
+    "bytes": [
+      5602,
+      5384,
+      5052,
+      8457,
+      26467,
+      15106,
+      13856,
+      33664,
+      12955,
+      12002
+    ]
+  },
+  "accentProbe": [
+    {
+      "query": "Πάτρα",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "πατρα",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "ΠΑΤΡΑ",
+      "suggest": [
+        "Πάτρα",
+        "Νέα_Πάτρα",
+        "Η_Έναρξη_της_Επανάστασης_στην_Πάτρα"
+      ],
+      "fulltext": [
+        "Πάτρα",
+        "Δημήτριος_Τόφαλος",
+        "Εθνική_Οδός_9_(Ελλάδα)"
+      ],
+      "fulltextEstimated": 136
+    },
+    {
+      "query": "σεισμός",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999",
+        "Seismology"
+      ],
+      "fulltextEstimated": 60
+    },
+    {
+      "query": "σεισμος",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999",
+        "Seismology"
+      ],
+      "fulltextEstimated": 60
+    },
+    {
+      "query": "ΣΕΙΣΜΟΣ",
+      "suggest": [
+        "Σεισμός",
+        "Σεισμός_2004_Ινδικού_Ωκεανού",
+        "Σεισμός_στην_Αμοργό_(1956)"
+      ],
+      "fulltext": [
+        "Σεισμός_και_τσουνάμι_στο_Τόχοκου_το_2011",
+        "Σεισμός_της_Θεσσαλονίκης_(1978)",
+        "Σεισμός_της_Πάρνηθας_το_1999",
+        "Seismology"
+      ],
+      "fulltextEstimated": 60
+    },
+    {
+      "query": "Αχαΐα",
+      "suggest": [
+        "Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κάτω_Αχαΐα",
+        "Αχαΐα"
+      ],
+      "fulltext": [
+        "Κάτω_Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κατάλογος_βουνών_της_Ελλάδας",
+        "Achaea"
+      ],
+      "fulltextEstimated": 55
+    },
+    {
+      "query": "αχαια",
+      "suggest": [
+        "Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κάτω_Αχαΐα",
+        "Αχαΐα"
+      ],
+      "fulltext": [
+        "Κάτω_Αχαΐα",
+        "Αρχαία_Αχαΐα",
+        "Κατάλογος_βουνών_της_Ελλάδας",
+        "Achaea"
+      ],
+      "fulltextEstimated": 55
+    }
+  ],
+  "model": {
+    "id": "qwen2.5-1.5b-instruct-q4_0.gguf",
+    "sizeBytes": 1066227232,
+    "loadMs": 14340,
+    "warmLoadMs": 631,
+    "prewarmMs": 642,
+    "description": "qwen2 1.5B Q4_0 · lib rnllama_jni_v8_2_dotprod_i8mm",
+    "gpu": false,
+    "devices": [],
+    "reasonNoGpu": "GPU backend is not available"
+  },
+  "ask": [
+    {
+      "lang": "en",
+      "question": "How long should water be boiled to make it safe to drink?",
+      "status": "ready",
+      "sources": 1,
+      "sourceChars": 320,
+      "layer1Ms": 203,
+      "sourcesVisibleMs": 221.88963600993156,
+      "retrievalMs": 95,
+      "extractMs": 95,
+      "rankMs": 10,
+      "summary": {
+        "status": "shown",
+        "hiddenReason": null,
+        "promptTokens": 206,
+        "cachedPromptTokens": 92,
+        "generatedTokens": 108,
+        "ttftMs": 843,
+        "tokensPerSecond": 26.511050075691504,
+        "totalMs": 4940,
+        "kept": 2,
+        "written": 3,
+        "cited": [
+          "S1"
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "question": "What is the capital of Australia?",
+      "status": "ready",
+      "sources": 4,
+      "sourceChars": 2010,
+      "layer1Ms": 149,
+      "sourcesVisibleMs": 163.86369800567627,
+      "retrievalMs": 43,
+      "extractMs": 91,
+      "rankMs": 12,
+      "summary": {
+        "status": "shown",
+        "hiddenReason": null,
+        "promptTokens": 574,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 93,
+        "ttftMs": 3743,
+        "tokensPerSecond": 22.7847524436647,
+        "totalMs": 7851,
+        "kept": 2,
+        "written": 2,
+        "cited": [
+          "S1"
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "question": "Who wrote Romeo and Juliet?",
+      "status": "ready",
+      "sources": 4,
+      "sourceChars": 2030,
+      "layer1Ms": 192,
+      "sourcesVisibleMs": 204.3721880018711,
+      "retrievalMs": 110,
+      "extractMs": 67,
+      "rankMs": 11,
+      "summary": {
+        "status": "shown",
+        "hiddenReason": null,
+        "promptTokens": 657,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 149,
+        "ttftMs": 4663,
+        "tokensPerSecond": 22.653328062760362,
+        "totalMs": 11222,
+        "kept": 2,
+        "written": 2,
+        "cited": [
+          "S1",
+          "S2"
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "question": "What causes earthquakes?",
+      "status": "ready",
+      "sources": 2,
+      "sourceChars": 1082,
+      "layer1Ms": 169,
+      "sourcesVisibleMs": 191.78281199932098,
+      "retrievalMs": 104,
+      "extractMs": 55,
+      "rankMs": 8,
+      "summary": {
+        "status": "shown",
+        "hiddenReason": null,
+        "promptTokens": 377,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 104,
+        "ttftMs": 2186,
+        "tokensPerSecond": 24.547123277777374,
+        "totalMs": 6444,
+        "kept": 2,
+        "written": 2,
+        "cited": [
+          "S1"
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "question": "How does photosynthesis work?",
+      "status": "no_source",
+      "sources": 0,
+      "sourceChars": 0,
+      "layer1Ms": 219,
+      "sourcesVisibleMs": null,
+      "retrievalMs": 101,
+      "extractMs": 100,
+      "rankMs": 17,
+      "summary": null
+    },
+    {
+      "lang": "en",
+      "question": "When did World War II end?",
+      "status": "no_source",
+      "sources": 0,
+      "sourceChars": 0,
+      "layer1Ms": 398,
+      "sourcesVisibleMs": null,
+      "retrievalMs": 315,
+      "extractMs": 73,
+      "rankMs": 9,
+      "summary": null
+    },
+    {
+      "lang": "en",
+      "question": "How tall is Mount Everest?",
+      "status": "ready",
+      "sources": 4,
+      "sourceChars": 2078,
+      "layer1Ms": 159,
+      "sourcesVisibleMs": 179.69369798898697,
+      "retrievalMs": 73,
+      "extractMs": 71,
+      "rankMs": 13,
+      "summary": null
+    },
+    {
+      "lang": "en",
+      "question": "What is the speed of light?",
+      "status": "ready",
+      "sources": 4,
+      "sourceChars": 2177,
+      "layer1Ms": 186,
+      "sourcesVisibleMs": 198.95390701293945,
+      "retrievalMs": 94,
+      "extractMs": 78,
+      "rankMs": 12,
+      "summary": null
+    },
+    {
+      "lang": "en",
+      "question": "What is the population of Greece?",
+      "status": "ready",
+      "sources": 4,
+      "sourceChars": 2369,
+      "layer1Ms": 174,
+      "sourcesVisibleMs": 200.02026000618935,
+      "retrievalMs": 94,
+      "extractMs": 63,
+      "rankMs": 14,
+      "summary": null
+    },
+    {
+      "lang": "en",
+      "question": "Where is the Great Barrier Reef?",
+      "status": "ready",
+      "sources": 4,
+      "sourceChars": 2046,
+      "layer1Ms": 207,
+      "sourcesVisibleMs": 234.1473430097103,
+      "retrievalMs": 105,
+      "extractMs": 86,
+      "rankMs": 13,
+      "summary": null
+    },
+    {
+      "lang": "el",
+      "question": "Πού βρίσκεται η Πάτρα και πόσους κατοίκους έχει;",
+      "status": "ready",
+      "sources": 1,
+      "sourceChars": 528,
+      "layer1Ms": 145,
+      "sourcesVisibleMs": 161.36406299471855,
+      "retrievalMs": 43,
+      "extractMs": 87,
+      "rankMs": 13,
+      "summary": {
+        "status": "shown",
+        "hiddenReason": null,
+        "promptTokens": 688,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 136,
+        "ttftMs": 27000,
+        "tokensPerSecond": 24.70406438169814,
+        "totalMs": 32524,
+        "kept": 2,
+        "written": 2,
+        "cited": [
+          "S1"
+        ]
+      }
+    },
+    {
+      "lang": "el",
+      "question": "Ποια είναι η πρωτεύουσα της Ελλάδας;",
+      "status": "ready",
+      "sources": 2,
+      "sourceChars": 720,
+      "layer1Ms": 153,
+      "sourcesVisibleMs": 170.93234398961067,
+      "retrievalMs": 45,
+      "extractMs": 93,
+      "rankMs": 13,
+      "summary": {
+        "status": "hidden",
+        "hiddenReason": "not_covered",
+        "promptTokens": 866,
+        "cachedPromptTokens": 101,
+        "generatedTokens": 152,
+        "ttftMs": 6818,
+        "tokensPerSecond": 20.51388911757077,
+        "totalMs": 14271,
+        "kept": 0,
+        "written": 2,
+        "cited": []
+      }
+    },
+    {
+      "lang": "el",
+      "question": "Πότε ξεκίνησε η Ελληνική Επανάσταση;",
+      "status": "ready",
+      "sources": 2,
+      "sourceChars": 832,
+      "layer1Ms": 311,
+      "sourcesVisibleMs": 325.486250013113,
+      "retrievalMs": 86,
+      "extractMs": 180,
+      "rankMs": 41,
+      "summary": {
+        "status": "hidden",
+        "hiddenReason": "not_covered",
+        "promptTokens": 1008,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 199,
+        "ttftMs": 8850,
+        "tokensPerSecond": 19.34592308974807,
+        "totalMs": 19110,
+        "kept": 0,
+        "written": 1,
+        "cited": []
+      }
+    },
+    {
+      "lang": "el",
+      "question": "Τι προκαλεί τους σεισμούς;",
+      "status": "ready",
+      "sources": 2,
+      "sourceChars": 987,
+      "layer1Ms": 180,
+      "sourcesVisibleMs": 189.86619800329208,
+      "retrievalMs": 33,
+      "extractMs": 121,
+      "rankMs": 20,
+      "summary": {
+        "status": "shown",
+        "hiddenReason": null,
+        "promptTokens": 1068,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 199,
+        "ttftMs": 9566,
+        "tokensPerSecond": 19.00959621611599,
+        "totalMs": 20011,
+        "kept": 1,
+        "written": 1,
+        "cited": [
+          "S1"
+        ]
+      }
+    },
+    {
+      "lang": "el",
+      "question": "Ποιος ήταν ο Αριστοτέλης;",
+      "status": "ready",
+      "sources": 2,
+      "sourceChars": 946,
+      "layer1Ms": 139,
+      "sourcesVisibleMs": 149.90333297848701,
+      "retrievalMs": 27,
+      "extractMs": 92,
+      "rankMs": 17,
+      "summary": {
+        "status": "hidden",
+        "hiddenReason": "no_supported_sentence",
+        "promptTokens": 1069,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 199,
+        "ttftMs": 10699,
+        "tokensPerSecond": 17.31198015124929,
+        "totalMs": 22168,
+        "kept": 0,
+        "written": 1,
+        "cited": []
+      }
+    },
+    {
+      "lang": "el",
+      "question": "Πόσο ψηλός είναι ο Όλυμπος;",
+      "status": "ready",
+      "sources": 1,
+      "sourceChars": 563,
+      "layer1Ms": 121,
+      "sourcesVisibleMs": 147.57354199886322,
+      "retrievalMs": 30,
+      "extractMs": 77,
+      "rankMs": 10,
+      "summary": {
+        "status": "shown",
+        "hiddenReason": null,
+        "promptTokens": 700,
+        "cachedPromptTokens": 100,
+        "generatedTokens": 126,
+        "ttftMs": 6838,
+        "tokensPerSecond": 16.014837365513497,
+        "totalMs": 14782,
+        "kept": 1,
+        "written": 2,
+        "cited": [
+          "S1"
+        ]
+      }
+    },
+    {
+      "lang": "el",
+      "question": "Τι είναι η δημοκρατία;",
+      "status": "ready",
+      "sources": 2,
+      "sourceChars": 688,
+      "layer1Ms": 293,
+      "sourcesVisibleMs": 321.5617710053921,
+      "retrievalMs": 75,
+      "extractMs": 178,
+      "rankMs": 36,
+      "summary": null
+    },
+    {
+      "lang": "el",
+      "question": "Πού βρίσκεται η Κρήτη;",
+      "status": "ready",
+      "sources": 1,
+      "sourceChars": 535,
+      "layer1Ms": 189,
+      "sourcesVisibleMs": 214.73984399437904,
+      "retrievalMs": 26,
+      "extractMs": 138,
+      "rankMs": 22,
+      "summary": null
+    },
+    {
+      "lang": "el",
+      "question": "Ποιος έγραψε την Οδύσσεια;",
+      "status": "no_source",
+      "sources": 0,
+      "sourceChars": 0,
+      "layer1Ms": 190,
+      "sourcesVisibleMs": null,
+      "retrievalMs": 38,
+      "extractMs": 126,
+      "rankMs": 25,
+      "summary": null
+    },
+    {
+      "lang": "el",
+      "question": "Πότε ιδρύθηκε η Θεσσαλονίκη;",
+      "status": "ready",
+      "sources": 1,
+      "sourceChars": 503,
+      "layer1Ms": 234,
+      "sourcesVisibleMs": 245.64416700601578,
+      "retrievalMs": 44,
+      "extractMs": 152,
+      "rankMs": 36,
+      "summary": null
+    }
+  ],
+  "perLang": {
+    "en": {
+      "layer1": {
+        "count": 10,
+        "min": 149,
+        "p50": 186,
+        "p95": 398,
+        "max": 398,
+        "mean": 205.6
+      },
+      "sourcesVisible": {
+        "count": 8,
+        "min": 163.86369800567627,
+        "p50": 198.95390701293945,
+        "p95": 234.1473430097103,
+        "max": 234.1473430097103,
+        "mean": 199.34044275432825
+      },
+      "ttft": {
+        "count": 4,
+        "min": 843,
+        "p50": 2186,
+        "p95": 4663,
+        "max": 4663,
+        "mean": 2858.75
+      },
+      "tokensPerSecond": {
+        "count": 4,
+        "min": 22.653328062760362,
+        "p50": 22.7847524436647,
+        "p95": 26.511050075691504,
+        "max": 26.511050075691504,
+        "mean": 24.124063464973485
+      },
+      "promptTokens": {
+        "count": 4,
+        "min": 206,
+        "p50": 377,
+        "p95": 657,
+        "max": 657,
+        "mean": 453.5
+      }
+    },
+    "el": {
+      "layer1": {
+        "count": 10,
+        "min": 121,
+        "p50": 180,
+        "p95": 311,
+        "max": 311,
+        "mean": 195.5
+      },
+      "sourcesVisible": {
+        "count": 9,
+        "min": 147.57354199886322,
+        "p50": 189.86619800329208,
+        "p95": 325.486250013113,
+        "max": 325.486250013113,
+        "mean": 214.11905688709683
+      },
+      "ttft": {
+        "count": 6,
+        "min": 6818,
+        "p50": 8850,
+        "p95": 27000,
+        "max": 27000,
+        "mean": 11628.5
+      },
+      "tokensPerSecond": {
+        "count": 6,
+        "min": 16.014837365513497,
+        "p50": 19.00959621611599,
+        "p95": 24.70406438169814,
+        "max": 24.70406438169814,
+        "mean": 19.48338172031596
+      },
+      "promptTokens": {
+        "count": 6,
+        "min": 688,
+        "p50": 866,
+        "p95": 1069,
+        "max": 1069,
+        "mean": 899.8333333333334
+      }
+    }
+  },
+  "tokenizer": {
+    "en": {
+      "chars": 14112,
+      "actual": 3183,
+      "estimated": 3538,
+      "actualPerChar": 0.22555272108843538,
+      "profilePerChar": 0.25,
+      "ratio": 1.1115300031416901
+    },
+    "el": {
+      "chars": 6302,
+      "actual": 5489,
+      "estimated": 5172,
+      "actualPerChar": 0.8709933354490638,
+      "profilePerChar": 0.95,
+      "ratio": 0.9422481326288942
+    }
+  },
+  "memory": {
+    "totalRamMb": 7072,
+    "availRamMb": 2324,
+    "lowMemory": false,
+    "thresholdMb": 390,
+    "peakRssMb": 2273,
+    "rssMb": 2173,
+    "nativeHeapMb": 1604
+  },
+  "gates": {
+    "suggestP95Ms": {
+      "value": 18.204374998807907,
+      "gate": 50,
+      "pass": true
+    },
+    "fulltextP95Ms": {
+      "value": 16.09546798467636,
+      "gate": 300,
+      "pass": true
+    },
+    "articleHtmlP95Ms": {
+      "value": 10.283333003520966,
+      "gate": 500,
+      "pass": true
+    },
+    "modelLoadMs": {
+      "value": 631,
+      "gate": 10000,
+      "pass": true
+    },
+    "modelFirstLoadMs": {
+      "value": 14340,
+      "gate": null,
+      "pass": null
+    },
+    "layer1EnP95Ms": {
+      "value": 398,
+      "gate": null,
+      "pass": null
+    },
+    "layer1ElP95Ms": {
+      "value": 311,
+      "gate": null,
+      "pass": null
+    },
+    "sourcesVisibleEnP95Ms": {
+      "value": 234.1473430097103,
+      "gate": null,
+      "pass": null
+    },
+    "sourcesVisibleElP95Ms": {
+      "value": 325.486250013113,
+      "gate": null,
+      "pass": null
+    },
+    "ttftEnP95Ms": {
+      "value": 4663,
+      "gate": 15000,
+      "pass": true
+    },
+    "ttftElP95Ms": {
+      "value": 27000,
+      "gate": null,
+      "pass": null
+    }
+  },
+  "reportPath": null
+}

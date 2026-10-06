@@ -1,0 +1,3 @@
+Download requests by ContentStore: 12 (non-mirror: 0)
+Mirror requests: 15, with query string: 0, user agents: SKEPI
+Bytes of UID 10530 over real interfaces during the flow: 0
