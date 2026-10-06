@@ -128,3 +128,18 @@ export function contrastRatio(a: string, b: string): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
   return (hi + 0.05) / (lo + 0.05);
 }
+
+/**
+ * Emergency POI markers on the map (circles with a white outline). Each fill must stand out from the
+ * white outline (3:1, a UI boundary) so the categories stay distinguishable on any basemap colour.
+ */
+export const POI_COLORS = {
+  hospital: '#b91c1c',
+  pharmacy: '#15803d',
+  fire_station: '#c2410c',
+  police: '#1d4ed8',
+  drinking_water: '#0e7490',
+  shelter: '#6d28d9',
+} as const;
+
+export const POI_OUTLINE = '#ffffff';

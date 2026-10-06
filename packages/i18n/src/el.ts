@@ -196,6 +196,7 @@ export const el: Messages = {
     meteredAccept: 'Λήψη',
     noSpace: ({ needed, free }) => `Δεν υπάρχει χώρος: χρειάζονται ${needed} ελεύθερα (αρχείο + 10% + 1 GB), διαθέσιμα ${free}.`,
     rejectedModels: (files) => `Απορρίφθηκαν μη επαληθευμένα μοντέλα (δεν φορτώνονται ποτέ): ${files}`,
+    rejectedMaps: (files) => `Αγνοήθηκαν αρχεία χαρτών και τοποθεσιών εκτός υπογεγραμμένου καταλόγου (δεν ανοίγουν ποτέ): ${files}`,
     networkLog: ({ count, hosts }) => `Αιτήματα λήψης σε αυτή τη συνεδρία: ${count}${count > 0 ? ` (${hosts})` : ''}`,
   },
   content: {
@@ -204,8 +205,10 @@ export const el: Messages = {
     verifying: ({ file, percent }) => `Έλεγχος ${file}… ${percent}%`,
   },
   search: {
-    placeholder: 'Αναζήτηση άρθρων',
+    placeholder: 'Αναζήτηση άρθρων, τοποθεσιών και καρτών',
     fullText: 'Πλήρες κείμενο',
+    places: 'Τοποθεσίες',
+    placeOnMap: 'Δείχνει την τοποθεσία στον χάρτη εκτός σύνδεσης',
     timing: ({ kind, count, totalMs, nativeMs }) =>
       `${kind}: ${count} ${count === 1 ? 'αποτέλεσμα' : 'αποτελέσματα'} · ${totalMs} ms (native ${nativeMs} ms)`,
   },
@@ -251,10 +254,22 @@ export const el: Messages = {
     simulationActive: 'Η προσομοίωση T1 είναι ενεργή',
   },
   map: {
-    missing: 'Δεν βρέθηκε αρχείο .pmtiles στο maps/.',
+    missing: 'Δεν υπάρχει επαληθευμένος χάρτης. Κατέβασέ τον από τη Βιβλιοθήκη ή λάβε τον από άλλο κινητό.',
     failed: 'Αποτυχία φόρτωσης χάρτη',
     loading: 'Φόρτωση χάρτη…',
     ready: (ms) => `Χάρτης έτοιμος (${ms} ms) · offline PMTiles`,
+    poi: {
+      hospital: 'Νοσοκομεία',
+      pharmacy: 'Φαρμακεία',
+      fire_station: 'Πυροσβεστική',
+      police: 'Αστυνομία',
+      drinking_water: 'Πόσιμο νερό',
+      shelter: 'Καταφύγια',
+    },
+    poiCount: (n) => `${n} ${n === 1 ? 'σημείο' : 'σημεία'} έκτακτης ανάγκης στην οθόνη`,
+    zoomForPois: 'Μεγέθυνε για να δεις τα σημεία έκτακτης ανάγκης',
+    noPlaces: 'Δεν υπάρχει επαληθευμένο πακέτο τοποθεσιών: τα σημεία έκτακτης ανάγκης δεν είναι διαθέσιμα.',
+    attribution: '© OpenStreetMap contributors · Protomaps',
   },
   bench: {
     run: 'Εκτέλεση bench',

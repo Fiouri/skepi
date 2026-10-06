@@ -49,7 +49,10 @@ interface ContentState {
   reconcile: ReconcileReport | null;
   archives: OpenArchive[];
   models: InstalledModel[];
+  /** The verified map pack (newest first); unverified map files are never opened. */
   pmtilesPath: string | null;
+  /** Verified places packs (search and the emergency POI layer). */
+  placesPaths: string[];
   cpu: CpuInfo | null;
   totalRamMb: number;
   /** Developer setting: force the T1 profile on any device (persisted in app.db). */
@@ -120,6 +123,7 @@ export const useContent = create<ContentState>((set, get) => ({
   archives: [],
   models: [],
   pmtilesPath: null,
+  placesPaths: [],
   cpu: null,
   totalRamMb: 0,
   simulateT1: false,
@@ -148,7 +152,16 @@ export const useContent = create<ContentState>((set, get) => ({
     const models = packs
       .filter((p) => p.kind === 'gguf' && p.verified)
       .map((p) => ({ id: p.path.split('/').pop() ?? p.id, path: p.path, sizeBytes: p.sizeBytes }));
-    set({ packs, archives, models });
+    // Only packs of a valid signed catalog render or are searched (newest version first).
+    const newest = (kind: 'pmtiles' | 'places'): InstalledPack[] =>
+      packs.filter((p) => p.kind === kind && p.verified).sort((a, b) => b.version.localeCompare(a.version) || a.id.localeCompare(b.id));
+    set({
+      packs,
+      archives,
+      models,
+      pmtilesPath: newest('pmtiles')[0]?.path ?? null,
+      placesPaths: newest('places').map((p) => p.path),
+    });
   },
   adoptCatalog: async (source) => {
     const db = await appDb();
@@ -180,8 +193,7 @@ export const useContent = create<ContentState>((set, get) => ({
       });
       set({ verifying: null, reconcile });
       await get().refresh();
-      const maps = (await ExpoZim.listContent()).find((x) => x.kind === 'maps' && x.name.endsWith('.pmtiles'));
-      set({ status: 'ready', pmtilesPath: maps?.path ?? null });
+      set({ status: 'ready' });
     } catch (e) {
       set({ status: 'error', verifying: null, error: e instanceof Error ? e.message : String(e) });
     }

@@ -148,8 +148,10 @@ export const en: Messages = {
     verifying: ({ file, percent }) => `Checking ${file}… ${percent}%`,
   },
   search: {
-    placeholder: 'Search articles',
+    placeholder: 'Search articles, places and cards',
     fullText: 'Full-text',
+    places: 'Places',
+    placeOnMap: 'Shows the place on the offline map',
     timing: ({ kind, count, totalMs, nativeMs }) =>
       `${kind}: ${count} ${count === 1 ? 'result' : 'results'} · ${totalMs} ms (native ${nativeMs} ms)`,
   },
@@ -206,6 +208,7 @@ export const en: Messages = {
     meteredAccept: 'Download',
     noSpace: ({ needed, free }) => `Not enough space: needs ${needed} free (file + 10% + 1 GB), ${free} available.`,
     rejectedModels: (files) => `Rejected unverified models (never loaded): ${files}`,
+    rejectedMaps: (files) => `Ignored map and places files that are not in the signed catalog (never opened): ${files}`,
     networkLog: ({ count, hosts }) => `Download requests this session: ${count}${count > 0 ? ` (${hosts})` : ''}`,
   },
   article: {
@@ -250,10 +253,22 @@ export const en: Messages = {
     simulationActive: 'T1 simulation is on',
   },
   map: {
-    missing: 'No .pmtiles file found in maps/.',
+    missing: 'No verified map pack. Download one in the Library or receive it from another phone.',
     failed: 'Map failed to load',
     loading: 'Loading map…',
     ready: (ms) => `Map ready (${ms} ms) · offline PMTiles`,
+    poi: {
+      hospital: 'Hospitals',
+      pharmacy: 'Pharmacies',
+      fire_station: 'Fire stations',
+      police: 'Police',
+      drinking_water: 'Drinking water',
+      shelter: 'Shelters',
+    },
+    poiCount: (n) => `${n} emergency ${n === 1 ? 'point' : 'points'} in view`,
+    zoomForPois: 'Zoom in to see emergency points',
+    noPlaces: 'No verified places pack: emergency points are not available.',
+    attribution: '© OpenStreetMap contributors · Protomaps',
   },
   bench: {
     run: 'Run bench',

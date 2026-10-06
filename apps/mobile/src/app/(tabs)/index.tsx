@@ -1,8 +1,8 @@
 import type { SearchHit } from '@skepi/contracts';
-import { DEFAULT_SUGGEST, suggestTitles } from '@skepi/core';
+import { DEFAULT_SUGGEST, placeTitle, suggestTitles } from '@skepi/core';
 import { findCards } from '@skepi/emergency-cards';
 import { useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import { BlackoutControls, PowerTips } from '../../components/Blackout';
 import { CardLinks } from '../../components/EmergencyCards';
@@ -10,6 +10,7 @@ import { Readiness } from '../../components/Readiness';
 import { Button, useStyles, UnverifiedLabel } from '../../components/ui';
 import { knowledge, ragArchives, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
+import { searchAllPlaces, type PlaceHit } from '../../lib/places';
 import { usePrefs } from '../../lib/prefs';
 import { useTheme } from '../../lib/theme';
 
@@ -22,7 +23,8 @@ interface Timing {
 
 /**
  * Home: the permanent Emergency button, blackout mode, the "You are ready" indicator, and one search
- * field over emergency cards and articles. Cards and the Emergency button work with no pack at all.
+ * field over emergency cards, places (verified places packs) and articles. Cards and the Emergency
+ * button work with no pack at all.
  */
 export default function SearchScreen() {
   const router = useRouter();
@@ -31,7 +33,9 @@ export default function SearchScreen() {
   const theme = useTheme();
   const blackout = usePrefs((s) => s.blackout);
   const archives = useContent((s) => s.archives);
+  const placesPaths = useContent((s) => s.placesPaths);
   const status = useContent((s) => s.status);
+  const [places, setPlaces] = useState<PlaceHit[]>([]);
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [timing, setTiming] = useState<Timing | null>(null);
@@ -69,6 +73,26 @@ export default function SearchScreen() {
     },
     [canSearchArticles],
   );
+
+  // Places come from the verified places packs (SQLite FTS5, ~1 ms per query): searched on every change.
+  useEffect(() => {
+    if (query.trim().length === 0 || placesPaths.length === 0) {
+      setPlaces([]);
+      return;
+    }
+    let live = true;
+    void searchAllPlaces(placesPaths, query, 5).then(
+      (found) => {
+        if (live) setPlaces(found);
+      },
+      () => {
+        if (live) setPlaces([]);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [query, placesPaths]);
 
   const onChange = (text: string): void => {
     setQuery(text);
@@ -127,6 +151,32 @@ export default function SearchScreen() {
       {cards.length > 0 && (
         <View testID="search-cards">
           <CardLinks cards={cards} />
+        </View>
+      )}
+      {places.length > 0 && (
+        <View testID="search-places">
+          <Text style={styles.title} accessibilityRole="header">
+            {t.search.places}
+          </Text>
+          {places.map((p, i) => {
+            const title = placeTitle(p);
+            return (
+              <Pressable
+                key={`${p.packPath}#${String(p.id)}`}
+                testID={`place-result-${String(i)}`}
+                accessibilityRole="link"
+                accessibilityHint={t.search.placeOnMap}
+                style={styles.item}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  router.push({ pathname: '/map', params: { lat: String(p.lat), lon: String(p.lon), title: title.title } });
+                }}
+              >
+                <Text style={styles.title}>{title.title}</Text>
+                <Text style={styles.muted}>{[title.local, title.kind].filter(Boolean).join(' · ')}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       )}
     </View>

@@ -141,4 +141,38 @@ describe('parseManifest', () => {
     expect(() => parseManifest(withSource({ kind: 'download', url: 'http://x/a.zim', upstreamSha256Url: 'https://x/a.sha256' }))).toThrow(/HTTPS/);
     expect(() => parseManifest(withSource({ kind: 'local', path: 'a.zim' }, ['https://x/a.zim?k=1']))).toThrow(/query/);
   });
+
+  it('validates built map and places sources', () => {
+    const base = JSON.parse(JSON.stringify(manifest)) as { schema: 1; packs: Record<string, unknown>[] };
+    const pack = (over: Record<string, unknown>): string => JSON.stringify({ ...base, packs: [{ ...base.packs[0], ...over }] });
+    const map = { kind: 'pmtiles-extract', buildUrl: 'https://build.protomaps.com/20261005.pmtiles', region: 'catalog/regions/greece.geojson', maxzoom: 15 };
+    expect(parseManifest(pack({ kind: 'pmtiles', file: 'm.pmtiles', source: map })).packs[0]?.source).toEqual(map);
+    expect(() => parseManifest(pack({ kind: 'zim', source: map }))).toThrow(/builds kind pmtiles/);
+    expect(() => parseManifest(pack({ kind: 'pmtiles', source: { ...map, buildUrl: 'https://example.com/latest.pmtiles' } }))).toThrow(/dated Protomaps/);
+    expect(() => parseManifest(pack({ kind: 'pmtiles', source: { ...map, maxzoom: 16 } }))).toThrow(/maxzoom/);
+    const places = {
+      kind: 'osm-places',
+      url: 'https://download.geofabrik.de/europe/greece-261004.osm.pbf',
+      upstreamMd5Url: 'https://download.geofabrik.de/europe/greece-261004.osm.pbf.md5',
+      region: 'GR',
+      locale: 'el',
+    };
+    expect(parseManifest(pack({ kind: 'places', file: 'p.sqlite', source: places })).packs[0]?.source).toEqual(places);
+    expect(() => parseManifest(pack({ kind: 'places', source: { ...places, region: 'Greece' } }))).toThrow(/region/);
+    expect(() => parseManifest(pack({ kind: 'places', source: { ...places, upstreamMd5Url: undefined } }))).toThrow(/upstreamMd5Url/);
+  });
+
+  it('allows small power-of-two chunk sizes for test packs only within bounds', async () => {
+    const base = JSON.parse(JSON.stringify(manifest)) as { schema: 1; packs: Record<string, unknown>[] };
+    const withChunk = (chunkSize: number): string => JSON.stringify({ ...base, packs: [{ ...base.packs[0], chunkSize }] });
+    expect(() => parseManifest(withChunk(1000))).toThrow(/power of two/);
+    expect(() => parseManifest(withChunk(32 * 1024))).toThrow(/power of two/);
+    const small = parseManifest(withChunk(64 * 1024));
+    writeFileSync(join(dir, 'tiny.zim'), Buffer.alloc(300_000, 7));
+    const built = await buildCatalog({ manifest: small, cacheDir: dir, key: active, previousSequence: null });
+    // 300 000 bytes in 64 KiB chunks: 5 chunks, the app's schema check accepts it.
+    expect(built.catalog.packs[0]?.chunkSize).toBe(65536);
+    expect(built.catalog.packs[0]?.chunkSha256).toHaveLength(5);
+    expect(verifyCatalog(built.bytes, built.signature, trusted, NO_SEQUENCE).ok).toBe(true);
+  });
 });

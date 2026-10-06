@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLACKOUT, CONTRAST_PAIRS, contrastRatio, LIGHT, THEMES } from '../src';
+import { BLACKOUT, CONTRAST_PAIRS, contrastRatio, LIGHT, POI_COLORS, POI_OUTLINE, THEMES } from '../src';
 
 describe('themes', () => {
   it.each(Object.values(THEMES).flatMap((theme) => CONTRAST_PAIRS.map((p) => [theme.name, p.fg, p.bg, p.kind] as const)))(
@@ -14,6 +14,10 @@ describe('themes', () => {
     expect(BLACKOUT.bg).toBe('#000000');
     expect(BLACKOUT.animations).toBe(false);
     expect(LIGHT.animations).toBe(true);
+  });
+
+  it.each(Object.entries(POI_COLORS))('POI marker %s stands out from its white outline (3:1)', (_name, color) => {
+    expect(contrastRatio(color, POI_OUTLINE)).toBeGreaterThanOrEqual(3);
   });
 
   it('computes known ratios', () => {

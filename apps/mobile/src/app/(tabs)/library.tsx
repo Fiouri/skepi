@@ -199,6 +199,11 @@ export default function LibraryScreen() {
           {t.library.rejectedModels(reconcile.rejectedModels.join(', '))}
         </Text>
       )}
+      {reconcile && reconcile.rejectedMaps.length > 0 && (
+        <Text style={styles.error} testID="rejected-maps">
+          {t.library.rejectedMaps(reconcile.rejectedMaps.join(', '))}
+        </Text>
+      )}
       <Button testID="library-import" label={t.library.import} onPress={() => void importFile()} disabled={busy} />
       {note('import')}
 

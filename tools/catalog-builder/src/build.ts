@@ -1,4 +1,5 @@
 import {
+  CATALOG_CHUNK_SIZE,
   CATALOG_SCHEMA,
   KEY_LIST_SCHEMA,
   parseCatalog,
@@ -12,12 +13,15 @@ import {
   type KeyList,
   type TrustedKey,
 } from '@skepi/core';
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
-import { downloadTo, fetchUpstreamSha256 } from './download';
+import { downloadTo, fetchUpstreamMd5, fetchUpstreamSha256 } from './download';
 import { digestFile } from './hash';
 import { REPO_ROOT } from './keys';
+import { extractMap } from './mapExtract';
+import { extractOsm, readCandidates, writePlacesPack } from './places';
 import type { Manifest, ManifestPack } from './manifest';
 
 export interface SigningKey {
@@ -69,9 +73,34 @@ async function packFile(pack: ManifestPack, opts: BuildOptions): Promise<{ path:
     return { path: isAbsolute(source.path) ? source.path : resolve(root, source.path), upstream: null };
   }
   await mkdir(opts.cacheDir, { recursive: true });
+  if (source.kind === 'pmtiles-extract') {
+    const path = await extractMap({ ...source, out: join(opts.cacheDir, pack.file), cacheDir: opts.cacheDir, log });
+    return { path, upstream: null };
+  }
+  if (source.kind === 'osm-places') {
+    const out = join(opts.cacheDir, pack.file);
+    if (!existsSync(out)) {
+      const pbf = await downloadTo(source.url, join(opts.cacheDir, source.url.split('/').pop() ?? `${pack.id}.osm.pbf`), log);
+      const md5 = await md5File(pbf);
+      const upstream = await fetchUpstreamMd5(source.upstreamMd5Url);
+      if (md5 !== upstream) throw new Error(`${pack.id}: OSM extract MD5 ${md5} does not match the publisher's ${upstream} (${pbf})`);
+      // The candidate list is kept beside the pack: rebuilding the pack does not re-read the PBF.
+      const ndjson = `${out}.ndjson`;
+      if (!existsSync(ndjson)) await extractOsm(pbf, ndjson, source.locale);
+      const report = await writePlacesPack(await readCandidates(ndjson), out, { region: source.region, locale: source.locale, source: source.url });
+      log(`${pack.id}: ${String(report.rows)} places ${JSON.stringify(report.byCategory)}`);
+    }
+    return { path: out, upstream: null };
+  }
   const path = await downloadTo(source.url, join(opts.cacheDir, pack.file), log);
   const upstream = 'upstreamSha256Url' in source ? await fetchUpstreamSha256(source.upstreamSha256Url) : source.upstreamSha256;
   return { path, upstream };
+}
+
+async function md5File(path: string): Promise<string> {
+  const h = createHash('md5');
+  for await (const chunk of createReadStream(path) as AsyncIterable<Buffer>) h.update(chunk);
+  return h.digest('hex');
 }
 
 /** Measures every pack (SHA-256, 64 MB chunk hashes) and checks it against the publisher's checksum. */
@@ -80,7 +109,7 @@ export async function measurePacks(opts: BuildOptions): Promise<CatalogPack[]> {
   const packs: CatalogPack[] = [];
   for (const p of opts.manifest.packs) {
     const { path, upstream } = await packFile(p, opts);
-    const digest = await digestFile(path);
+    const digest = await digestFile(path, p.chunkSize ?? CATALOG_CHUNK_SIZE);
     if (upstream !== null && upstream !== digest.sha256) {
       throw new Error(`${p.id}: SHA-256 ${digest.sha256} does not match the publisher's ${upstream} (${path})`);
     }

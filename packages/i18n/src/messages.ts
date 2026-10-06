@@ -179,11 +179,14 @@ export interface Messages {
     meteredAccept: string;
     noSpace: (p: { needed: string; free: string }) => string;
     rejectedModels: (files: string) => string;
+    rejectedMaps: (files: string) => string;
     networkLog: (p: { count: number; hosts: string }) => string;
   };
   search: {
     placeholder: string;
     fullText: string;
+    places: string;
+    placeOnMap: string;
     timing: (p: { kind: 'suggest' | 'fulltext'; count: number; totalMs: string; nativeMs: string }) => string;
   };
   article: {
@@ -232,6 +235,11 @@ export interface Messages {
     failed: string;
     loading: string;
     ready: (ms: string) => string;
+    poi: Record<'hospital' | 'pharmacy' | 'fire_station' | 'police' | 'drinking_water' | 'shelter', string>;
+    poiCount: (n: number) => string;
+    zoomForPois: string;
+    noPlaces: string;
+    attribution: string;
   };
   bench: {
     run: string;

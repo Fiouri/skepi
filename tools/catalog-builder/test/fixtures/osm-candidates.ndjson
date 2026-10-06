@@ -1,0 +1,13 @@
+{"id": 1001, "lat": 38.2466, "lon": 21.7346, "t": "n", "tags": {"name": "Πάτρα", "name:el": "Πάτρα", "name:en": "Patras", "place": "city"}}
+{"id": 1002, "lat": 37.9838, "lon": 23.7275, "t": "n", "tags": {"name": "Αθήνα", "name:en": "Athens", "place": "city"}}
+{"id": 1003, "lat": 38.3, "lon": 21.78, "t": "n", "tags": {"name": "Ρίο", "name:en": "Rio", "place": "suburb"}}
+{"id": 1004, "lat": 38.25, "lon": 21.74, "t": "n", "tags": {"amenity": "pharmacy", "name": "Φαρμακείο Παπαδόπουλος"}}
+{"id": 1005, "lat": 38.251, "lon": 21.741, "t": "n", "tags": {"amenity": "drinking_water"}}
+{"id": 1006, "lat": 38.26, "lon": 21.75, "t": "n", "tags": {"amenity": "bench", "name": "Not a place"}}
+{"id": 1007, "lat": 40.0855, "lon": 22.3586, "t": "n", "tags": {"name": "Μύτικας", "name:en": "Mytikas", "natural": "peak"}}
+{"id": 1008, "lat": 38.24, "lon": 21.73, "t": "n", "tags": {"emergency": "assembly_point", "name": "Χώρος καταφυγής Πλατεία Γεωργίου"}}
+{"id": 1009, "lat": 38.24, "lon": 21.73, "t": "n", "tags": {"place": "hamlet"}}
+{"id": 2001, "lat": 38.2435, "lon": 21.7365, "t": "w", "tags": {"amenity": "hospital", "name": "Γενικό Νοσοκομείο Πατρών", "name:en": "Patras General Hospital"}}
+{"id": 2002, "lat": 38.235, "lon": 21.731, "t": "w", "tags": {"amenity": "fire_station", "name:en": "Patras Fire Station 1"}}
+{"id": 2003, "lat": 38.23, "lon": 21.72, "t": "w", "tags": {"amenity": "shelter", "shelter_type": "public_transport", "name": "Στάση"}}
+{"id": 3001, "lat": 38.2, "lon": 21.7, "t": "r", "tags": {"amenity": "police", "name": "Αστυνομικό Τμήμα Πατρών", "name:en": "Patras Police Department"}}

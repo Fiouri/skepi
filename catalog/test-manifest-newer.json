@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "description": "Test pack that exists only in the newer test catalogs (e2e/mirror/catalogs/good and later): the P2P E2E shows that a receiver accepts it only after a newer signed catalog propagated from the host. Debug builds only.",
+  "packs": [
+    {
+      "id": "test-propagation",
+      "kind": "zim",
+      "version": "1",
+      "file": "eval-heldout.zim",
+      "title": { "en": "Test pack: known only to the newer catalog", "el": "Δοκιμαστικό πακέτο: μόνο στον νεότερο κατάλογο" },
+      "lang": ["en"],
+      "urls": ["https://127.0.0.1:8443/packs/eval-heldout.zim"],
+      "license": "CC0-1.0",
+      "attribution": "SKEPI project",
+      "minTier": "T0",
+      "tags": ["test"],
+      "source": { "kind": "local", "path": "tools/rag-eval/fixtures/eval-heldout.zim" }
+    }
+  ]
+}

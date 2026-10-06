@@ -1,10 +1,11 @@
 {
   "schema": 1,
-  "description": "Test packs for the debug catalog and the local HTTPS test mirror (e2e/mirror, https://127.0.0.1:8443 through adb reverse). Small fixture ZIMs from tools/rag-eval/fixtures. Debug builds only; never in a release catalog.",
+  "description": "Test packs for the debug catalog and the local HTTPS test mirror (e2e/mirror, https://127.0.0.1:8443 through adb reverse). Small fixture ZIMs from tools/rag-eval/fixtures. test-smoke-en uses 64 KiB chunks so the P2P chunk tests have several chunks. Debug builds only; never in a release catalog.",
   "packs": [
     {
       "id": "test-smoke-en",
       "kind": "zim",
+      "chunkSize": 65536,
       "version": "1",
       "file": "eval-smoke-en.zim",
       "title": { "en": "Test pack: English sample articles", "el": "Δοκιμαστικό πακέτο: αγγλικά άρθρα" },

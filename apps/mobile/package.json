@@ -48,6 +48,7 @@
   "private": true,
   "license": "GPL-3.0-or-later",
   "op-sqlite": {
-    "sqlcipher": true
+    "sqlcipher": true,
+    "fts5": true
   }
 }

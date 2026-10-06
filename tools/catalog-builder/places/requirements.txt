@@ -1,0 +1,2 @@
+# OSM extract reader for the places pack (places/osm_extract.py). BSD-2-Clause.
+osmium==4.3.1

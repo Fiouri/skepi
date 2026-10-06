@@ -25,6 +25,14 @@ export async function fetchUpstreamSha256(url: string): Promise<string> {
   return hex.toLowerCase();
 }
 
+/** Geofabrik `.md5` files: `<hex>  <file name>`. */
+export async function fetchUpstreamMd5(url: string): Promise<string> {
+  const text = (await fetchText(url)).trim();
+  const hex = /^([0-9a-fA-F]{32})(\s|$)/.test(text) ? text.slice(0, 32) : null;
+  if (!hex) throw new Error(`${url}: no MD5 found`);
+  return hex.toLowerCase();
+}
+
 /** Downloads to `<target>.partial` with HTTP Range resume, then renames. Returns the target path. */
 export async function downloadTo(url: string, target: string, log: (line: string) => void): Promise<string> {
   if (existsSync(target)) return target;

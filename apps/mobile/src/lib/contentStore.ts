@@ -53,6 +53,15 @@ export class ContentError extends Error {
   }
 }
 
+/** The pack kind of a file in a content folder, from its extension (null: not a pack file). */
+function fileKind(dir: 'zim' | 'models' | 'maps', name: string): PackKind | null {
+  const n = name.toLowerCase();
+  if (dir === 'zim') return n.endsWith('.zim') ? 'zim' : null;
+  if (dir === 'models') return n.endsWith('.gguf') ? 'gguf' : null;
+  if (n.endsWith('.pmtiles')) return 'pmtiles';
+  return n.endsWith('.sqlite') ? 'places' : null;
+}
+
 function relativePath(kind: PackKind, file: string): string {
   return `${DIRS[kind]}/${file}`;
 }
@@ -94,6 +103,8 @@ export interface ReconcileReport {
   unverified: string[];
   /** Unknown GGUF files: never loaded (unverified models are not accepted on mobile). */
   rejectedModels: string[];
+  /** Unknown map or places files: never opened (only packs of a valid signed catalog render). */
+  rejectedMaps: string[];
   missing: string[];
   changed: string[];
   partialsRemoved: number;
@@ -366,7 +377,7 @@ export class AndroidContentStore implements ContentStore {
   async reconcile(onProgress?: (file: string, hashed: number, total: number) => void): Promise<ReconcileReport> {
     const db = await this.db();
     const catalog = this.catalog();
-    const report: ReconcileReport = { registered: [], unverified: [], rejectedModels: [], missing: [], changed: [], partialsRemoved: 0 };
+    const report: ReconcileReport = { registered: [], unverified: [], rejectedModels: [], rejectedMaps: [], missing: [], changed: [], partialsRemoved: 0 };
     const known = await listPacks(db);
     for (const p of known) {
       const file = p.path.split('/').pop() ?? '';
@@ -380,17 +391,18 @@ export class AndroidContentStore implements ContentStore {
       const digest = await hashFile(info.path, { onProgress: (h, t) => onProgress?.(file, h, t) });
       const entry = catalog ? findPackBySha256(catalog, digest.sha256) : null;
       report.changed.push(p.id);
-      if (p.kind === 'gguf' && !entry) {
+      if (p.kind !== 'zim' && !entry) {
+        // Unverified models, maps and places are never opened (app.db forbids them, too).
         await removePack(db, p.id);
-        report.rejectedModels.push(file);
+        (p.kind === 'gguf' ? report.rejectedModels : report.rejectedMaps).push(file);
         continue;
       }
       await upsertPack(db, { ...p, sha256: digest.sha256, sizeBytes: digest.sizeBytes, verified: entry !== null, catalogSeq: entry ? (catalog?.sequence ?? null) : null, consentAt: entry ? null : p.consentAt });
     }
-    for (const dir of ['zim', 'models'] as const) {
+    for (const dir of ['zim', 'models', 'maps'] as const) {
       for (const f of ExpoContentStore.listDir(dir)) {
         if (await findPackByPath(db, f.path)) continue;
-        const kind: PackKind | null = dir === 'zim' && f.name.toLowerCase().endsWith('.zim') ? 'zim' : dir === 'models' && f.name.toLowerCase().endsWith('.gguf') ? 'gguf' : null;
+        const kind = fileKind(dir, f.name);
         if (!kind) continue;
         const digest = await hashFile(f.path, { onProgress: (h, t) => onProgress?.(f.name, h, t) });
         const entry = catalog ? findPackBySha256(catalog, digest.sha256) : null;
@@ -412,6 +424,8 @@ export class AndroidContentStore implements ContentStore {
             lastOpenedAt: null,
           });
           report.registered.push(entry.id);
+        } else if (kind === 'pmtiles' || kind === 'places') {
+          report.rejectedMaps.push(f.name);
         } else if (kind === 'zim') {
           await upsertPack(db, {
             id: `local-${digest.sha256.slice(0, 12)}`,

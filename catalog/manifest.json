@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "description": "Official packs of the SKEPI catalog. tools/catalog-builder downloads each file from its official source on the maintainer's machine, checks the publisher's checksum, measures SHA-256 and 64 MB chunk hashes and signs catalog.json. Maps (PMTiles) join when catalog hosting exists (they are extracts, not upstream files).",
+  "description": "Official packs of the SKEPI catalog. tools/catalog-builder downloads each file from its official source on the maintainer's machine, checks the publisher's checksum, measures SHA-256 and 64 MB chunk hashes and signs catalog.json. Map and places packs are built here from pinned inputs (a dated Protomaps build, a dated Geofabrik extract) and mirrored by the project, since the inputs expire.",
   "packs": [
     {
       "id": "wikipedia_en_top_mini",
@@ -114,6 +114,45 @@
         "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf",
         "upstreamSha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
         "upstreamSha256From": "Hugging Face LFS oid of qwen2.5-1.5b-instruct-q4_k_m.gguf at revision 91cad51170dc346986eccefdc2dd33a9da36ead9"
+      }
+    },
+    {
+      "id": "map-gr",
+      "kind": "pmtiles",
+      "version": "2026-10-05",
+      "file": "map-gr-20261005.pmtiles",
+      "title": { "en": "Map: Greece (offline, zoom 15)", "el": "Χάρτης: Ελλάδα (εκτός σύνδεσης, zoom 15)" },
+      "lang": ["en", "el"],
+      "urls": ["https://github.com/Fiouri/skepi/releases/download/packs-2026-10/map-gr-20261005.pmtiles"],
+      "license": "ODbL-1.0",
+      "attribution": "© OpenStreetMap contributors · Protomaps basemap 4.15.2 (build 20261005)",
+      "minTier": "T0",
+      "tags": ["map", "default", "region:GR"],
+      "source": {
+        "kind": "pmtiles-extract",
+        "buildUrl": "https://build.protomaps.com/20261005.pmtiles",
+        "region": "catalog/regions/greece.geojson",
+        "maxzoom": 15
+      }
+    },
+    {
+      "id": "places-gr",
+      "kind": "places",
+      "version": "2026-10-04",
+      "file": "places-gr-20261004.sqlite",
+      "title": { "en": "Places and emergency points: Greece", "el": "Τοποθεσίες και σημεία έκτακτης ανάγκης: Ελλάδα" },
+      "lang": ["en", "el"],
+      "urls": ["https://github.com/Fiouri/skepi/releases/download/packs-2026-10/places-gr-20261004.sqlite"],
+      "license": "ODbL-1.0",
+      "attribution": "© OpenStreetMap contributors (Geofabrik extract 2026-10-04)",
+      "minTier": "T0",
+      "tags": ["places", "default", "region:GR"],
+      "source": {
+        "kind": "osm-places",
+        "url": "https://download.geofabrik.de/europe/greece-261004.osm.pbf",
+        "upstreamMd5Url": "https://download.geofabrik.de/europe/greece-261004.osm.pbf.md5",
+        "region": "GR",
+        "locale": "el"
       }
     }
   ]
