@@ -63,6 +63,8 @@ export default function RootLayout() {
         <Stack.Screen name="emergency" options={{ title: t.emergency.title }} />
         <Stack.Screen name="card/[id]" options={{ title: t.emergency.cards }} />
         <Stack.Screen name="sos-screen" options={{ headerShown: false }} />
+        <Stack.Screen name="share" options={{ title: t.transfer.shareTitle }} />
+        <Stack.Screen name="receive" options={{ title: t.transfer.receiveTitle }} />
       </Stack>
     </>
   );

@@ -1,0 +1,21 @@
+{
+  "name": "expo-transfer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Expo module for P2P sharing: read-only TLS 1.3 pack server with a per-session pinned certificate, pinned client with per-chunk hashing, LocalOnlyHotspot, QR encode/scan, local APK page",
+  "license": "GPL-3.0-or-later",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
+}

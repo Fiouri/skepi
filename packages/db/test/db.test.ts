@@ -74,7 +74,7 @@ const PACK: PackRow = {
 describe('migrate', () => {
   it('applies every migration once, in order, and is idempotent', async () => {
     const db = memoryDb();
-    expect(await migrate(db, MIGRATIONS, () => 42)).toEqual([1, 2]);
+    expect(await migrate(db, MIGRATIONS, () => 42)).toEqual([1, 2, 3]);
     expect(await migrate(db)).toEqual([]);
     expect(await schemaVersion(db)).toBe(MIGRATIONS.length);
     const tables = (await db.execute("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")).rows.map((r) => r.name);
@@ -85,9 +85,22 @@ describe('migrate', () => {
     const db = memoryDb();
     await migrate(db);
     await upsertPack(db, PACK);
-    const next: Migration[] = [...MIGRATIONS, { version: 3, name: 'test_add', statements: ['CREATE TABLE extra (x INTEGER)'] }];
-    expect(await migrate(db, next)).toEqual([3]);
+    const next: Migration[] = [...MIGRATIONS, { version: MIGRATIONS.length + 1, name: 'test_add', statements: ['CREATE TABLE extra (x INTEGER)'] }];
+    expect(await migrate(db, next)).toEqual([MIGRATIONS.length + 1]);
     expect(await getPack(db, PACK.id)).toEqual(PACK);
+  });
+
+  it('migration 3 keeps installed packs and accepts packs received over P2P', async () => {
+    const db = memoryDb();
+    await migrate(db, MIGRATIONS.slice(0, 2));
+    await upsertPack(db, PACK);
+    expect(await migrate(db)).toEqual([3]);
+    expect(await getPack(db, PACK.id)).toEqual(PACK);
+    await upsertPack(db, { ...PACK, id: 'received', path: '/x/received.zim', source: 'p2p' });
+    expect((await getPack(db, 'received'))?.source).toBe('p2p');
+    // The rules still hold after the rebuild: no unverified non-ZIM pack, no unknown source.
+    await expect(upsertPack(db, { ...PACK, id: 'bad', path: '/x/bad.gguf', kind: 'gguf', verified: false, catalogSeq: null })).rejects.toThrow();
+    await expect(async () => db.execute("UPDATE packs SET source = 'mirror' WHERE id = 'received'")).rejects.toThrow(/CHECK/);
   });
 
   it('rolls back a failing migration completely', async () => {

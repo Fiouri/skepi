@@ -52,4 +52,34 @@ export const MIGRATIONS: readonly Migration[] = [
       'CREATE INDEX energy_samples_action ON energy_samples (action, tier, created_at)',
     ],
   },
+  {
+    version: 3,
+    name: 'packs_source_p2p',
+    statements: [
+      // Packs received from another phone (P2P, Phase 2a) record their provenance. SQLite cannot
+      // change a CHECK constraint in place: rebuild the table with the same columns and rules.
+      `CREATE TABLE packs_v3 (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL CHECK (kind IN ('zim','gguf','pmtiles','places')),
+        version TEXT NOT NULL,
+        title TEXT NOT NULL,
+        path TEXT NOT NULL UNIQUE,
+        size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),
+        sha256 TEXT NOT NULL CHECK (length(sha256) = 64),
+        verified INTEGER NOT NULL CHECK (verified IN (0,1)),
+        catalog_seq INTEGER,
+        license TEXT,
+        source TEXT NOT NULL CHECK (source IN ('download','import','provisioned','p2p')),
+        consent_at INTEGER,
+        installed_at INTEGER NOT NULL,
+        last_opened_at INTEGER,
+        CHECK (verified = 1 OR kind = 'zim'),
+        CHECK (verified = 1 OR catalog_seq IS NULL)
+      )`,
+      'INSERT INTO packs_v3 SELECT id, kind, version, title, path, size_bytes, sha256, verified, catalog_seq, license, source, consent_at, installed_at, last_opened_at FROM packs',
+      'DROP TABLE packs',
+      'ALTER TABLE packs_v3 RENAME TO packs',
+      'CREATE INDEX packs_sha256 ON packs (sha256)',
+    ],
+  },
 ];

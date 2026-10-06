@@ -204,6 +204,10 @@ export default function LibraryScreen() {
           {t.library.rejectedMaps(reconcile.rejectedMaps.join(', '))}
         </Text>
       )}
+      <View style={styles.row}>
+        <Button testID="library-share" label={t.transfer.share} onPress={() => { router.push('/share'); }} disabled={busy} />
+        <Button testID="library-receive" label={t.transfer.receive} onPress={() => { router.push('/receive'); }} disabled={busy} />
+      </View>
       <Button testID="library-import" label={t.library.import} onPress={() => void importFile()} disabled={busy} />
       {note('import')}
 

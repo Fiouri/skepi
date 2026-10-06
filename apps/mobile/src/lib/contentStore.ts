@@ -62,6 +62,11 @@ function fileKind(dir: 'zim' | 'models' | 'maps', name: string): PackKind | null
   return n.endsWith('.sqlite') ? 'places' : null;
 }
 
+/** Partial file of a pack received over P2P (kept across restarts for resuming). */
+export function p2pPartialName(file: string): string {
+  return `${file}.p2p.partial`;
+}
+
 function relativePath(kind: PackKind, file: string): string {
   return `${DIRS[kind]}/${file}`;
 }
@@ -366,6 +371,65 @@ export class AndroidContentStore implements ContentStore {
     await ExpoContentStore.deleteFile(relativePath(row.kind, file));
   }
 
+  /** Absolute path of a P2P partial file under tmp/ (where the transfer module writes chunks). */
+  p2pPartial(file: string): { relative: string; path: string; exists: boolean; sizeBytes: number } {
+    const relative = `tmp/${p2pPartialName(file)}`;
+    const info = ExpoContentStore.fileInfo(relative);
+    return { relative, path: info.path, exists: info.exists, sizeBytes: info.sizeBytes };
+  }
+
+  async deleteRelative(relative: string): Promise<void> {
+    await ExpoContentStore.deleteFile(relative);
+  }
+
+  /**
+   * Installs a pack received over P2P: the whole file is hashed again natively and must equal the
+   * signed catalog's SHA-256 and size (every chunk was already checked on arrival); then the same
+   * atomic rename and registration as a download. A mismatch deletes the file.
+   */
+  async installReceived(entry: CatalogEntry, partialRelative: string, onProgress?: (hashed: number, total: number) => void): Promise<InstalledPack> {
+    const db = await this.db();
+    const info = ExpoContentStore.fileInfo(partialRelative);
+    const digest = await hashFile(info.path, onProgress ? { onProgress } : {});
+    if (digest.sha256 !== entry.sha256 || digest.sizeBytes !== entry.sizeBytes) {
+      await ExpoContentStore.deleteFile(partialRelative);
+      throw new ContentError('hash_mismatch', `${entry.id}: received file does not match the signed catalog`);
+    }
+    return toInstalled(await this.install(db, entry, partialRelative, digest.sha256, 'p2p'));
+  }
+
+  /**
+   * Registers a ZIM received over P2P that no valid catalog knows (the user chose it explicitly):
+   * unverified, labelled, opened only after consent, like an imported file.
+   */
+  async installReceivedUnverified(title: string, partialRelative: string): Promise<InstalledPack> {
+    const db = await this.db();
+    const info = ExpoContentStore.fileInfo(partialRelative);
+    const digest = await hashFile(info.path);
+    const id = `p2p-${digest.sha256.slice(0, 12)}`;
+    const row: PackRow = {
+      id,
+      kind: 'zim',
+      version: 'unverified',
+      title,
+      path: '',
+      sizeBytes: digest.sizeBytes,
+      sha256: digest.sha256,
+      verified: false,
+      catalogSeq: null,
+      license: null,
+      source: 'p2p',
+      consentAt: null,
+      installedAt: Date.now(),
+      lastOpenedAt: null,
+    };
+    await db.transaction(async (tx) => {
+      row.path = await ExpoContentStore.installFile(partialRelative, `zim/${id}.zim`);
+      await upsertPack(tx, row);
+    });
+    return toInstalled(row);
+  }
+
   async consent(packId: string): Promise<void> {
     await setConsent(await this.db(), packId, Date.now());
   }
@@ -452,6 +516,8 @@ export class AndroidContentStore implements ContentStore {
     // Stale partial files (architecture: tmp/ is cleaned on every start), except live downloads.
     const live = new Set((await this.activeDownloads()).map((a) => a.packId));
     const livePartials = new Set(catalog?.packs.filter((p) => live.has(p.id)).map((p) => `${p.file}.partial`) ?? []);
+    // P2P partials of catalog packs stay: their verified chunks are the resume point of the next session.
+    for (const p of catalog?.packs ?? []) livePartials.add(p2pPartialName(p.file));
     for (const f of ExpoContentStore.listDir('tmp')) {
       if (livePartials.has(f.name)) continue;
       await ExpoContentStore.deleteFile(`tmp/${f.name}`);

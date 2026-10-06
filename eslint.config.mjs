@@ -20,6 +20,7 @@ const NETWORK_MODULES = [
   'axios',
   'expo-content-store',
 ].map((name) => ({ name, message: NETWORK }));
+const P2P = { name: 'expo-transfer', message: 'Local-network P2P only via apps/mobile/src/lib/transfer.ts (pinned TLS, signed-catalog checks).' };
 
 export default tseslint.config(
   {
@@ -53,14 +54,19 @@ export default tseslint.config(
       // no Node network modules, and the native downloader (expo-content-store) only from
       // apps/mobile/src/lib/contentStore.ts. Exceptions are listed file by file below.
       'no-restricted-globals': ['error', ...NETWORK_GLOBALS],
-      'no-restricted-imports': ['error', { paths: NETWORK_MODULES }],
+      'no-restricted-imports': ['error', { paths: [...NETWORK_MODULES, P2P] }],
     },
+  },
+  {
+    // P2P sharing: the second network user, local network only (docs/threat-model.md, "P2P").
+    files: ['apps/mobile/src/lib/transfer.ts'],
+    rules: { 'no-restricted-imports': ['error', { paths: NETWORK_MODULES }] },
   },
   {
     // The app's ContentStore: the only module that may drive downloads.
     files: ['apps/mobile/src/lib/contentStore.ts'],
     rules: {
-      'no-restricted-imports': ['error', { paths: NETWORK_MODULES.filter((m) => m.name !== 'expo-content-store') }],
+      'no-restricted-imports': ['error', { paths: [...NETWORK_MODULES.filter((m) => m.name !== 'expo-content-store'), P2P] }],
     },
   },
   {

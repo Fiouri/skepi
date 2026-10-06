@@ -24,7 +24,7 @@ export interface InstalledPack {
   sha256: string;
   /** The SHA-256 matched an entry of a valid signed catalog. */
   verified: boolean;
-  source: 'download' | 'import' | 'provisioned';
+  source: 'download' | 'import' | 'provisioned' | 'p2p';
   /** Unverified ZIM only: when the user agreed to open it (null: not opened). */
   consentAt: number | null;
   license: string | null;

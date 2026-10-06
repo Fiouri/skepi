@@ -1,7 +1,7 @@
 import type { Row, SqlExecutor } from './db';
 
 export type PackKind = 'zim' | 'gguf' | 'pmtiles' | 'places';
-export type PackSource = 'download' | 'import' | 'provisioned';
+export type PackSource = 'download' | 'import' | 'provisioned' | 'p2p';
 
 /** One installed file. Unverified packs exist only for ZIM (imported, opened after explicit consent). */
 export interface PackRow {

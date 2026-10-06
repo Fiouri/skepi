@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
+  <!-- P2P sharing on the local network (docs/threat-model.md, "P2P"). Sockets need INTERNET; the
+       client only connects to local-network addresses taken from a scanned QR code. -->
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+  <!-- LocalOnlyHotspot (host) and WifiNetworkSpecifier (receiver joins the host's hotspot). -->
+  <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+  <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+  <!-- Android 13+: LocalOnlyHotspot needs NEARBY_WIFI_DEVICES; the app never derives location from it. -->
+  <uses-permission
+    android:name="android.permission.NEARBY_WIFI_DEVICES"
+    android:usesPermissionFlags="neverForLocation"
+    tools:targetApi="33" />
+  <!-- Camera only for scanning the pairing QR code (runtime permission, asked on the Receive screen). -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-feature android:name="android.hardware.camera" android:required="false" />
+</manifest>
