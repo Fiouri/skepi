@@ -73,6 +73,7 @@ declare class ExpoTransferNativeModule extends NativeModule<TransferEvents> {
   hostStatus(): HostStatus;
   setFaults(faults: FaultsInput): void;
   writePairingForTests(text: string): Promise<void>;
+  readPairingForTests(): Promise<string | null>;
   connect(pairing: PairingInput): Promise<string>;
   fetchManifest(sessionId: string): Promise<string>;
   fetchChunk(sessionId: string, jobId: string, packId: string, offset: number, length: number, partialPath: string): Promise<{ sha256: string; bytes: number }>;

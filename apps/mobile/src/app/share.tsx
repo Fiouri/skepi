@@ -14,6 +14,7 @@ import {
   startSharing,
   stopSharing,
   type CatalogFault,
+  type FaultsInput,
   type Sharing,
 } from '../lib/transfer';
 
@@ -43,6 +44,7 @@ export default function ShareScreen() {
   const [error, setError] = useState<string | null>(null);
   const [requests, setRequests] = useState(0);
   const [stopped, setStopped] = useState<string | null>(null);
+  const [faults, setFaults] = useState<FaultsInput>({});
 
   useEffect(
     () =>
@@ -97,6 +99,13 @@ export default function ShareScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  /** Debug: faults add up (e.g. a corrupted chunk and a dropped connection in one transfer). */
+  const addFault = (f: FaultsInput): void => {
+    const next = { ...faults, ...f };
+    setFaults(next);
+    setHostFaults(next);
   };
 
   const stop = (): void => {
@@ -220,7 +229,7 @@ export default function ShareScreen() {
                 label="corrupt chunk 2 once"
                 onPress={() => {
                   const c = chunkOffset(1);
-                  if (c) setHostFaults({ corruptOncePack: c.pack, corruptOnceOffset: c.offset });
+                  if (c) addFault({ corruptOncePack: c.pack, corruptOnceOffset: c.offset });
                 }}
               />
               <Button
@@ -228,7 +237,7 @@ export default function ShareScreen() {
                 label="drop at chunk 3 once"
                 onPress={() => {
                   const c = chunkOffset(2);
-                  if (c) setHostFaults({ dropOncePack: c.pack, dropOnceOffset: c.offset });
+                  if (c) addFault({ dropOncePack: c.pack, dropOnceOffset: c.offset });
                 }}
               />
               <Button
@@ -236,13 +245,14 @@ export default function ShareScreen() {
                 label="tamper every chunk"
                 onPress={() => {
                   const c = chunkOffset(0);
-                  if (c) setHostFaults({ corruptAlwaysPack: c.pack });
+                  if (c) addFault({ corruptAlwaysPack: c.pack });
                 }}
               />
               <Button
                 testID="fault-clear"
                 label="no faults"
                 onPress={() => {
+                  setFaults({});
                   setHostFaults({});
                 }}
               />

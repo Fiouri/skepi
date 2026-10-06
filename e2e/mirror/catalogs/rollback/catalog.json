@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "sequence": 1,
-  "issuedAt": "2026-01-01T00:00:00Z",
+  "sequence": 2,
+  "issuedAt": "2026-10-05T00:00:00Z",
   "keyId": "cat-test-2026a",
   "packs": [
     {
@@ -226,6 +226,75 @@
       ]
     },
     {
+      "id": "map-gr",
+      "kind": "pmtiles",
+      "version": "2026-10-05",
+      "file": "map-gr-20261005.pmtiles",
+      "title": {
+        "en": "Map: Greece (offline, zoom 15)",
+        "el": "Χάρτης: Ελλάδα (εκτός σύνδεσης, zoom 15)"
+      },
+      "lang": [
+        "en",
+        "el"
+      ],
+      "sizeBytes": 507223467,
+      "sha256": "e4b648dc5cad91469416157abf0ac2fcc26d96f23208de58ea5cc621aa1ebaad",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "931996641781ef68911f2237ab05e5f425d678587839ad4bb7820ffc3d3ae099",
+        "3c048b7dac225e44f6f9bba4ccdf98806d9c40b69d3c89176a44632648981581",
+        "d8fa77f8ae9d7b54a16cf7fc23d039f1a52914e8447cc05e97ca078cf5a79cb7",
+        "53b201d15fd44dc1be6084c67a1a75491c0f58b8dedbe88ea0384087e1461a81",
+        "a8e3cd493fdb1081988738ea1384f378db6bbded673f556efa30d7c3744c1750",
+        "bb772df2521b6ecd9efe2d202d1867e1e84268d5343c59f3e616981a9b7ecd6f",
+        "9204fa42b2c7607acb0237f49287ff7791320cf3402f2095297aa7e775ffc17c",
+        "81f4add80c3dd572e528eefcb7ffe8aa40b7a8815c3692de3b7f7dbc8978ad36"
+      ],
+      "urls": [
+        "https://github.com/Fiouri/skepi/releases/download/packs-2026-10/map-gr-20261005.pmtiles"
+      ],
+      "license": "ODbL-1.0",
+      "attribution": "© OpenStreetMap contributors · Protomaps basemap 4.15.2 (build 20261005)",
+      "minTier": "T0",
+      "tags": [
+        "map",
+        "default",
+        "region:GR"
+      ]
+    },
+    {
+      "id": "places-gr",
+      "kind": "places",
+      "version": "2026-10-04",
+      "file": "places-gr-20261004.sqlite",
+      "title": {
+        "en": "Places and emergency points: Greece",
+        "el": "Τοποθεσίες και σημεία έκτακτης ανάγκης: Ελλάδα"
+      },
+      "lang": [
+        "en",
+        "el"
+      ],
+      "sizeBytes": 5292032,
+      "sha256": "2431125abc15897e5fba32d18ff48791c579b1c1d1a9723f4d4811d85875f509",
+      "chunkSize": 67108864,
+      "chunkSha256": [
+        "2431125abc15897e5fba32d18ff48791c579b1c1d1a9723f4d4811d85875f509"
+      ],
+      "urls": [
+        "https://github.com/Fiouri/skepi/releases/download/packs-2026-10/places-gr-20261004.sqlite"
+      ],
+      "license": "ODbL-1.0",
+      "attribution": "© OpenStreetMap contributors (Geofabrik extract 2026-10-04)",
+      "minTier": "T0",
+      "tags": [
+        "places",
+        "default",
+        "region:GR"
+      ]
+    },
+    {
       "id": "test-smoke-en",
       "kind": "zim",
       "version": "1",
@@ -239,9 +308,12 @@
       ],
       "sizeBytes": 221833,
       "sha256": "e592eb26ea737fb486684f71e95d4fca9a4420b4f44dd155bc3d19f0ea5d7bf0",
-      "chunkSize": 67108864,
+      "chunkSize": 65536,
       "chunkSha256": [
-        "e592eb26ea737fb486684f71e95d4fca9a4420b4f44dd155bc3d19f0ea5d7bf0"
+        "4d01626fdd473fd074c8c65f06eb8be1d1492b19548f7ba3962bb834c3d00060",
+        "9547cabf345e635c1138e7dea62e632f14274851fec5811c4d4050857df4e5d0",
+        "c9b20660df4a4708f1aae328e3b38096d8adf99cc530861ecc3830fe8ae000a8",
+        "7c5936b23c3e99ad49bebf04278ef373aa1e5c6228df8e0bc940724e5897b7cd"
       ],
       "urls": [
         "https://127.0.0.1:8443/packs/eval-smoke-en.zim"

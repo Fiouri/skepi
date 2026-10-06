@@ -7,8 +7,10 @@ import { formatBytes } from '../lib/downloads';
 import { useMessages } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
 import {
+  capabilities,
   connect,
   disconnect,
+  readTestPairing,
   QrScanner,
   receiveUnverified,
   receiveVerified,
@@ -76,6 +78,10 @@ export default function ReceiveScreen() {
     setScanning(true);
   };
 
+  const deselect = (id: string): void => {
+    setSelected((prev) => new Set([...prev].filter((x) => x !== id)));
+  };
+
   const receive = async (): Promise<void> => {
     if (!connection) return;
     setBusy(true);
@@ -92,9 +98,11 @@ export default function ReceiveScreen() {
               setProgress((prev) => ({ ...prev, [entry.id]: p }));
             }, ac.signal);
             setResults((prev) => ({ ...prev, [d.offer.id]: 'installed' }));
+            deselect(d.offer.id);
           } else if (d.status === 'unverified') {
             await receiveUnverified(connection.sessionId, d.offer, () => undefined, ac.signal);
             setResults((prev) => ({ ...prev, [d.offer.id]: 'unverified' }));
+            deselect(d.offer.id);
           }
         } catch (e) {
           const r: Result =
@@ -177,6 +185,17 @@ export default function ReceiveScreen() {
             autoCorrect={false}
             multiline
           />
+          {capabilities().faultInjection && (
+            <Button
+              testID="receive-load-test-pairing"
+              label="load test pairing (debug)"
+              onPress={() => {
+                void readTestPairing().then((text) => {
+                  if (text) setCode(text.trim());
+                });
+              }}
+            />
+          )}
           <Button
             testID="receive-connect"
             label={busy ? t.transfer.connecting : t.transfer.connect}

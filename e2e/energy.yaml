@@ -1,0 +1,131 @@
+# Unplugged battery costs (run by e2e/run-energy.ps1 over wireless adb, phone on battery, airplane
+# mode with Wi-Fi kept on for adb). No battery simulation: the samples come from the real charge
+# counter. Three measured runs of every costly action, then Bench -> "Export energy samples"
+# (bench/energy-latest.json, pulled by the runner):
+#   ai-summary        "Summarise with AI" on three questions (blackout mode: AI on request only)
+#   gps-fix           three one-shot GNSS fixes (a timeout indoors is measured as a fix attempt)
+#   sos-light-minute  the SOS torch for 70 s, three times (cost per minute)
+appId: ${APP_ID}
+name: SKEPI energy samples (unplugged)
+---
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+# Start from an empty sample table: earlier samples came from plugged-in or simulated runs.
+- tapOn:
+    id: tab-bench
+- scrollUntilVisible:
+    element:
+      id: bench-energy-clear
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: bench-energy-clear
+- extendedWaitUntil:
+    visible:
+      id: energy-export-status
+      text: "energy: cleared"
+    timeout: 10000
+- tapOn:
+    id: tab-search
+# Blackout mode: the AI summary runs only on request, so each tap is one measured summary.
+- runFlow:
+    when:
+      visible:
+        id: blackout-off
+    commands:
+      - tapOn:
+          id: blackout-toggle
+- extendedWaitUntil:
+    visible:
+      id: blackout-on
+    timeout: 10000
+- tapOn:
+    id: tab-ask
+- runFlow:
+    file: blackout-ask.yaml
+    env:
+      QUESTION: What is the capital of Australia?
+- runFlow:
+    file: blackout-ask.yaml
+    env:
+      QUESTION: Who was Julius Caesar?
+- runFlow:
+    file: blackout-ask.yaml
+    env:
+      QUESTION: What is DNA?
+- runFlow:
+    file: blackout-ask.yaml
+    env:
+      QUESTION: How does photosynthesis work?
+- tapOn:
+    id: ask-clear
+# GNSS: three fixes (or fix attempts) on tap
+- tapOn:
+    id: tab-tools
+- extendedWaitUntil:
+    visible:
+      id: tools-screen
+    timeout: 10000
+- repeat:
+    times: 3
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: location-locate
+          direction: DOWN
+          timeout: 10000
+      - tapOn:
+          id: location-locate
+      - extendedWaitUntil:
+          notVisible:
+            id: location-locating
+          timeout: 300000
+# SOS torch: three runs of 70 s (samples are per minute; runs under 60 s are not recorded)
+- repeat:
+    times: 3
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: sos-torch-start
+          direction: UP
+          timeout: 10000
+      - tapOn:
+          id: sos-torch-start
+      - extendedWaitUntil:
+          visible:
+            id: sos-torch-running
+          timeout: 10000
+      # 70 s with the torch on (the wait is expected to time out; optional keeps the flow going)
+      - extendedWaitUntil:
+          notVisible:
+            id: sos-torch-running
+          timeout: 70000
+        optional: true
+      - tapOn:
+          id: sos-torch-stop
+- takeScreenshot: e2e/out/energy-01-tools
+# Labels now show the measured costs; export the samples
+- tapOn:
+    id: tab-search
+- runFlow:
+    when:
+      visible:
+        id: blackout-on
+    commands:
+      - tapOn:
+          id: blackout-toggle
+- tapOn:
+    id: tab-bench
+- scrollUntilVisible:
+    element:
+      id: bench-energy-export
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: bench-energy-export
+- extendedWaitUntil:
+    visible:
+      id: energy-export-status
+      text: "energy: /.*energy-latest.json"
+    timeout: 20000

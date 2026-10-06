@@ -1,0 +1,100 @@
+# Places and emergency POIs, offline (airplane mode): the home search finds places by English and
+# local (Greek) names from the verified places pack; a result opens the offline map there; the POI
+# layer renders from the same pack and its category filters work. Needs the map-gr and places-gr packs
+# (scripts/provision.ps1 -WithPlaces, or the P2P runner on the emulators).
+appId: ${APP_ID}
+name: SKEPI places and emergency POIs (offline)
+env:
+  LOCAL_NAME: Θεσσαλονίκη
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 30000
+# English name
+- tapOn:
+    id: search-input
+- inputText: Patras
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Patras.*"
+    timeout: 10000
+- assertVisible: ".*Πάτρα · city.*"
+- takeScreenshot: e2e/out/places-01-english
+# Local (Greek) name: found through name / name:el, shown in English with the local name
+- eraseText: 20
+- inputText: ${LOCAL_NAME}
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Thessaloniki.*"
+    timeout: 10000
+- eraseText: 20
+- inputText: "hospital patras"
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Patras General.*Hospital.*"
+    timeout: 10000
+- takeScreenshot: e2e/out/places-02-hospital
+- eraseText: 20
+- inputText: Patras
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+    timeout: 10000
+- hideKeyboard
+- tapOn:
+    id: place-result-0
+# The map opens on the place, offline, with the POI layer from the places pack
+- extendedWaitUntil:
+    visible:
+      id: map-screen
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: map-status
+      text: "Map ready.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: poi-count
+      text: "[1-9][0-9]* emergency points in view"
+    timeout: 30000
+- assertVisible:
+    id: map-attribution
+    text: ".*OpenStreetMap contributors.*"
+- takeScreenshot: e2e/out/places-03-map-pois
+# Filters: only pharmacies (the most common category in a city centre)
+- tapOn:
+    id: poi-filter-hospital
+- tapOn:
+    id: poi-filter-fire_station
+- tapOn:
+    id: poi-filter-police
+- tapOn:
+    id: poi-filter-drinking_water
+- tapOn:
+    id: poi-filter-shelter
+- extendedWaitUntil:
+    visible:
+      id: poi-count
+      text: "[1-9][0-9]* emergency points? in view"
+    timeout: 10000
+- takeScreenshot: e2e/out/places-04-pharmacies-only
+- tapOn:
+    id: poi-filter-pharmacy
+- extendedWaitUntil:
+    visible:
+      id: poi-count
+      text: "0 emergency points in view"
+    timeout: 10000
+- tapOn:
+    id: poi-filter-pharmacy

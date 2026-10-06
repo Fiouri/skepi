@@ -10,6 +10,10 @@ const DUMP = [
   "uses-permission: name='android.permission.ACCESS_WIFI_STATE'",
   "uses-permission: name='android.permission.ACCESS_FINE_LOCATION'",
   "uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'",
+  "uses-permission: name='android.permission.CHANGE_WIFI_STATE'",
+  "uses-permission: name='android.permission.CHANGE_NETWORK_STATE'",
+  "uses-permission: name='android.permission.NEARBY_WIFI_DEVICES'",
+  "uses-permission: name='android.permission.CAMERA'",
   "uses-permission: name='org.skepi.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'",
   '',
 ].join('\n');
@@ -18,27 +22,28 @@ describe('permission allowlist', () => {
   it('parses aapt2 output', () => {
     const d = parseAapt2Permissions(DUMP);
     expect(d.packageName).toBe('org.skepi.app');
-    expect(d.uses).toHaveLength(6);
+    expect(d.uses).toHaveLength(10);
     expect(d.defines).toEqual(['org.skepi.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION']);
   });
 
-  it('passes the Phase 1d allowlist', () => {
+  it('passes the Phase 2a allowlist (Phase 1d + exactly the four P2P permissions)', () => {
     expect(checkPermissions(parseAapt2Permissions(DUMP), 'org.skepi.app')).toEqual({ ok: true, unexpected: [], forbidden: [], unexpectedDefinitions: [] });
-    expect(ALLOWED_PERMISSIONS).toHaveLength(5);
+    expect(ALLOWED_PERMISSIONS).toHaveLength(9);
   });
 
-  it('fails on background location, camera and foreign permissions', () => {
+  it('fails on background location, package installs and foreign permissions', () => {
     const extra = [
       DUMP,
       "uses-permission: name='android.permission.ACCESS_BACKGROUND_LOCATION'",
-      "uses-permission: name='android.permission.CAMERA'",
+      "uses-permission: name='android.permission.REQUEST_INSTALL_PACKAGES'",
       "uses-permission-sdk-23: name='android.permission.READ_CONTACTS'",
+      "uses-permission: name='android.permission.FOREGROUND_SERVICE'",
       'permission: com.example.SHARED',
     ].join('\n');
     const r = checkPermissions(parseAapt2Permissions(extra), 'org.skepi.app');
     expect(r.ok).toBe(false);
-    expect(r.forbidden).toEqual(['android.permission.ACCESS_BACKGROUND_LOCATION']);
-    expect(r.unexpected).toEqual(['android.permission.CAMERA', 'android.permission.READ_CONTACTS']);
+    expect(r.forbidden).toEqual(['android.permission.ACCESS_BACKGROUND_LOCATION', 'android.permission.REQUEST_INSTALL_PACKAGES']);
+    expect(r.unexpected).toEqual(['android.permission.READ_CONTACTS', 'android.permission.FOREGROUND_SERVICE']);
     expect(r.unexpectedDefinitions).toEqual(['com.example.SHARED']);
   });
 

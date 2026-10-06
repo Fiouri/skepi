@@ -15,7 +15,7 @@ const REPO = join(HERE, '..', '..');
 const FIXTURES = join(REPO, 'tools', 'rag-eval', 'fixtures');
 const OUT = join(REPO, 'e2e', 'out');
 const LOG = join(OUT, 'mirror-log.jsonl');
-const PACKS = new Set(['eval-smoke-en.zim', 'eval-smoke-el.zim', 'eval-synthetic.zim', 'eval-heldout.zim']);
+const PACKS = new Set(['eval-smoke-en.zim', 'eval-smoke-el.zim', 'eval-synthetic.zim', 'eval-heldout.zim', 'p2p-propagation.zim']);
 const MODES = new Set(['good', 'tampered', 'wrong-key', 'rollback']);
 const PORT = Number(process.env.MIRROR_PORT ?? 8443);
 const ADMIN_PORT = Number(process.env.MIRROR_ADMIN_PORT ?? 8444);
@@ -58,7 +58,7 @@ function handle(req, res) {
   let status = 404;
   try {
     if ((area === 'packs' || area === 'corrupt') && PACKS.has(name)) {
-      const bytes = readFileSync(join(FIXTURES, name));
+      const bytes = readFileSync(name === 'p2p-propagation.zim' ? join(REPO, 'e2e', 'fixtures', name) : join(FIXTURES, name));
       status = send(req, res, area === 'corrupt' ? corrupt(bytes) : bytes, 'application/octet-stream');
     } else if (area === 'catalog' && (name === 'catalog.json' || name === 'catalog.json.sig')) {
       const file = join(HERE, 'catalogs', mode, name);

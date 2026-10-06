@@ -23,7 +23,7 @@ import {
 } from '@skepi/core';
 import { getSetting } from '@skepi/db';
 import { hashFile } from 'expo-hash';
-import { ExpoTransfer, QrScanner, type HostSession, type HostStatus, type TransferCapabilities } from 'expo-transfer';
+import { ExpoTransfer, QrScanner, type FaultsInput, type HostSession, type HostStatus, type TransferCapabilities } from 'expo-transfer';
 import { contentStore, currentCatalog, useContent } from './content';
 import { readAcceptedCatalog, readEmbeddedCatalog } from './contentStore';
 import { appDb } from './db';
@@ -35,7 +35,7 @@ import { appDb } from './db';
  * signed catalog as it arrives, and installs through ContentStore (same atomic install as downloads).
  */
 export { QrScanner };
-export type { HostSession, HostStatus, TransferCapabilities };
+export type { FaultsInput, HostSession, HostStatus, TransferCapabilities };
 
 export function capabilities(): TransferCapabilities {
   return ExpoTransfer.capabilities();
@@ -127,7 +127,7 @@ export function onHostStopped(listener: (reason: string) => void): () => void {
 }
 
 /** Debug builds only: host-side faults for the E2E (a corrupted chunk, a tampering host, a dropped connection). */
-export function setHostFaults(faults: Parameters<typeof ExpoTransfer.setFaults>[0]): void {
+export function setHostFaults(faults: FaultsInput): void {
   ExpoTransfer.setFaults(faults);
 }
 
@@ -171,6 +171,11 @@ export async function connect(pairingText: string): Promise<Connection> {
     ExpoTransfer.disconnect(sessionId);
     throw e;
   }
+}
+
+/** Debug builds only (E2E): the pairing code the runner pushed to files/p2p/pairing-in.json. */
+export async function readTestPairing(): Promise<string | null> {
+  return capabilities().faultInjection ? ExpoTransfer.readPairingForTests() : null;
 }
 
 export function disconnect(sessionId: string): void {

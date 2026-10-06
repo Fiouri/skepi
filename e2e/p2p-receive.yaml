@@ -1,0 +1,118 @@
+# P2P receiver (debug build, two-emulator E2E, e2e/run-p2p.ps1): Library -> Receive packs nearby,
+# load the pairing code the runner pushed (camera QR scanning needs a real camera), connect, check
+# the catalog decision, then run the scenario.
+#   SCENARIO  propagate | tampered | bad-signature | rollback
+appId: ${APP_ID}
+name: SKEPI P2P receiver
+---
+- launchApp:
+    stopApp: true
+# The first start after new files hashes them (the 507 MB map on an emulator takes minutes).
+- extendedWaitUntil:
+    visible:
+      id: "(tab-search|onboarding)"
+    timeout: 600000
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-library
+- scrollUntilVisible:
+    element:
+      id: library-receive
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: library-receive
+- extendedWaitUntil:
+    visible:
+      id: receive-screen
+    timeout: 15000
+- tapOn:
+    id: receive-load-test-pairing
+- tapOn:
+    id: receive-connect
+- extendedWaitUntil:
+    visible:
+      id: receive-catalog
+    timeout: 60000
+
+# Catalog propagation: the host's newer signed catalog (sequence 4) is verified and adopted; the pack
+# that only that catalog knows is verified. A corrupted chunk is re-requested alone; a dropped
+# connection stops the pack; the next Receive resumes from the verified chunks.
+- runFlow:
+    when:
+      true: ${SCENARIO == 'propagate'}
+    commands:
+      - assertVisible:
+          id: receive-catalog
+          text: "Newer signed catalog received and verified \\(sequence 4\\)"
+      - assertVisible:
+          id: offer-status-test-smoke-en
+          text: "Verified by the signed catalog"
+      - assertVisible:
+          id: offer-status-test-propagation
+          text: "Verified by the signed catalog"
+      - takeScreenshot: e2e/out/p2p-recv-01-offers
+      - tapOn:
+          id: receive-start
+      - extendedWaitUntil:
+          visible:
+            id: receive-result-test-propagation
+            text: "Installed \\(verified\\)"
+          timeout: 120000
+      - assertVisible:
+          id: receive-result-test-smoke-en
+          text: "Interrupted.*"
+      - assertVisible:
+          id: receive-progress-test-smoke-en
+          text: ".*chunk 2/4 verified · re-requested 1.*"
+      - takeScreenshot: e2e/out/p2p-recv-02-interrupted
+      - tapOn:
+          id: receive-start
+      - extendedWaitUntil:
+          visible:
+            id: receive-result-test-smoke-en
+            text: "Installed \\(verified\\)"
+          timeout: 120000
+      - assertVisible:
+          id: receive-progress-test-smoke-en
+          text: ".*chunk 4/4 verified.*resumed from chunk 3.*"
+      - takeScreenshot: e2e/out/p2p-recv-03-resumed
+
+# A tampering host: every byte range of the pack is altered; after three attempts the pack is
+# rejected and nothing is installed.
+- runFlow:
+    when:
+      true: ${SCENARIO == 'tampered'}
+    commands:
+      - assertVisible:
+          id: receive-catalog
+          text: "Same signed catalog \\(sequence 4\\)"
+      - tapOn:
+          id: receive-start
+      - extendedWaitUntil:
+          visible:
+            id: receive-result-test-mirror-fallback
+            text: "Rejected: the file did not match the signed catalog"
+          timeout: 120000
+      - takeScreenshot: e2e/out/p2p-recv-04-tampered
+
+- runFlow:
+    when:
+      true: ${SCENARIO == 'bad-signature'}
+    commands:
+      - assertVisible:
+          id: receive-catalog
+          text: ".*not accepted \\(bad_signature\\).*"
+      - takeScreenshot: e2e/out/p2p-recv-05-bad-signature
+
+- runFlow:
+    when:
+      true: ${SCENARIO == 'rollback'}
+    commands:
+      - assertVisible:
+          id: receive-catalog
+          text: ".*not accepted \\(rollback\\).*"
+      - takeScreenshot: e2e/out/p2p-recv-06-rollback
+
+- tapOn:
+    id: receive-disconnect

@@ -1,0 +1,31 @@
+# P2P setup on the host emulator: adopt the newer test catalog (sequence 4, local HTTPS test mirror
+# through adb reverse) so the host can propagate it to the receiver, which still holds sequence 3.
+appId: ${APP_ID}
+name: SKEPI P2P host catalog update
+---
+- runScript:
+    file: mirror-mode.js
+    env:
+      MODE: good
+- launchApp:
+    stopApp: true
+# First start after pm clear (ARM translation on x86_64 emulators): slow.
+- extendedWaitUntil:
+    visible:
+      id: "(tab-search|onboarding)"
+    timeout: 600000
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-library
+- extendedWaitUntil:
+    visible:
+      id: catalog-info
+      text: "Signed catalog 3 · test keys.*"
+    timeout: 30000
+- tapOn:
+    id: catalog-update
+- extendedWaitUntil:
+    visible:
+      id: message-catalog
+      text: "Catalog updated to 4"
+    timeout: 60000

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { Button, ContentGate, useStyles } from '../../components/ui';
 import { runBench, type BenchReport } from '../../lib/bench';
+import { exportEnergySamples, resetEnergySamples } from '../../lib/energy';
 import { runParity } from '../../lib/parity';
 import { useActiveProfile, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
@@ -27,6 +28,7 @@ export default function BenchScreen() {
   const [report, setReport] = useState<BenchReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [parity, setParity] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [energyExport, setEnergyExport] = useState<string | null>(null);
 
   // Render probe for "sources visible": the bench shows the sources here, like the Ask screen does,
   // and the time of the first frame after React commits them is the measurement.
@@ -158,6 +160,36 @@ export default function BenchScreen() {
           <Button testID="bench-parity" label={t.bench.parity} onPress={() => void startParity()} disabled={running} />
           <Text style={styles.muted} testID="parity-status">
             {`parity: ${parity}`}
+          </Text>
+        </View>
+        <View style={styles.row}>
+          <Button
+            testID="bench-energy-clear"
+            label="Clear energy samples"
+            onPress={() => {
+              void resetEnergySamples().then(() => {
+                setEnergyExport('cleared');
+              });
+            }}
+            disabled={running}
+          />
+          <Button
+            testID="bench-energy-export"
+            label="Export energy samples"
+            onPress={() => {
+              void exportEnergySamples().then(
+                (path) => {
+                  setEnergyExport(path);
+                },
+                (e: unknown) => {
+                  setError(e instanceof Error ? e.message : String(e));
+                },
+              );
+            }}
+            disabled={running}
+          />
+          <Text style={styles.muted} testID="energy-export-status">
+            {energyExport ? `energy: ${energyExport}` : 'energy: idle'}
           </Text>
         </View>
         {probe.length > 0 && (

@@ -2,7 +2,7 @@
 # debug build (org.skepi.app.dev, test catalog signed with the test key). Wi-Fi on: DownloadManager needs
 # a network; every request goes to https://127.0.0.1:8443 through adb reverse (checked by
 # e2e/run-download-e2e.ps1: mirror log + zero non-loopback bytes for the app's UID).
-# 1. Catalog update: tampered byte, wrong key -> rejected; good (sequence 2) -> adopted; rollback -> rejected.
+# 1. Catalog update: tampered byte, wrong key -> rejected; good (sequence 4) -> adopted; rollback -> rejected.
 # 2. Downloads: a good pack installs verified; corrupt first mirror -> next mirror; corrupt everywhere -> rejected, never installed.
 # 3. The downloaded pack opens (search + article).
 # 4. Import of an unknown ZIM: unverified, opens only after explicit consent, permanent label.
@@ -26,7 +26,7 @@ name: SKEPI downloads, catalog and import (local test mirror)
 - extendedWaitUntil:
     visible:
       id: catalog-info
-      text: "Signed catalog 1 · test keys.*"
+      text: "Signed catalog 3 · test keys.*"
     timeout: 30000
 - takeScreenshot: e2e/out/dl-01-library
 
@@ -59,11 +59,11 @@ name: SKEPI downloads, catalog and import (local test mirror)
 - extendedWaitUntil:
     visible:
       id: message-catalog
-      text: "Catalog updated to 2"
+      text: "Catalog updated to 4"
     timeout: 60000
 - assertVisible:
     id: catalog-info
-    text: "Signed catalog 2 · test keys.*"
+    text: "Signed catalog 4 · test keys.*"
 - runScript:
     file: mirror-mode.js
     env:

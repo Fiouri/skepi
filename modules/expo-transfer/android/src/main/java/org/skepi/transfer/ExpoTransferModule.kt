@@ -198,6 +198,13 @@ class ExpoTransferModule : Module() {
       File(dir, "pairing.json").writeText(text, Charsets.UTF_8)
     }
 
+    /** Debug builds only: the pairing code pushed by the two-emulator E2E runner (adb push). */
+    AsyncFunction("readPairingForTests") {
+      if (!BuildConfig.DEBUG) throw TransferException("ERR_P2P_FAULTS", "debug builds only")
+      val f = File(File(contentRoot(), "p2p"), "pairing-in.json")
+      if (f.isFile && f.length() < 4096) f.readText(Charsets.UTF_8) else null
+    }
+
     AsyncFunction("connect") Coroutine { p: Pairing ->
       withContext(Dispatchers.IO) {
         val address = try {

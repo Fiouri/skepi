@@ -11,10 +11,18 @@ import type { ReadableStream as WebReadableStream } from 'node:stream/web';
  */
 const USER_AGENT = 'skepi-catalog-builder';
 
-export async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { 'user-agent': USER_AGENT }, redirect: 'follow' });
-  if (!res.ok) throw new Error(`GET ${url}: HTTP ${String(res.status)}`);
-  return res.text();
+/** Small text files (checksums); network errors are retried a few times (they do happen). */
+export async function fetchText(url: string, attempts = 4): Promise<string> {
+  for (let i = 1; ; i += 1) {
+    try {
+      const res = await fetch(url, { headers: { 'user-agent': USER_AGENT }, redirect: 'follow' });
+      if (!res.ok) throw new Error(`GET ${url}: HTTP ${String(res.status)}`);
+      return await res.text();
+    } catch (e) {
+      if (i >= attempts) throw new Error(`GET ${url}: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+      await new Promise((resolve) => setTimeout(resolve, 1000 * i));
+    }
+  }
 }
 
 /** Kiwix `.sha256` files: `<hex>  <file name>`. */

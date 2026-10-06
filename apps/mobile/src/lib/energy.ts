@@ -1,4 +1,14 @@
-import { batteryDeltaPct, estimateEnergy, formatEnergy, listEnergySamples, recordEnergySample, type EnergyAction } from '@skepi/db';
+import {
+  batteryDeltaPct,
+  clearEnergySamples,
+  estimateEnergy,
+  formatEnergy,
+  listAllEnergySamples,
+  listEnergySamples,
+  recordEnergySample,
+  type EnergyAction,
+} from '@skepi/db';
+import { ExpoZim } from 'expo-zim';
 import { ExpoDeviceProfile, type BatteryInfo } from 'expo-device-profile';
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
@@ -53,6 +63,30 @@ export async function startPerMinuteMeasurement(action: EnergyAction, tier: stri
       .then((end) => (end.timestampMs - start.timestampMs >= 60_000 ? record(action, tier, start, end, true) : undefined))
       .catch(() => undefined);
   };
+}
+
+/** Developer (Bench): forget all samples so the labels come only from the next measurements. */
+export async function resetEnergySamples(): Promise<void> {
+  await clearEnergySamples(await appDb());
+  useEnergyVersion.getState().bump();
+}
+
+/**
+ * Writes every measured sample with the median per action and tier to bench/energy-latest.json
+ * (Bench tab; pulled over adb for the phase report). Nothing leaves the device by itself.
+ */
+export async function exportEnergySamples(): Promise<string> {
+  const samples = await listAllEnergySamples(await appDb());
+  const groups = new Map<string, typeof samples>();
+  for (const s of samples) groups.set(`${s.action}|${s.tier}`, [...(groups.get(`${s.action}|${s.tier}`) ?? []), s]);
+  const summary = [...groups.entries()].map(([key, list]) => {
+    const [action, tier] = key.split('|');
+    const estimate = estimateEnergy(list);
+    return { action, tier, samples: list.length, medianPct: estimate?.pct ?? null, label: estimate ? formatEnergy(estimate) : null };
+  });
+  const battery = await ExpoDeviceProfile.getBattery().catch(() => null);
+  const json = JSON.stringify({ schema: 1, createdAt: new Date().toISOString(), battery, summary, samples }, null, 2);
+  return ExpoZim.writeContentFile('bench/energy-latest.json', json);
 }
 
 /** "≈ 1% battery" from this device's samples, or null until enough have been measured. */

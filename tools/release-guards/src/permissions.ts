@@ -1,6 +1,7 @@
 /**
- * Release permission allowlist (Phase 1d). The release APK may request exactly these Android
- * permissions; anything else fails CI. Background location is never allowed.
+ * Release permission allowlist (Phase 1d, P2P additions in Phase 2a). The release APK may request
+ * exactly these Android permissions; anything else fails CI. Background location is never allowed,
+ * and the app never installs packages itself (shared APKs are installed from a browser).
  */
 export const ALLOWED_PERMISSIONS: readonly string[] = [
   'android.permission.INTERNET',
@@ -8,9 +9,19 @@ export const ALLOWED_PERMISSIONS: readonly string[] = [
   'android.permission.ACCESS_WIFI_STATE',
   'android.permission.ACCESS_FINE_LOCATION',
   'android.permission.ACCESS_COARSE_LOCATION',
+  // Phase 2a, P2P (modules/expo-transfer): LocalOnlyHotspot, joining it, nearby Wi-Fi (Android 13+,
+  // neverForLocation), and the camera for the pairing QR code.
+  'android.permission.CHANGE_WIFI_STATE',
+  'android.permission.CHANGE_NETWORK_STATE',
+  'android.permission.NEARBY_WIFI_DEVICES',
+  'android.permission.CAMERA',
 ];
 
-export const FORBIDDEN_PERMISSIONS: readonly string[] = ['android.permission.ACCESS_BACKGROUND_LOCATION'];
+export const FORBIDDEN_PERMISSIONS: readonly string[] = [
+  'android.permission.ACCESS_BACKGROUND_LOCATION',
+  'android.permission.REQUEST_INSTALL_PACKAGES',
+  'android.permission.RECORD_AUDIO',
+];
 
 /**
  * androidx.core declares `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (signature level,

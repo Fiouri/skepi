@@ -49,6 +49,23 @@ export async function listEnergySamples(db: SqlExecutor, action: EnergyAction, t
   }));
 }
 
+/** Developer: forget every sample (e.g. before an unplugged measurement run). */
+export async function clearEnergySamples(db: SqlExecutor): Promise<void> {
+  await db.execute('DELETE FROM energy_samples', []);
+}
+
+/** Every stored sample (Bench → export, for the phase report's unplugged measurements). */
+export async function listAllEnergySamples(db: SqlExecutor): Promise<EnergySample[]> {
+  const { rows } = await db.execute('SELECT action, tier, battery_delta_pct, duration_ms, created_at FROM energy_samples ORDER BY action, tier, created_at', []);
+  return rows.map((r) => ({
+    action: String(r.action) as EnergyAction,
+    tier: String(r.tier),
+    batteryDeltaPct: Number(r.battery_delta_pct),
+    durationMs: Number(r.duration_ms),
+    createdAt: Number(r.created_at),
+  }));
+}
+
 export interface EnergyEstimate {
   /** Median battery cost per action, in percent of a full battery. */
   pct: number;

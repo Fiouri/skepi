@@ -1,10 +1,12 @@
 export { migrate, MigrationError, schemaVersion, type Row, type SqlDatabase, type SqlExecutor, type SqlValue } from './db';
 export {
   batteryDeltaPct,
+  clearEnergySamples,
   ENERGY_ACTIONS,
   ENERGY_SAMPLES_KEPT,
   estimateEnergy,
   formatEnergy,
+  listAllEnergySamples,
   listEnergySamples,
   MIN_ENERGY_SAMPLES,
   recordEnergySample,

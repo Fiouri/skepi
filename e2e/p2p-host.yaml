@@ -1,0 +1,99 @@
+# P2P host (debug build, two-emulator E2E, e2e/run-p2p.ps1): Library -> Share packs nearby, select the
+# packs, optional debug faults, start sharing on the shared Wi-Fi LAN. The app stays on the share
+# screen (the session runs while it is open); the runner then pulls files/p2p/pairing.json.
+#   PACK1, PACK2      pack ids to share (PACK2 may be empty)
+#   CATALOG_FAULT     none | bad-signature | embedded (debug catalog faults)
+#   FAULT_CORRUPT     'true': corrupt chunk 2 of PACK1 once
+#   FAULT_DROP        'true': drop the connection at chunk 3 of PACK1 once
+#   FAULT_TAMPER      'true': corrupt every chunk of PACK1
+appId: ${APP_ID}
+name: SKEPI P2P host
+---
+- launchApp:
+    stopApp: true
+# The first start after new files hashes them (the 507 MB map on an emulator takes minutes).
+- extendedWaitUntil:
+    visible:
+      id: "(tab-search|onboarding)"
+    timeout: 600000
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-library
+- scrollUntilVisible:
+    element:
+      id: library-share
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: library-share
+- extendedWaitUntil:
+    visible:
+      id: share-screen
+    timeout: 15000
+- tapOn:
+    id: share-pack-${PACK1}
+- runFlow:
+    when:
+      true: ${PACK2 != ''}
+    commands:
+      - tapOn:
+          id: share-pack-${PACK2}
+- tapOn:
+    id: share-mode-lan
+- runFlow:
+    when:
+      true: ${CATALOG_FAULT != 'none'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: catalog-fault-${CATALOG_FAULT}
+          direction: DOWN
+      - tapOn:
+          id: catalog-fault-${CATALOG_FAULT}
+- scrollUntilVisible:
+    element:
+      id: share-start
+    direction: DOWN
+- tapOn:
+    id: share-start
+- extendedWaitUntil:
+    visible:
+      id: share-active
+    timeout: 30000
+- assertVisible:
+    id: share-qr
+- runFlow:
+    when:
+      true: ${FAULT_CORRUPT == 'true'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fault-corrupt-once
+          direction: DOWN
+      - tapOn:
+          id: fault-corrupt-once
+- runFlow:
+    when:
+      true: ${FAULT_DROP == 'true'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fault-drop-once
+          direction: DOWN
+      - tapOn:
+          id: fault-drop-once
+- runFlow:
+    when:
+      true: ${FAULT_TAMPER == 'true'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fault-tamper
+          direction: DOWN
+      - tapOn:
+          id: fault-tamper
+- scrollUntilVisible:
+    element:
+      id: share-status
+    direction: UP
+- takeScreenshot: e2e/out/p2p-host-${SCENARIO}
