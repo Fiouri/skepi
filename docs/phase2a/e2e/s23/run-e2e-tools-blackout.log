@@ -1,0 +1,20 @@
+test GPS provider active (simulated fix, Patras)
+
+Waiting for flows to complete...
+[Passed] SKEPI tools (offline) (1m 10s)
+
+1/1 Flow Passed in 1m 10s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI blackout mode (offline) (3m 6s)
+
+1/1 Flow Passed in 3m 6s
+
+Maestro exit code (e2e/tools.yaml): 0
+Maestro exit code (e2e/blackout.yaml): 0
+Blocked WebView requests during E2E: 0
+ContentStore download requests during E2E: 0
+Bytes of UID 10400 over real interfaces during E2E: 0
+SMS hand-off intents (VIEW sms:): 1
+E2E PASS

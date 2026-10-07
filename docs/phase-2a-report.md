@@ -125,7 +125,27 @@ Not evaluated in this phase (the mandatory items took the time). Still open.
 
 ## Verification
 
-VERIFICATION
+- `pnpm typecheck`, `pnpm lint`, `pnpm test`: green — core 294 (incl. `transfer.test.ts`, `places.test.ts`),
+  catalog-builder 17 (places pack, built sources, chunk sizes), db 16 (migration 3, energy), emergency-cards 35,
+  ui-tokens 36, i18n 14, rag-eval 11, release-guards 6.
+- rag-eval full (English, Qwen2.5-1.5B Q4_0, 12 CPU threads): precision **93.2%**, number/unit violations **0**,
+  adversarial unsupported **0**, refusal **100%**, coverage en **72.4%** — PASS
+  ([report](phase2a/rag-eval/rag-eval-full.md)); smoke (CI subset, tiny model): PASS.
+- Retrieval parity (English, S23 release vs rag-eval): **108 / 108** identical ([parity.md](phase2a/parity/parity.md)).
+- `./gradlew assembleRelease` (release key, `-PskepiAllowDraftCards=true`, embedded release catalog sequence 2):
+  50.1 MB arm64, signing certificate SHA-256 `7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e`
+  (unchanged); **PERMISSION ALLOWLIST: PASS**.
+- `./gradlew connectedAndroidTest` on the S23: **32 tests, 0 failures** (TransferServerTest 11, SealingTest 12,
+  MorsePlayerTest 3, FileHasherTest 3, ContentRulesTest 3) ([`phase2a/instrumentation/`](phase2a/instrumentation/)).
+- Maestro on the S23 (release, airplane mode, `run-e2e.ps1 -SimulateGnss`): tools, onboarding, ask-en, ask-t1,
+  medical, cards, blackout, places — **8/8** (full run: 6/8; `tools` failed on the simulated GNSS fix — the known
+  test-provider flakiness of Phase 1d — and `blackout` because the new measured cost labels pushed the compass
+  below the fold; the flow now scrolls; both passed on the rerun). Blocked WebView requests **0**, ContentStore
+  requests **0**, bytes of the app UID on real interfaces **0**, SMS hand-off intents **1**
+  ([`phase2a/e2e/s23/`](phase2a/e2e/s23/)).
+- Maestro P2P between two emulators + places on the host emulator: **10/10, P2P E2E PASS** (§3).
+- Unplugged energy run over wireless adb: §6.
+- CI (GitHub Actions on push): see the commit status of this report's push.
 
 ## Deviations and open items
 

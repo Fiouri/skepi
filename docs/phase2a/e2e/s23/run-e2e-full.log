@@ -1,0 +1,62 @@
+test GPS provider active (simulated fix, Patras)
+
+Waiting for flows to complete...
+[Failed] SKEPI tools (offline) (3m 37s) (No visible element found: id: location-fix)
+
+1/1 Flow Failed
+
+
+Waiting for flows to complete...
+[Passed] SKEPI onboarding (offline, packs installed) (59s)
+
+1/1 Flow Passed in 59s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI English flow (offline) (1m 34s)
+
+1/1 Flow Passed in 1m 34s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI T1-simulation flow (offline) (1m 5s)
+
+1/1 Flow Passed in 1m 5s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI medical flow (offline) (1m 3s)
+
+1/1 Flow Passed in 1m 3s
+
+
+Waiting for flows to complete...
+[Passed] SKEPI emergency cards (offline) (1m 1s)
+
+1/1 Flow Passed in 1m 1s
+
+
+Waiting for flows to complete...
+[Failed] SKEPI blackout mode (offline) (2m 57s) (Assertion is false: id: compass-start is visible)
+
+1/1 Flow Failed
+
+
+Waiting for flows to complete...
+[Passed] SKEPI places and emergency POIs (offline) (59s)
+
+1/1 Flow Passed in 59s
+
+Maestro exit code (e2e/tools.yaml): 1
+Maestro exit code (e2e/onboarding.yaml): 0
+Maestro exit code (e2e/ask-en.yaml): 0
+Maestro exit code (e2e/ask-t1.yaml): 0
+Maestro exit code (e2e/medical.yaml): 0
+Maestro exit code (e2e/cards.yaml): 0
+Maestro exit code (e2e/blackout.yaml): 1
+Maestro exit code (e2e/places.yaml): 0
+Blocked WebView requests during E2E: 0
+ContentStore download requests during E2E: 0
+Bytes of UID 10400 over real interfaces during E2E: 0
+SMS hand-off intents (VIEW sms:): 0
+E2E_EXIT=1

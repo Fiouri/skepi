@@ -117,8 +117,12 @@ onFlowComplete:
     id: location-locate
 - assertNotVisible:
     id: location-locating
-- assertVisible:
-    id: compass-start
+# The measured cost labels make the buttons taller: the compass may sit below the fold.
+- scrollUntilVisible:
+    element:
+      id: compass-start
+    direction: DOWN
+    timeout: 10000
 - takeScreenshot: e2e/out/blackout-05-tools
 # Back to normal
 - tapOn:

@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="192.168.1.8:45195" tests="1" failures="0" time="60.773" timestamp="2026-10-08T02:45:35">
+    <testcase id="SKEPI emergency cards (offline)" name="SKEPI emergency cards (offline)" classname="SKEPI emergency cards (offline)" file="e2e\cards.yaml" time="60.756" timestamp="2026-10-08T02:45:35" status="SUCCESS"/>
+  </testsuite>
+</testsuites>
