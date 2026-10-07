@@ -150,6 +150,11 @@ export default function LibraryScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: 12, paddingBottom: 48 }} testID="library">
+      {/* Nearby sharing first: in a crisis this is how packs and the app reach other phones. */}
+      <View style={styles.row}>
+        <Button testID="library-share" label={t.transfer.share} onPress={() => { router.push('/share'); }} disabled={busy} />
+        <Button testID="library-receive" label={t.transfer.receive} onPress={() => { router.push('/receive'); }} disabled={busy} />
+      </View>
       <View style={{ gap: 4 }}>
         <Text style={styles.mono} testID="catalog-info">
           {catalog ? t.library.catalog({ sequence: catalog.sequence, keys: catalogState?.purpose ?? '–', packs: catalog.packs.length }) : t.library.noCatalog}
@@ -204,10 +209,6 @@ export default function LibraryScreen() {
           {t.library.rejectedMaps(reconcile.rejectedMaps.join(', '))}
         </Text>
       )}
-      <View style={styles.row}>
-        <Button testID="library-share" label={t.transfer.share} onPress={() => { router.push('/share'); }} disabled={busy} />
-        <Button testID="library-receive" label={t.transfer.receive} onPress={() => { router.push('/receive'); }} disabled={busy} />
-      </View>
       <Button testID="library-import" label={t.library.import} onPress={() => void importFile()} disabled={busy} />
       {note('import')}
 

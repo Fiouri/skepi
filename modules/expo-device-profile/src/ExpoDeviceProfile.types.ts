@@ -29,6 +29,14 @@ export interface BatteryInfo {
   timestampMs: number;
 }
 
+/** Charge used during one action, integrated from the battery current (BATTERY_PROPERTY_CURRENT_NOW). */
+export interface EnergyMeterResult {
+  durationMs: number;
+  meanCurrentUa: number;
+  chargeUah: number;
+  samples: number;
+}
+
 export interface DeviceInfo {
   manufacturer: string;
   model: string;

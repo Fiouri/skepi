@@ -4,10 +4,11 @@
 knowledge library (ZIM / Wikipedia), offline vector maps (PMTiles) and an on-device AI assistant that
 answers only from local sources, with citations.
 
-> Status: **Phase 1d (Android only):** structural prompt-injection filter, release guards in CI, draft
-> emergency cards (English + Greek) and per-country numbers, onboarding, blackout mode and a Tools tab. Not
-> usable by end users yet: the emergency cards are unreviewed drafts. See [`docs/architecture.md`](docs/architecture.md),
-> [`docs/phase-1d-report.md`](docs/phase-1d-report.md) and the [Phase 1 gate](docs/phase-1-gate.md).
+> Status: **Phase 2a (Android only):** P2P sharing between phones (shared Wi-Fi or a local hotspot, QR
+> pairing, pinned TLS, every chunk checked against the signed catalog, app sharing by APK page), offline place
+> search and emergency points from OpenStreetMap, a Greece map pack, English-only until v1. Not usable by end
+> users yet: the emergency cards are unreviewed drafts. See [`docs/architecture.md`](docs/architecture.md),
+> [`docs/phase-2a-report.md`](docs/phase-2a-report.md) and the [Phase 1 gate](docs/phase-1-gate.md).
 
 ## Layout
 

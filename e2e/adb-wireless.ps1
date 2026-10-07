@@ -5,7 +5,8 @@
   Android 11+ wireless debugging: Developer options -> Wireless debugging. Either pair once with the
   code shown under "Pair device with pairing code" (-Pair host:port -PairingCode 123456), or reuse an
   earlier pairing; then connect to the address shown on the Wireless debugging screen (-Connect
-  host:port). Prints the serial (host:port) to pass as -Serial to run-e2e.ps1, run-parity.ps1 and
+  host:port, or nothing: the paired phone is then found by mDNS, since the port changes whenever wireless
+  debugging restarts, e.g. after unplugging the cable). Prints the serial (host:port) to pass as -Serial to run-e2e.ps1, run-parity.ps1 and
   run-energy.ps1.
 
   Airplane mode normally turns Wi-Fi off, which would cut the adb link. -KeepWifiInAirplane removes
@@ -32,7 +33,14 @@ if ($Pair) {
   & adb pair $Pair $PairingCode | Out-Host
   if ($LASTEXITCODE -ne 0) { throw "adb pair $Pair failed" }
 }
-if (-not $Connect) { throw '-Connect host:port (the address on the Wireless debugging screen) is required' }
+if (-not $Connect) {
+  # The connect port changes whenever wireless debugging restarts (e.g. after unplugging the cable):
+  # find the paired phone through mDNS.
+  $svc = (& adb mdns services) | Select-String -Pattern '_adb-tls-connect\._tcp\s+(\d{1,3}(\.\d{1,3}){3}:\d{2,5})' | Select-Object -First 1
+  if (-not $svc) { throw 'no paired phone found by mDNS: pass -Connect host:port (the address on the Wireless debugging screen)' }
+  $Connect = $svc.Matches[0].Groups[1].Value
+  Write-Host "found $Connect by mDNS"
+}
 if ($Connect -notmatch $hostPort) { throw "-Connect must be host:port, got $Connect" }
 $res = (& adb connect $Connect) -join ' '
 Write-Host $res

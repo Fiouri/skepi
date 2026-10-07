@@ -84,9 +84,10 @@ export function estimateEnergy(samples: readonly Pick<EnergySample, 'batteryDelt
   return { pct, samples: sorted.length };
 }
 
-/** "≈ 1%", "≈ 0.3%", "< 0.1%": the label on costly buttons. */
+/** "≈ 1%", "≈ 0.3%", "≈ 0.04%", "< 0.01%": the label on costly buttons. */
 export function formatEnergy(estimate: EnergyEstimate): string {
-  if (estimate.pct < 0.1) return '< 0.1%';
+  if (estimate.pct < 0.01) return '< 0.01%';
+  if (estimate.pct < 0.1) return `≈ ${estimate.pct.toFixed(2)}%`;
   if (estimate.pct < 1) return `≈ ${estimate.pct.toFixed(1)}%`;
   return `≈ ${String(Math.round(estimate.pct))}%`;
 }
@@ -96,6 +97,17 @@ export interface BatteryReading {
   levelPct: number | null;
   chargeCounterUah: number | null;
   charging: boolean;
+}
+
+/**
+ * Percent of a full battery for a charge measured by integrating the battery current (µAh), using the
+ * full capacity implied by the start reading (charge counter / level). Null when it cannot be scaled.
+ */
+export function chargeToPct(chargeUah: number, start: BatteryReading): number | null {
+  if (start.charging || !Number.isFinite(chargeUah) || chargeUah < 0) return null;
+  if (start.chargeCounterUah === null || start.levelPct === null || start.levelPct <= 0) return null;
+  const fullUah = start.chargeCounterUah / (start.levelPct / 100);
+  return fullUah > 0 ? (chargeUah / fullUah) * 100 : null;
 }
 
 /** Percent of a full battery used between two readings; null when it cannot be measured. */

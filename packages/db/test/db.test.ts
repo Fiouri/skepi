@@ -2,6 +2,7 @@ import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
   batteryDeltaPct,
+  chargeToPct,
   ENERGY_SAMPLES_KEPT,
   estimateEnergy,
   formatEnergy,
@@ -192,7 +193,8 @@ describe('energy samples', () => {
     expect(estimateEnergy([sample(1, 1), sample(2, 2)])).toBeNull();
     expect(estimateEnergy([sample(0.2, 1), sample(5, 2), sample(0.4, 3)])).toEqual({ pct: 0.4, samples: 3 });
     expect(estimateEnergy([sample(1, 1), sample(2, 2), sample(3, 3), sample(4, 4)])?.pct).toBe(2.5);
-    expect(formatEnergy({ pct: 0.05, samples: 3 })).toBe('< 0.1%');
+    expect(formatEnergy({ pct: 0.005, samples: 3 })).toBe('< 0.01%');
+    expect(formatEnergy({ pct: 0.05, samples: 3 })).toBe('≈ 0.05%');
     expect(formatEnergy({ pct: 0.42, samples: 3 })).toBe('≈ 0.4%');
     expect(formatEnergy({ pct: 1.6, samples: 3 })).toBe('≈ 2%');
   });
@@ -208,6 +210,16 @@ describe('energy samples', () => {
     expect(await getSetting(db, 'blackout.enabled')).toBe(true);
     await expect(setSetting(db, 'region.country', 'greece')).rejects.toThrow();
     await expect(setSetting(db, 'storage.budgetGb', -2)).rejects.toThrow();
+  });
+});
+
+describe('chargeToPct (integrated battery current)', () => {
+  it('scales the measured charge with the capacity implied by the start reading', () => {
+    // 3,300,000 µAh at 89% → full ≈ 3,707,865 µAh; 370.8 µAh ≈ 0.01%.
+    expect(chargeToPct(370.7865, { levelPct: 89, chargeCounterUah: 3_300_000, charging: false })).toBeCloseTo(0.01, 6);
+    expect(chargeToPct(100, { levelPct: 89, chargeCounterUah: null, charging: false })).toBeNull();
+    expect(chargeToPct(100, { levelPct: 89, chargeCounterUah: 3_300_000, charging: true })).toBeNull();
+    expect(chargeToPct(-1, { levelPct: 89, chargeCounterUah: 3_300_000, charging: false })).toBeNull();
   });
 });
 

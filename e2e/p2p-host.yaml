@@ -19,10 +19,9 @@ name: SKEPI P2P host
 - runFlow: app-ready.yaml
 - tapOn:
     id: tab-library
-- scrollUntilVisible:
-    element:
+- extendedWaitUntil:
+    visible:
       id: library-share
-    direction: DOWN
     timeout: 20000
 - tapOn:
     id: library-share

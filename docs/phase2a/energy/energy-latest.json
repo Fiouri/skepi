@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "createdAt": "2026-10-07T23:12:04.641Z",
+  "battery": {
+    "levelPct": 82,
+    "chargeCounterUah": 3071445,
+    "charging": false,
+    "powerSave": false,
+    "timestampMs": 1791414724641
+  },
+  "summary": [
+    {
+      "action": "ai-summary",
+      "tier": "T2",
+      "samples": 4,
+      "medianPct": 0.15082460249592317,
+      "label": "≈ 0.2%"
+    },
+    {
+      "action": "gps-fix",
+      "tier": "T2",
+      "samples": 3,
+      "medianPct": 0.4007220158663974,
+      "label": "≈ 0.4%"
+    },
+    {
+      "action": "sos-light-minute",
+      "tier": "T2",
+      "samples": 3,
+      "medianPct": 0.1298940778197013,
+      "label": "≈ 0.1%"
+    }
+  ],
+  "samples": [
+    {
+      "action": "ai-summary",
+      "tier": "T2",
+      "batteryDeltaPct": 0.09943704118497035,
+      "durationMs": 5861,
+      "createdAt": 1791413798671
+    },
+    {
+      "action": "ai-summary",
+      "tier": "T2",
+      "batteryDeltaPct": 0.17028914964002834,
+      "durationMs": 9717,
+      "createdAt": 1791413833017
+    },
+    {
+      "action": "ai-summary",
+      "tier": "T2",
+      "batteryDeltaPct": 0.131360055351818,
+      "durationMs": 7665,
+      "createdAt": 1791413863211
+    },
+    {
+      "action": "ai-summary",
+      "tier": "T2",
+      "batteryDeltaPct": 0.1751222452241364,
+      "durationMs": 10081,
+      "createdAt": 1791413895757
+    },
+    {
+      "action": "gps-fix",
+      "tier": "T2",
+      "batteryDeltaPct": 0.4007220158663974,
+      "durationMs": 180047,
+      "createdAt": 1791414083325
+    },
+    {
+      "action": "gps-fix",
+      "tier": "T2",
+      "batteryDeltaPct": 0.40690417771819165,
+      "durationMs": 180023,
+      "createdAt": 1791414266050
+    },
+    {
+      "action": "gps-fix",
+      "tier": "T2",
+      "batteryDeltaPct": 0.3962360508943932,
+      "durationMs": 180025,
+      "createdAt": 1791414448693
+    },
+    {
+      "action": "sos-light-minute",
+      "tier": "T2",
+      "batteryDeltaPct": 0.13122799339264318,
+      "durationMs": 86178,
+      "createdAt": 1791414537341
+    },
+    {
+      "action": "sos-light-minute",
+      "tier": "T2",
+      "batteryDeltaPct": 0.1298940778197013,
+      "durationMs": 86252,
+      "createdAt": 1791414625611
+    },
+    {
+      "action": "sos-light-minute",
+      "tier": "T2",
+      "batteryDeltaPct": 0.1256192461475629,
+      "durationMs": 86395,
+      "createdAt": 1791414714567
+    }
+  ]
+}

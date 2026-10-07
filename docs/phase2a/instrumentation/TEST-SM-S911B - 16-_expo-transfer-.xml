@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="org.skepi.transfer.TransferServerTest" tests="11" failures="0" errors="0" skipped="0" time="6.91" timestamp="2026-10-07T23:13:52" hostname="localhost">
+  <properties>
+    <property name="device" value="SM-S911B - 16" />
+    <property name="flavor" value="" />
+    <property name="project" value=":expo-transfer" />
+  </properties>
+  <testcase name="refusesTlsBelow13" classname="org.skepi.transfer.TransferServerTest" time="0.023" />
+  <testcase name="requiresTheSessionToken" classname="org.skepi.transfer.TransferServerTest" time="0.175" />
+  <testcase name="servesTheManifestAndChunksOverPinnedTls13" classname="org.skepi.transfer.TransferServerTest" time="0.18" />
+  <testcase name="rangeRequestsAreBoundedAndValidated" classname="org.skepi.transfer.TransferServerTest" time="0.154" />
+  <testcase name="refusesAnyOtherCertificate" classname="org.skepi.transfer.TransferServerTest" time="0.002" />
+  <testcase name="neverServesUnselectedPacksOrUserData" classname="org.skepi.transfer.TransferServerTest" time="0.933" />
+  <testcase name="apkPageServesOnlyThePageAndTheApk" classname="org.skepi.transfer.TransferServerTest" time="0.002" />
+  <testcase name="clientRefusesNonLocalHosts" classname="org.skepi.transfer.TransferServerTest" time="0.054" />
+  <testcase name="stopsWhenIdle" classname="org.skepi.transfer.TransferServerTest" time="3.982" />
+  <testcase name="faultsCorruptOnceAndDropOnce" classname="org.skepi.transfer.TransferServerTest" time="0.257" />
+  <testcase name="sessionCertificatesAreFreshAndSelfConsistent" classname="org.skepi.transfer.TransferServerTest" time="0.002" />
+</testsuite>

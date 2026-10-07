@@ -35,6 +35,10 @@ if ($battery -match 'status: 2') { throw 'the battery is charging: unplug the ca
 $battery | Set-Content -Encoding UTF8 (Join-Path $out 'energy-battery-before.txt')
 
 
+# GNSS fixes need location services on (GPS works in airplane mode); restored afterwards.
+Adb shell pm grant $AppId android.permission.ACCESS_FINE_LOCATION | Out-Null
+$locationWasOn = ((Adb shell cmd location is-location-enabled) -join '').Trim() -eq 'true'
+Adb shell cmd location set-location-enabled true | Out-Null
 Adb shell cmd connectivity airplane-mode enable | Out-Null
 Start-Sleep -Seconds 5
 $code = 1
@@ -44,6 +48,7 @@ try {
   $code = $LASTEXITCODE
 } finally {
   Adb shell cmd connectivity airplane-mode disable | Out-Null
+  if (-not $locationWasOn) { Adb shell cmd location set-location-enabled false | Out-Null }
   Pop-Location
 }
 ((Adb shell dumpsys battery) -join "`n") | Set-Content -Encoding UTF8 (Join-Path $out 'energy-battery-after.txt')

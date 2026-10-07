@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="skepi-recv" tests="1" failures="0" time="34.348" timestamp="2026-10-08T02:33:18">
+    <testcase id="SKEPI P2P receiver" name="SKEPI P2P receiver" classname="SKEPI P2P receiver" file="e2e\p2p-receive.yaml" time="34.325" timestamp="2026-10-08T02:33:18" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

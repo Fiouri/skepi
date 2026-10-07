@@ -57,7 +57,7 @@ name: SKEPI energy samples (unplugged)
 - runFlow:
     file: blackout-ask.yaml
     env:
-      QUESTION: How does photosynthesis work?
+      QUESTION: What is the speed of light?
 - tapOn:
     id: ask-clear
 # GNSS: three fixes (or fix attempts) on tap
@@ -101,7 +101,7 @@ name: SKEPI energy samples (unplugged)
           notVisible:
             id: sos-torch-running
           timeout: 70000
-        optional: true
+          optional: true
       - tapOn:
           id: sos-torch-stop
 - takeScreenshot: e2e/out/energy-01-tools

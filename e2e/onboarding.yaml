@@ -1,4 +1,5 @@
-# "Get prepared" offline (release build, airplane mode, packs already installed): language switch,
+# "Get prepared" offline (release build, airplane mode, packs already installed): language (English only
+# until v1),
 # country, tier and free-space detection, storage preset mapped to the installed packs, disclaimer,
 # then the "You are ready" indicator on the home screen. Started from Library -> "Get prepared" again.
 appId: ${APP_ID}
@@ -24,11 +25,12 @@ onFlowComplete:
       id: onboarding-language
     timeout: 10000
 - assertVisible: "Step 1 of 4"
-# Language switches live; "Phone language" goes back to the device language (English here).
-- tapOn:
+# English-only until v1: no Greek choice without the developer flag (frozen locale).
+- assertNotVisible:
     id: lang-el
-- assertVisible: "Γλώσσα και χώρα"
-- assertVisible: "Βήμα 1 από 4"
+- tapOn:
+    id: lang-en
+- assertVisible: "Language and country"
 - tapOn:
     id: lang-system
 - assertVisible: "Language and country"

@@ -1,0 +1,7 @@
+﻿/sdcard/Android/data/org.skepi.app.dev/files/tmp:
+total 0
+
+/sdcard/Android/data/org.skepi.app.dev/files/zim:
+total 288
+-rw-rw---- 1 u0_a216 ext_data_rw 221833 2026-10-08 02:28 eval-smoke-en.zim
+-rw-rw---- 1 u0_a216 ext_data_rw  60390 2026-10-08 02:28 p2p-propagation.zim

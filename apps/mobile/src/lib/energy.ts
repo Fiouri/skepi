@@ -1,5 +1,6 @@
 import {
   batteryDeltaPct,
+  chargeToPct,
   clearEnergySamples,
   estimateEnergy,
   formatEnergy,
@@ -30,8 +31,35 @@ const useEnergyVersion = create<{ version: number; bump: () => void }>((set) => 
   },
 }));
 
-async function record(action: EnergyAction, tier: string, start: BatteryInfo, end: BatteryInfo, perMinute: boolean): Promise<void> {
-  const delta = batteryDeltaPct(start, end);
+let meterRun = 0;
+
+/**
+ * Starts the current meter for one action (where the phone reports the battery current). Its
+ * integrated charge is much finer than the charge counter, which some phones update only every ~30 s.
+ */
+function startMeter(): string | null {
+  meterRun += 1;
+  const id = `energy-${String(meterRun)}`;
+  try {
+    return ExpoDeviceProfile.startEnergyMeter(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function stopMeter(id: string | null): number | null {
+  if (id === null) return null;
+  try {
+    return ExpoDeviceProfile.stopEnergyMeter(id)?.chargeUah ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function record(action: EnergyAction, tier: string, start: BatteryInfo, end: BatteryInfo, perMinute: boolean, meteredUah: number | null): Promise<void> {
+  if (end.charging) return;
+  const metered = meteredUah === null ? null : chargeToPct(meteredUah, start);
+  const delta = metered ?? batteryDeltaPct(start, end);
   const durationMs = Math.max(0, Math.round(end.timestampMs - start.timestampMs));
   if (delta === null || durationMs === 0) return;
   const value = perMinute ? delta / (durationMs / 60_000) : delta;
@@ -43,12 +71,14 @@ async function record(action: EnergyAction, tier: string, start: BatteryInfo, en
 /** Runs `work` and records its battery cost (best effort: measuring never breaks the action). */
 export async function measureEnergy<T>(action: EnergyAction, tier: string, work: () => Promise<T>): Promise<T> {
   const start = await ExpoDeviceProfile.getBattery().catch(() => null);
+  const meter = start && !start.charging ? startMeter() : null;
   try {
     return await work();
   } finally {
+    const metered = stopMeter(meter);
     if (start) {
       void ExpoDeviceProfile.getBattery()
-        .then((end) => record(action, tier, start, end, false))
+        .then((end) => record(action, tier, start, end, false, metered))
         .catch(() => undefined);
     }
   }
@@ -57,10 +87,12 @@ export async function measureEnergy<T>(action: EnergyAction, tier: string, work:
 /** Starts a measurement for an open-ended action (SOS light); call the result when it stops. */
 export async function startPerMinuteMeasurement(action: EnergyAction, tier: string): Promise<() => void> {
   const start = await ExpoDeviceProfile.getBattery().catch(() => null);
+  const meter = start && !start.charging ? startMeter() : null;
   return () => {
+    const metered = stopMeter(meter);
     if (!start) return;
     void ExpoDeviceProfile.getBattery()
-      .then((end) => (end.timestampMs - start.timestampMs >= 60_000 ? record(action, tier, start, end, true) : undefined))
+      .then((end) => (end.timestampMs - start.timestampMs >= 60_000 ? record(action, tier, start, end, true, metered) : undefined))
       .catch(() => undefined);
   };
 }

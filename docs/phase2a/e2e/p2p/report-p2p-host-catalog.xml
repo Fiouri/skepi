@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="skepi-host" tests="1" failures="0" time="37.107" timestamp="2026-10-08T02:26:17">
+    <testcase id="SKEPI P2P host catalog update" name="SKEPI P2P host catalog update" classname="SKEPI P2P host catalog update" file="e2e\p2p-host-catalog.yaml" time="37.093" timestamp="2026-10-08T02:26:17" status="SUCCESS"/>
+  </testsuite>
+</testsuites>
