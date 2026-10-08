@@ -1,0 +1,25 @@
+{
+  "artifact": "libzim_win-x86_64",
+  "version": "9.7.0",
+  "url": "https://download.openzim.org/release/libzim/libzim_win-x86_64-9.7.0.zip",
+  "upstreamMd5Url": "https://download.openzim.org/release/libzim/libzim_win-x86_64-9.7.0.zip.md5",
+  "md5": "ba2aff1baaaa50785b77fd2482b4ef10",
+  "sha256": "d4154ef69bcb38bc58943f8fc3c0b819761f7ac58ba18e8d9918c21e2171d709",
+  "builtBy": "kiwix-build CI (MSVC, linker 14.44, /MD)",
+  "contains": {
+    "libzim": "9.7.0",
+    "icu": "74",
+    "xapian": "statically linked into zim-9.dll",
+    "zstd": "statically linked into zim-9.dll"
+  },
+  "files": {
+    "bin/zim-9.dll": "fb4fa1ea122e2ebf2b0df125a7088a6d2b47ffa3a30989660fc6e9f806fd76f2",
+    "bin/icuin74.dll": "a80efbe7966ecd99a86b9f1694bad6995c8b43febc1b42fbff5a3f5e9a6e36ff",
+    "bin/icuuc74.dll": "0e3ec2d0d821b6244b78129334aed0e7ebe3cde51f00d2ff77170c4900af7f67",
+    "bin/icudt74.dll": "ce6f56b89f3c7163a166210977642559c87033b579ff129c61443de57fbd771b",
+    "lib/zim.lib": "bfd16683441ae22c3c851c9dc46db37cacd95c42ba4d71db5c4b8284e16f5775"
+  },
+  "runtimeDlls": ["bin/zim-9.dll", "bin/icuin74.dll", "bin/icuuc74.dll", "bin/icudt74.dll"],
+  "license": "GPL-2.0-or-later (libzim, Xapian); ICU (Unicode-3.0); zstd (BSD-3-Clause)",
+  "source": "https://github.com/openzim/libzim/releases/tag/9.7.0"
+}

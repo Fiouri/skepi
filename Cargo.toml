@@ -1,0 +1,21 @@
+# Rust workspace for the desktop app (Phase 3a, Windows): native engines behind narrow Tauri commands.
+[workspace]
+resolver = "3"
+members = ["crates/zim-ffi"]
+
+[workspace.package]
+edition = "2024"
+license = "GPL-3.0-or-later"
+rust-version = "1.98"
+publish = false
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = "debuginfo"

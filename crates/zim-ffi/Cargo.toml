@@ -1,0 +1,20 @@
+[package]
+name = "zim-ffi"
+version = "0.1.0"
+description = "Rust FFI (cxx) to the official libzim build pinned in native/kiwix"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+links = "zim"
+
+[dependencies]
+cxx = "=1.0.202"
+
+[build-dependencies]
+cxx-build = "=1.0.202"
+serde_json = "=1.0.151"
+sha2 = "=0.11.0"
+
+[lints]
+workspace = true
