@@ -43,6 +43,11 @@ if (-not (Test-Path $installedSdk) -or $env:SKEPI_WINSDK_DIR) {
   $env:INCLUDE = (@('ucrt', 'um', 'shared', 'winrt', 'cppwinrt') | ForEach-Object { Join-Path $inc.FullName $_ }) -join ';' | ForEach-Object { "$_;$env:INCLUDE" }
   $env:LIB = "$(Join-Path $sdk 'c\ucrt\x64');$(Join-Path $sdk 'c\um\x64');$env:LIB"
   $env:PATH = "$(Join-Path $sdk "c\bin\$ver\x64");$env:PATH"
+  # MSBuild generators look for an installed SDK; CMake builds (llama.cpp) use Ninja with this environment.
+  $ninja = Get-ChildItem -Directory -ErrorAction SilentlyContinue (Join-Path $env:LOCALAPPDATA 'skepi\tools') -Filter 'ninja-*' | Sort-Object Name -Descending | Select-Object -First 1
+  if (-not $ninja) { throw 'Ninja not found in %LOCALAPPDATA%\skepi\tools\ninja-* (needed with the NuGet SDK)' }
+  $env:PATH = "$($ninja.FullName);$env:PATH"
+  $env:CMAKE_GENERATOR = 'Ninja'
 }
 
 $env:PATH = (($env:PATH -split ';') | Where-Object { $_ -and $_ -notmatch '\\Git\\usr\\bin$' -and $_ -notmatch '^/usr/bin$' -and $_ -notmatch '\\msys64\\usr\\bin$' }) -join ';'

@@ -1,7 +1,7 @@
 # Rust workspace for the desktop app (Phase 3a, Windows): native engines behind narrow Tauri commands.
 [workspace]
 resolver = "3"
-members = ["crates/zim-ffi"]
+members = ["crates/zim-ffi", "crates/desktop-core"]
 
 [workspace.package]
 edition = "2024"
