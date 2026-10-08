@@ -11,12 +11,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint src test",
-    "test": "vitest run"
+    "lint": "eslint src test scripts",
+    "test": "vitest run",
+    "export-migrations": "tsx scripts/export-migrations.ts"
   },
   "devDependencies": {
     "@types/node": "22.19.1",
     "typescript": "~6.0.3",
-    "vitest": "5.0.3"
+    "vitest": "5.0.3",
+    "tsx": "4.23.15"
   }
 }

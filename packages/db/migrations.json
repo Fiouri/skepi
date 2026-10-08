@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "migrations": [
+    {
+      "version": 1,
+      "name": "packs_and_settings",
+      "statements": [
+        "CREATE TABLE packs (\n        id TEXT PRIMARY KEY,\n        kind TEXT NOT NULL CHECK (kind IN ('zim','gguf','pmtiles','places')),\n        version TEXT NOT NULL,\n        title TEXT NOT NULL,\n        path TEXT NOT NULL UNIQUE,\n        size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),\n        sha256 TEXT NOT NULL CHECK (length(sha256) = 64),\n        verified INTEGER NOT NULL CHECK (verified IN (0,1)),\n        catalog_seq INTEGER,\n        license TEXT,\n        source TEXT NOT NULL CHECK (source IN ('download','import','provisioned')),\n        consent_at INTEGER,\n        installed_at INTEGER NOT NULL,\n        last_opened_at INTEGER,\n        CHECK (verified = 1 OR kind = 'zim'),\n        CHECK (verified = 1 OR catalog_seq IS NULL)\n      )",
+        "CREATE INDEX packs_sha256 ON packs (sha256)",
+        "CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+      ]
+    },
+    {
+      "version": 2,
+      "name": "energy_samples",
+      "statements": [
+        "CREATE TABLE energy_samples (\n        action TEXT NOT NULL,\n        tier TEXT NOT NULL,\n        battery_delta_pct REAL NOT NULL CHECK (battery_delta_pct >= 0 AND battery_delta_pct <= 100),\n        duration_ms INTEGER NOT NULL CHECK (duration_ms >= 0),\n        created_at INTEGER NOT NULL\n      )",
+        "CREATE INDEX energy_samples_action ON energy_samples (action, tier, created_at)"
+      ]
+    },
+    {
+      "version": 3,
+      "name": "packs_source_p2p",
+      "statements": [
+        "CREATE TABLE packs_v3 (\n        id TEXT PRIMARY KEY,\n        kind TEXT NOT NULL CHECK (kind IN ('zim','gguf','pmtiles','places')),\n        version TEXT NOT NULL,\n        title TEXT NOT NULL,\n        path TEXT NOT NULL UNIQUE,\n        size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),\n        sha256 TEXT NOT NULL CHECK (length(sha256) = 64),\n        verified INTEGER NOT NULL CHECK (verified IN (0,1)),\n        catalog_seq INTEGER,\n        license TEXT,\n        source TEXT NOT NULL CHECK (source IN ('download','import','provisioned','p2p')),\n        consent_at INTEGER,\n        installed_at INTEGER NOT NULL,\n        last_opened_at INTEGER,\n        CHECK (verified = 1 OR kind = 'zim'),\n        CHECK (verified = 1 OR catalog_seq IS NULL)\n      )",
+        "INSERT INTO packs_v3 SELECT id, kind, version, title, path, size_bytes, sha256, verified, catalog_seq, license, source, consent_at, installed_at, last_opened_at FROM packs",
+        "DROP TABLE packs",
+        "ALTER TABLE packs_v3 RENAME TO packs",
+        "CREATE INDEX packs_sha256 ON packs (sha256)"
+      ]
+    }
+  ]
+}
