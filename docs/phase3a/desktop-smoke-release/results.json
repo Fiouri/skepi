@@ -1,0 +1,241 @@
+{
+  "app": "target/release/skepi-desktop.exe",
+  "content": "C:\\Users\\fiour\\AppData\\Local\\skepi\\e2e-desktop\\content",
+  "results": [
+    {
+      "name": "reconcile registers catalog packs as verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "unknown ZIM is listed unverified and needs consent",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "title suggestions from libzim",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "full-text search from libzim",
+      "ok": true,
+      "detail": "fulltext: 30 results · 4 ms (native 1 ms)"
+    },
+    {
+      "name": "article opens in the separate viewer on zim://",
+      "ok": true,
+      "detail": "http://zim.localhost/9da28041-e531-d51f-6963-b34339ad454c/Canberra"
+    },
+    {
+      "name": "inline scripts do not run (title not \"pwned\")",
+      "ok": true,
+      "detail": "Sealing fixture"
+    },
+    {
+      "name": "local image served through zim:// under the CSP",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "external images blocked (http/https/file/content)",
+      "ok": true,
+      "detail": "[0,0,0,0]"
+    },
+    {
+      "name": "CSP meta present in the document",
+      "ok": true,
+      "detail": "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; media-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; sandbox"
+    },
+    {
+      "name": "article content cannot reach Tauri IPC",
+      "ok": true,
+      "detail": "[\"ipc denied: Command zim_search not allowed by ACL\",\"fetch blocked: TypeError: Failed to fetch\",\"network blocked: TypeError: Failed to fetch\"]"
+    },
+    {
+      "name": "external link navigation cancelled (viewer stays on zim://)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "external link shown as text in the main window",
+      "ok": true,
+      "detail": "External link (not opened): https://example.invalid/"
+    },
+    {
+      "name": "Layer 1 extractive answer",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "AI summary with verified citations",
+      "ok": true,
+      "detail": "status=ready lang=en medical=no tier=T3\nlayer1=51ms retrieval=16ms\nbudget=T2/en 2600 chars, sources=4\nmodel=qwen2.5-1.5b-instruct-q4_0.gguf gpu=NVIDIA GeForce RTX 4060 Ti\nttft=71ms tok/s=32.9 prompt=574 cached=92\nsummary=shown kept=1/3"
+    },
+    {
+      "name": "inference ran on the GPU (Vulkan)",
+      "ok": true,
+      "detail": "status=ready lang=en medical=no tier=T3\nlayer1=51ms retrieval=16ms\nbudget=T2/en 2600 chars, sources=4\nmodel=qwen2.5-1.5b-instruct-q4_0.gguf gpu=NVIDIA GeForce RTX 4060 Ti\nttft=71ms tok/s=32.9 prompt=574 cached=92\nsummary=shown kept=1/3"
+    },
+    {
+      "name": "place search from the places pack",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "map renders from the verified PMTiles pack (maps protocol)",
+      "ok": true,
+      "detail": "Map ready (358 ms) · offline PMTiles"
+    },
+    {
+      "name": "emergency POIs from the places pack",
+      "ok": true,
+      "detail": "3 emergency points in view"
+    },
+    {
+      "name": "emergency card with the draft banner",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "zero egress from the app process (Rust: no connection outside loopback)",
+      "ok": true,
+      "detail": "6 samples, []"
+    },
+    {
+      "name": "zero egress from the webviews at startup (net log: only tauri/ipc/zim/maps.localhost)",
+      "ok": true,
+      "detail": "11 URLs; remote: []"
+    }
+  ],
+  "egress": [
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.99.205.2",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.99.205.2",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.99.205.2",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.99.205.2",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.99.205.2",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.99.205.2",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    },
+    {
+      "Process": "msedgewebview2.exe",
+      "RemoteAddress": "40.101.76.162",
+      "RemotePort": 443
+    }
+  ],
+  "samples": 6,
+  "webviewUrls": [
+    "http://tauri.localhost/",
+    "http://tauri.localhost/assets/index-CRqjF6X3.js",
+    "http://tauri.localhost/assets/index-TNal4MdO.css",
+    "http://tauri.localhost/assets/core-Djq8_Zg8.js",
+    "http://tauri.localhost/favicon.ico",
+    "http://tauri.localhost/assets/event-DgOCphlC.js",
+    "http://ipc.localhost/plugin%3Aevent%7Clisten",
+    "http://ipc.localhost/device_info",
+    "http://ipc.localhost/settings_get",
+    "http://ipc.localhost/content_reconcile",
+    "http://ipc.localhost/content_state"
+  ],
+  "runtimeConnections": [
+    "msedgewebview2.exe 40.99.205.2:443",
+    "msedgewebview2.exe 40.101.76.162:443"
+  ]
+}

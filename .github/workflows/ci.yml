@@ -117,3 +117,41 @@ jobs:
           node node_modules/tsx/dist/cli.mjs tools/release-guards/src/permissions-cli.ts "$apk" --app-id org.skepi.app
       - name: Release JS bundle rebuilds on packages/ and modules/ changes
         run: node node_modules/tsx/dist/cli.mjs tools/release-guards/src/bundle-probe-cli.ts
+
+  # Phase 3a: the Windows desktop crates (zim-ffi, desktop-core, the Tauri shell). libzim comes from the
+  # pinned official Windows build (native/kiwix, SHA-256 checked); llama.cpp is built without Vulkan here
+  # (no Vulkan SDK on the runner; the GPU path is tested locally, docs/phase-3a-report.md).
+  desktop-windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      SKEPI_CACHE_DIR: ${{ github.workspace }}\.cache\skepi
+      SKEPI_LIBZIM_DIR: ${{ github.workspace }}\.cache\libzim
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Rust toolchain (pinned)
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal -c rustfmt -c clippy
+          rustup default 1.98.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            target
+          key: desktop-${{ hashFiles('Cargo.lock', 'native/kiwix/libzim-windows.lock.json') }}
+      - name: libzim (official Windows build, SHA-256 pinned)
+        shell: pwsh
+        run: ./native/kiwix/fetch-libzim-windows.ps1
+      - name: Desktop UI build (frontend embedded by the Tauri shell)
+        run: pnpm --filter @skepi/desktop build
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+      - run: cargo test --workspace --no-default-features
+      - name: Downloads against the local HTTPS test mirror (Node)
+        run: cargo test -p desktop-core --no-default-features --features test-mirror --test downloads

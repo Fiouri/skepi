@@ -63,6 +63,11 @@ if (-not $perlDir) {
 }
 if ($perlDir -and (Test-Path (Join-Path $perlDir 'perl\bin\perl.exe'))) { $env:PATH = (Join-Path $perlDir 'perl\bin') + ';' + $env:PATH }
 
+# npx/pnpm put node_modules\.bin first on PATH, where the npm package `rc` shadows the SDK's rc.exe
+# (CMake's compiler check then fails): name the resource compiler explicitly.
+$rc = Get-Command rc.exe -CommandType Application -ErrorAction SilentlyContinue | Where-Object { $_.Source -like '*Windows Kits*' -or $_.Source -like '*winsdk*' } | Select-Object -First 1
+if ($rc) { $env:RC = $rc.Source.Replace([char]92, [char]47); $env:CMAKE_RC_COMPILER = $env:RC }
+
 $exe = $Command[0]
 $rest = @($Command | Select-Object -Skip 1)
 & $exe @rest

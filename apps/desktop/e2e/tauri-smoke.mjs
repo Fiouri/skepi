@@ -88,7 +88,7 @@ const visible = (id) => findAll(tid(id)).then((l) => l.length > 0);
 const ENTER = '';
 // msedgedriver hands these to WebView2 instead of the app's own additionalBrowserArgs: the same list
 // as src-tauri/src/commands.rs BROWSER_ARGS, so the egress check sees the app's real configuration.
-const NETLOG = join(args.out, 'webview-netlog.json');
+const NETLOG = resolve(args.out, 'webview-netlog.json');
 const BROWSER_ARGS = [
   '--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection',
   '--disable-background-networking',

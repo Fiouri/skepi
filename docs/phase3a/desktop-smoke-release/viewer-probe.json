@@ -1,0 +1,16 @@
+{
+  "csp": "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; media-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; sandbox",
+  "external": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "internals": "object",
+  "local": 1,
+  "tries": [
+    "ipc denied: Command zim_search not allowed by ACL",
+    "fetch blocked: TypeError: Failed to fetch",
+    "network blocked: TypeError: Failed to fetch"
+  ]
+}
