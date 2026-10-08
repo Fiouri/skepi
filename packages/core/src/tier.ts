@@ -185,14 +185,19 @@ export function resolveDesktopProfile(input: {
     return { ...mobile, load: { contextSize, threads, useMmap, useMlock, gpuLayers } };
   }
   const gpu = input.gpu !== null;
+  const modelId = pickModel(input.models, T3_PROFILE.models);
+  // The T3 budget (12,000 characters, 8 passages) is sized for a 7–9B model. With a mobile model the
+  // desktop keeps the T2 budget that rag-eval validated for it (a 1.5B model given 7 sources declined
+  // to answer in the Phase 3a smoke run).
+  const mobileModel = modelId !== null && (MOBILE_MODELS as readonly string[]).includes(modelId.toLowerCase());
   return {
     mode: 'normal',
     detectedTier,
     effectiveTier: 'T3',
-    budgetTier: 'T3',
+    budgetTier: mobileModel ? 'T2' : 'T3',
     summaryMode: 'auto',
     backend: 'cpu',
-    modelId: pickModel(input.models, T3_PROFILE.models),
+    modelId,
     load: {
       contextSize: T3_PROFILE.contextSize,
       threads: Math.max(1, input.cpu?.performanceCores ?? 4),

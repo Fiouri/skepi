@@ -120,13 +120,15 @@ describe('desktop tiers (Phase 3a)', () => {
 
   it('offloads every layer on a GPU with the T3 budget and context', () => {
     const p = resolveDesktopProfile({ totalRamMb: 65_300, cpu, gpu: { name: 'RTX 4060 Ti', vramMb: 8188 }, models, simulateT1: false });
-    expect(p).toMatchObject({ effectiveTier: 'T3', budgetTier: 'T3', summaryMode: 'auto', modelId: 'qwen2.5-1.5b-instruct-q4_0.gguf' });
+    // A mobile model keeps the T2 budget it was validated with; the T3 budget waits for a 7–9B model.
+    expect(p).toMatchObject({ effectiveTier: 'T3', budgetTier: 'T2', summaryMode: 'auto', modelId: 'qwen2.5-1.5b-instruct-q4_0.gguf' });
     expect(p.load).toEqual({ contextSize: T3_PROFILE.contextSize, threads: 6, useMmap: true, useMlock: false, gpuLayers: 99 });
   });
 
   it('prefers a 7B model on T3 when one is installed and runs on CPU without a GPU', () => {
     const p = resolveDesktopProfile({ totalRamMb: 32_000, cpu, gpu: null, models: [...models, { id: 'qwen2.5-7b-instruct-q4_k_m.gguf', sizeBytes: 4.7e9 }], simulateT1: false });
     expect(p.modelId).toBe('qwen2.5-7b-instruct-q4_k_m.gguf');
+    expect(p.budgetTier).toBe('T3');
     expect(p.load.gpuLayers).toBe(0);
   });
 

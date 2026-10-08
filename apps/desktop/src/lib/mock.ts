@@ -134,7 +134,8 @@ export function mockBackend(): Backend {
   const state = (): ContentState => ({
     root: 'C:\\SKEPI\\content',
     catalog: { catalog: { sequence: 3, keyId: 'cat-test-2026a', packs: CATALOG_PACKS }, bytesBase64: 'e30=', signature: 'c2ln', origin: 'embedded', sha256: SHA('0'), purpose: 'test', rejected: [], updateUrls: [] },
-    packs,
+    // Fresh objects on every call, like IPC.
+    packs: packs.map((p) => ({ ...p })),
   });
 
   const stationInfo = (packIds: string[], host: string, withApk: boolean) => ({

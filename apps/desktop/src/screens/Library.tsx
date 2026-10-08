@@ -19,6 +19,8 @@ export function LibraryScreen() {
   const [progress, setProgress] = useState<Record<string, DownloadProgressJson>>({});
   const [message, setMessage] = useState<{ id: string; text: string; tone: 'danger' | 'info' } | null>(null);
   const [busy, setBusy] = useState(false);
+  /** Unverified pack waiting for explicit consent (in-app dialog; WebView2 has no window.confirm here). */
+  const [consenting, setConsenting] = useState<PackRow | null>(null);
 
   const cat = catalog?.catalog ?? null;
   const installed = new Set(packs.map((p) => p.id));
@@ -51,7 +53,7 @@ export function LibraryScreen() {
   };
 
   const consent = async (p: PackRow): Promise<void> => {
-    if (!window.confirm(`${t.unverified.consentTitle}\n\n${t.unverified.consentBody(p.title)}`)) return;
+    setConsenting(null);
     await guard(p.id, async () => {
       await ipc.contentConsent(p.id);
       await refresh();
@@ -142,7 +144,16 @@ export function LibraryScreen() {
           </span>
           {p.verified ? <span style={{ color: 'var(--ok)' }}>{t.library.verified}</span> : <span className="unverified">{t.unverified.label}</span>}
           <div className="row">
-            {!p.verified && p.consentAt === null && <Button testId={`consent-${p.id}`} tone="plain" label={t.library.open} onClick={() => void consent(p)} />}
+            {!p.verified && p.consentAt === null && (
+              <Button
+                testId={`consent-${p.id}`}
+                tone="plain"
+                label={t.library.open}
+                onClick={() => {
+                  setConsenting(p);
+                }}
+              />
+            )}
             <Button
               testId={`verify-${p.id}`}
               tone="plain"
@@ -169,6 +180,23 @@ export function LibraryScreen() {
               }
             />
           </div>
+          {consenting?.id === p.id && (
+            <div className="banner warning stack" role="alertdialog" data-testid="consent-dialog">
+              <strong>{t.unverified.consentTitle}</strong>
+              <span>{t.unverified.consentBody(p.title)}</span>
+              <div className="row">
+                <Button testId="consent-accept" tone="danger" label={t.unverified.consentAccept} onClick={() => void consent(p)} />
+                <Button
+                  testId="consent-cancel"
+                  tone="plain"
+                  label={t.unverified.cancel}
+                  onClick={() => {
+                    setConsenting(null);
+                  }}
+                />
+              </div>
+            </div>
+          )}
           {message?.id === p.id && <Banner tone={message.tone}>{message.text}</Banner>}
         </div>
       ))}

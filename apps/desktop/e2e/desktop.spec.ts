@@ -101,8 +101,9 @@ test('library: download with progress, consent for an unverified pack, catalog u
   await expect(page.getByTestId('catalog-line')).toContainText('Signed catalog 3');
   await page.getByTestId('download-wikipedia_en_medicine_mini').click();
   await expect(page.getByTestId('installed-wikipedia_en_medicine_mini')).toBeVisible();
-  page.once('dialog', (d) => void d.accept());
   await page.getByTestId('consent-local-0123456789ab').click();
+  await expect(page.getByTestId('consent-dialog')).toContainText('does not match any signed catalog entry');
+  await page.getByTestId('consent-accept').click();
   await expect(page.getByTestId('consent-local-0123456789ab')).toHaveCount(0);
   await page.getByTestId('check-update').click();
   await expect(page.getByTestId('library-message')).toContainText('Catalog updated to 4');
