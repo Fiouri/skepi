@@ -1,11 +1,11 @@
 import { pinnedKeys, trustedFromPinned, type PinnedKeyInput } from '@skepi/core';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildCatalog, sequenceOf, signKeyList, verifyCatalogDir, verifyKeyListDir, writeSigned } from './build';
 import { keygen, readPinnedKeys, readSecretKey, REPO_ROOT, type PinnedKeysFile } from './keys';
 import { mergeManifests, readManifest } from './manifest';
+import { defaultCacheDir, legacySkepiDir, migrateDir, resolveCacheDir, skepiHome } from './paths';
 
 /**
  * SKEPI catalog-builder (dev machine only; the signing key never enters CI).
@@ -15,8 +15,9 @@ import { mergeManifests, readManifest } from './manifest';
  *   build   --manifest catalog/manifest.json [--manifest more.json] --key <secret file> --out <dir> [--cache <dir>] [--sequence N] [--previous <catalog.json>]
  *   keylist --pinned <new keys json> --key <secret of the replaced key> --sequence N --out <dir>
  *   verify  --dir <dir> --pinned catalog/keys/<purpose>.json [--release]
+ *   migrate-cache [--cache <dir>]   moves %TEMP%\skepi\{cache,keys} to %LOCALAPPDATA%\skepi (SHA-256 checked)
  */
-const USAGE = 'usage: catalog <keygen|pin|build|keylist|verify> [options] (see src/cli.ts)';
+const USAGE = 'usage: catalog <keygen|pin|build|keylist|verify|migrate-cache> [options] (see src/cli.ts)';
 
 const [command, ...rest] = process.argv.slice(2).filter((a, i) => !(i === 0 && a === '--'));
 const { values: args } = parseArgs({
@@ -45,7 +46,7 @@ function need(name: string, value: string | undefined): string {
 }
 
 function cacheDir(): string {
-  return args.cache ?? process.env.SKEPI_CACHE_DIR ?? join(process.env.TEMP ?? tmpdir(), 'skepi', 'cache');
+  return resolveCacheDir(args.cache);
 }
 
 function readPublic(path: string): PinnedKeyInput {
@@ -110,6 +111,24 @@ async function main(): Promise<number> {
       );
       await writeSigned(resolve(need('out', args.out)), 'keys.json', signed);
       console.log(`key list signed by ${signer.keyId}: active ${next.active.keyId}, backup ${next.backup.keyId}`);
+      return 0;
+    }
+    case 'migrate-cache': {
+      const legacy = legacySkepiDir();
+      const targets = [
+        { from: join(legacy, 'cache'), to: args.cache ?? defaultCacheDir() },
+        // Test signing keys (never release keys) were kept beside the cache in Phase 1c-2a.
+        { from: join(legacy, 'keys'), to: join(skepiHome(), 'keys') },
+      ];
+      for (const { from, to } of targets) {
+        const moved = await migrateDir(from, to, (line) => {
+          console.log(line);
+        });
+        const conflicts = moved.filter((m) => m.result === 'conflict').length;
+        const bytes = moved.reduce((sum, m) => sum + m.sizeBytes, 0);
+        console.log(`${from} -> ${to}: ${String(moved.length - conflicts)} files (${String(bytes)} bytes) verified by SHA-256, ${String(conflicts)} conflicts`);
+        if (conflicts > 0) return 1;
+      }
       return 0;
     }
     case 'verify': {

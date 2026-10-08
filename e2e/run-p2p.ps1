@@ -27,7 +27,8 @@ param(
   [string]$ReceiverSerial = 'emulator-5556',
   [string]$AppId = 'org.skepi.app.dev',
   [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat'),
-  [string]$CacheDir = (Join-Path $env:TEMP 'skepi\cache'),
+  # Persistent cache (Phase 3a): SKEPI_CACHE_DIR, else %LOCALAPPDATA%\skepi\cache (never %TEMP%).
+  [string]$CacheDir = $(if ($env:SKEPI_CACHE_DIR) { $env:SKEPI_CACHE_DIR } else { Join-Path $env:LOCALAPPDATA 'skepi\cache' }),
   [string[]]$Only = @()
 )
 

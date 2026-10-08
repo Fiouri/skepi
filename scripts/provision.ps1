@@ -31,7 +31,8 @@ param(
   # Release by default; the debug build installs side-by-side as org.skepi.app.dev.
   [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
   [string]$AppId = '',
-  [string]$CacheDir = (Join-Path $env:TEMP 'skepi\cache')
+  # Persistent cache (Phase 3a): SKEPI_CACHE_DIR, else %LOCALAPPDATA%\skepi\cache (never %TEMP%).
+  [string]$CacheDir = $(if ($env:SKEPI_CACHE_DIR) { $env:SKEPI_CACHE_DIR } else { Join-Path $env:LOCALAPPDATA 'skepi\cache' })
 )
 
 Set-StrictMode -Version Latest

@@ -13,6 +13,7 @@
     "parity": "tsx src/parity.ts"
   },
   "dependencies": {
+    "@skepi/catalog-builder": "workspace:*",
     "@skepi/contracts": "workspace:*",
     "@skepi/core": "workspace:*",
     "node-llama-cpp": "3.22.1"

@@ -333,6 +333,9 @@ importers:
 
   tools/rag-eval:
     dependencies:
+      '@skepi/catalog-builder':
+        specifier: workspace:*
+        version: link:../catalog-builder
       '@skepi/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

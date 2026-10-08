@@ -77,7 +77,7 @@ longer unseen; a fresh held-out set is written before the public release.
 python -m venv .venv; .venv\Scripts\python -m pip install -r tools/rag-eval/requirements.txt
 $env:SKEPI_PYTHON = "$PWD\.venv\Scripts\python.exe"
 
-# packs and models (SHA-256 verified) into %TEMP%\skepi\cache
+# packs and models (SHA-256 verified) into %LOCALAPPDATA%\skepi\cache
 powershell -ExecutionPolicy Bypass -File scripts/provision.ps1 -DownloadOnly
 
 pnpm --filter @skepi/rag-eval eval -- --check-sets   # dataset hygiene

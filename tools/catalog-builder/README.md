@@ -47,9 +47,22 @@ catalog verify --release --dir catalog\embedded\release --pinned catalog\keys\re
 catalog keylist --pinned new-keys.json --key D:\offline\skepi\cat-2026a.key.json --sequence 2 --out <dir>
 ```
 
-The cache defaults to `%TEMP%\skepi\cache` (`--cache`, or `SKEPI_CACHE_DIR`), shared with
-`scripts/provision.ps1`, so already provisioned files are not downloaded again (they are still hashed and
-checked against the publisher).
+The cache defaults to `%LOCALAPPDATA%\skepi\cache` (`$XDG_CACHE_HOME/skepi/cache` or `~/.cache/skepi/cache`
+elsewhere; `--cache` or `SKEPI_CACHE_DIR` override it), shared with `scripts/provision.ps1`, `e2e/run-p2p.ps1`
+and `tools/rag-eval`, so already provisioned files are not downloaded again (they are still hashed and checked
+against the publisher). The cache holds the project's **only copy** of the built map and places packs (their
+Protomaps daily build expires), so it must never live in `%TEMP%`, which Windows Storage Sense may clean.
+
+Until Phase 2a the cache (and the test keys) lived in `%TEMP%\skepi`. Move them once with
+
+```powershell
+node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts migrate-cache
+```
+
+Every file is hashed before and after the move and the old copy is removed only when SHA-256 and size match
+(a rename on the same volume, copy + rename otherwise); a different file with the same name in the target is
+reported as a conflict and both are kept. The hashes are appended to `MIGRATED-SHA256SUMS.txt` in the target.
+The tools print a note while files remain in the old location.
 
 ## Map and places packs (built here)
 
@@ -90,7 +103,7 @@ Debug builds embed the test catalog and test keys instead.
 
 ## Test keys
 
-Test secret keys live outside the repository too (e.g. `%TEMP%\skepi\keys`). Only their public keys
+Test secret keys live outside the repository too (`%LOCALAPPDATA%\skepi\keys`). Only their public keys
 (`catalog/keys/test.json`) and the catalogs they signed are committed. To re-sign the test catalog, generate
 new test keys with `keygen`, `pin --purpose test`, and rebuild `catalog/embedded/debug` and
 `e2e/mirror/catalogs/*` (see `docs/phase-1c-report.md`).

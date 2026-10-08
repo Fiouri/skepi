@@ -9,9 +9,9 @@ import {
 } from '@skepi/core';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveCacheDir } from '@skepi/catalog-builder/paths';
 import { parseArgs } from 'node:util';
 import { loadSet } from './sets';
 import { SidecarZimEngine } from './zimEngine';
@@ -48,7 +48,7 @@ const { values: args } = parseArgs({
 const PARITY_SETS = args.greek ? (['en', 'el'] as const) : (['en'] as const);
 
 function cacheDir(): string {
-  return process.env.SKEPI_CACHE_DIR ?? join(process.env.TEMP ?? tmpdir(), 'skepi', 'cache');
+  return resolveCacheDir();
 }
 
 async function queryFile(lock: Lock): Promise<ParityQueryFile> {

@@ -12,8 +12,9 @@ import {
 } from '@skepi/core';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { availableParallelism, tmpdir } from 'node:os';
+import { availableParallelism } from 'node:os';
 import { basename, join, resolve } from 'node:path';
+import { resolveCacheDir } from '@skepi/catalog-builder/paths';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { NodeLlamaEngine } from './llamaEngine';
@@ -72,7 +73,7 @@ const { values: args } = parseArgs({
 });
 
 function cacheDir(): string {
-  return process.env.SKEPI_CACHE_DIR ?? join(process.env.TEMP ?? tmpdir(), 'skepi', 'cache');
+  return resolveCacheDir();
 }
 
 function requireFile(path: string, hint: string): string {
