@@ -83,6 +83,32 @@ export default tseslint.config(
     },
   },
   {
+    // Desktop (Tauri): the webview reaches the native side only through src/lib/ipc.ts (narrow
+    // commands); no Tauri plugin APIs from the UI. React hooks rules as on mobile.
+    files: ['apps/desktop/src/**/*.{ts,tsx}', 'apps/desktop/e2e/**/*.ts'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [...NETWORK_MODULES, P2P],
+          patterns: [{ group: ['@tauri-apps/*'], message: 'Native calls only through apps/desktop/src/lib/ipc.ts (narrow commands).' }],
+        },
+      ],
+    },
+  },
+  {
+    files: ['apps/desktop/src/lib/ipc.ts'],
+    rules: { 'no-restricted-imports': ['error', { paths: [...NETWORK_MODULES, P2P] }] },
+  },
+  {
+    // Playwright tests and dev tooling (not shipped): Node APIs and the test runner.
+    files: ['apps/desktop/e2e/**/*.ts', 'apps/desktop/vite.config.ts', 'apps/desktop/playwright.config.ts', 'apps/desktop/vitest.config.ts'],
+    rules: { 'no-restricted-globals': 'off' },
+  },
+  {
     files: ['**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
   },

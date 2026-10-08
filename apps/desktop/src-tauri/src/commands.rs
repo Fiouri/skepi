@@ -117,13 +117,18 @@ pub async fn zim_plain_text(state: State<'_, AppState>, archive_id: String, path
 /// Tauri's defaults plus no background networking (zero egress while offline).
 pub const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings";
 
-fn viewer_url(archive_id: &str, path: &str) -> Res<Url> {
+fn viewer_url(archive_id: &str, path: &str, anchor: Option<&str>) -> Res<Url> {
     let encoded: String = path
         .split('/')
         .map(|s| percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC).to_string())
         .collect::<Vec<_>>()
         .join("/");
-    Url::parse(&format!("http://zim.localhost/{archive_id}/{encoded}")).map_err(err)
+    let mut url = Url::parse(&format!("http://zim.localhost/{archive_id}/{encoded}")).map_err(err)?;
+    // Section anchors from Layer 1 (ZIM heading ids): a fragment never reaches the protocol handler.
+    if let Some(a) = anchor.filter(|a| !a.is_empty() && a.len() < 256) {
+        url.set_fragment(Some(a));
+    }
+    Ok(url)
 }
 
 fn is_viewer_url(url: &Url) -> bool {
@@ -141,12 +146,13 @@ pub async fn viewer_open(
     path: String,
     title: String,
     dark: bool,
+    anchor: Option<String>,
 ) -> Res<()> {
     if !state.zim.is_open(&archive_id) {
         return Err("ERR_ZIM_NOT_OPEN: archive is not open".into());
     }
     state.viewer_dark.store(dark, Ordering::Relaxed);
-    let url = viewer_url(&archive_id, &path)?;
+    let url = viewer_url(&archive_id, &path, anchor.as_deref())?;
     if let Some(w) = app.get_webview_window(VIEWER_LABEL) {
         w.navigate(url).map_err(err)?;
         let _ = w.set_title(&title);

@@ -21,3 +21,6 @@ AGENTS.md
 
 # Rust build output
 /target/
+
+# Small E2E map fixture (OSM via Protomaps, ODbL; see its README)
+!apps/desktop/e2e/fixtures/*.pmtiles

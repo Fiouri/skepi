@@ -314,4 +314,44 @@ export interface Messages {
     error: (reason: string) => string;
     developer: string;
   };
+  /** Windows/macOS app (Phase 3a): content folder, sealed viewer, GPU tier, Station mode. */
+  desktop: {
+    tabs: { cards: string; station: string; settings: string };
+    contentFolder: string;
+    chooseFolder: string;
+    folderHint: string;
+    reconciled: (p: { registered: number; unverified: number; missing: number }) => string;
+    viewerHint: string;
+    openArticle: string;
+    device: (p: { ramGb: string; gpu: string | null; tier: string }) => string;
+    noGpu: string;
+    aiPowerCap: string;
+    aiPowerCapHint: string;
+    powerCap: Record<'full' | 'balanced' | 'low' | 'off', string>;
+    blackout: string;
+    station: {
+      title: string;
+      intro: string;
+      address: string;
+      noAddress: string;
+      virtualAdapter: string;
+      firewallTitle: string;
+      firewall: string;
+      apk: string;
+      chooseApk: string;
+      apkChosen: (name: string) => string;
+      apkOfficial: string;
+      apkUnofficial: string;
+      start: string;
+      stop: string;
+      starting: string;
+      running: (p: { phones: number; requests: number; mb: string }) => string;
+      stopped: (reason: string) => string;
+      idleHint: string;
+      scanHint: string;
+      code: string;
+      log: string;
+      noPacks: string;
+    };
+  };
 }
