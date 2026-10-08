@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`; Phase 3a (Windows desktop app with Tauri 2 and Station mode) — report `docs/phase-3a-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -42,7 +42,7 @@ Two shells over one shared TypeScript core. Mobile runs Expo/React Native, deskt
 | Shared logic | `packages/core` (TS strict) | same | RAG, catalog, verification, prompts and i18n written once. |
 | LLM inference | llama.rn (llama.cpp, Metal on iOS) | llama.cpp in-process via Rust (Vulkan / Metal / CUDA) | One model format (GGUF) everywhere. In-process avoids a local HTTP server. |
 | Library | libkiwix + libzim via Expo native module (Kotlin / Swift) | libzim via Rust FFI | Official ZIM implementation with built-in Xapian index. |
-| Article viewer | Native viewer inside `expo-zim` (platform WebView driven natively) | Tauri webview with custom protocol | react-native-webview cannot serve a custom `zim://` scheme without patching on both platforms (Phase 0 finding). |
+| Article viewer | Native viewer inside `expo-zim` (platform WebView driven natively) | Separate sealed WebView2 window over the `zim` custom protocol: no IPC capability, JavaScript off, CSP with `sandbox` (Phase 3a) | react-native-webview cannot serve a custom `zim://` scheme without patching on both platforms (Phase 0 finding). |
 | Maps | MapLibre Native (RN) | MapLibre GL JS in the webview | Reads local PMTiles with no tile server. |
 | Local DB | SQLite (op-sqlite, SQLCipher) | SQLite via Rust (rusqlite) | Same shared SQL migrations. |
 | Crypto | @noble/ed25519, @noble/hashes | same (in core) + ring in Rust | Audited, dependency-free libraries. SHA-256 of large files runs natively. |
@@ -92,10 +92,11 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /expo-content-store  The only network user: system DownloadManager, SAF import, atomic install, embedded catalog
   /expo-emergency-tools  SOS torch (Morse timeline), compass, one-shot GNSS fix (GPS provider, no Play Services), screen brightness
 /crates
-  /zim-ffi           Rust FFI to libzim (cxx)
-  /desktop-core      Inference, ZIM, hashing, transfer for Tauri
+  /zim-ffi           Rust FFI to libzim (cxx shim over the official Windows build)
+  /desktop-core      ZIM text, inference (llama.cpp), content store + downloader, signed catalog, SQLCipher db,
+                     DPAPI key, places, Station mode (P2P host), viewer protocol; bin/zim-sidecar for parity
 /native
-  /kiwix             Pinned versions + checksums (Maven AAR, xcframework, Windows libs)
+  /kiwix             Pinned versions + checksums (Maven AAR, xcframework; libzim 9.7.0 Windows build + fetch script)
 /tools
   /catalog-builder   Builds and signs catalog.json (keygen, pin, build, keylist, verify; key never in the repo or CI)
   /rag-eval          Answer evaluation against golden sets
@@ -108,7 +109,7 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
 
 - `core` depends only on `contracts`, never on React, Expo or Tauri.
 - `apps` provide the interface implementations (adapters) and inject them into core.
-- Internet access exists only in ContentStore (`apps/mobile/src/lib/contentStore.ts` over `modules/expo-content-store`); local-network P2P only in `apps/mobile/src/lib/transfer.ts` over `modules/expo-transfer` (local addresses only, enforced in core and natively); ESLint forbids `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, Node network modules and the native downloader anywhere else (tooling exception: `tools/catalog-builder/src/download.ts`).
+- Internet access exists only in ContentStore (`apps/mobile/src/lib/contentStore.ts` over `modules/expo-content-store`); local-network P2P only in `apps/mobile/src/lib/transfer.ts` over `modules/expo-transfer` (local addresses only, enforced in core and natively); ESLint forbids `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, Node network modules and the native downloader anywhere else (tooling exception: `tools/catalog-builder/src/download.ts`). On the desktop, internet access exists only in `crates/desktop-core/src/download.rs` (ContentStore) and the LAN server only in `crates/desktop-core/src/station`; the UI reaches the native side only through `apps/desktop/src/lib/ipc.ts` (ESLint forbids `@tauri-apps/*` imports elsewhere); its only `fetch` reads PMTiles from the local `maps` protocol.
 - Every native library has a pinned version and checksum in `/native`. Upgrades go through a PR with green CI.
 
 **Core interfaces (`packages/contracts`)**
@@ -156,7 +157,7 @@ The LLM is optional, loads only when needed, and its size is chosen automaticall
 | T2 | 8–12 GB RAM | ~3–4B, Q4_0 | 4096 | Extractive answer + automatic AI summary, optional embedding rerank |
 | T3 | Desktop with GPU or 16 GB+ | ~7–9B, Q4/Q5 | 8192 | Longer syntheses, more articles per answer |
 
-**Tier detection** (`packages/core`, `detectMobileTier`) uses the RAM visible to Android, which is always below the marketed size: < 3300 MB → T0, < 6500 MB → T1, otherwise T2 (T3 is desktop-only).
+**Tier detection** (`packages/core`, `detectMobileTier`) uses the RAM visible to Android, which is always below the marketed size: < 3300 MB → T0, < 6500 MB → T1, otherwise T2 (T3 is desktop-only). On the desktop (`detectDesktopTier`, `resolveDesktopProfile`): T3 with a GPU of ≥ 4 GB dedicated memory (llama.cpp Vulkan device; integrated GPUs count as 0) or ≥ 15,000 MB RAM, otherwise the mobile thresholds; T3 offloads every layer to the discrete GPU (CPU fallback), context 8192. The T3 character budget applies only with a 7–9B model; with the mobile model (Qwen2.5-1.5B) the desktop keeps the T2 budget it was validated with (Phase 3a).
 
 **Test devices.** Current reference: Galaxy S23 (8 GB, T2). All T1 gates stay **pending** until a 4 GB device is available. Until then, the app has a **T1-simulation mode** used on the S23 to catch large regressions early; a 4 GB Android emulator covers functional (not performance) checks.
 
@@ -225,9 +226,11 @@ All knowledge lives in ZIM files read by libkiwix over libzim. Search uses the X
 - Blackout theme injects dark CSS with pure-black background for OLED.
 - Because this is our own code (not a library), its guarantees are covered by instrumentation tests (`modules/expo-zim/android/src/androidTest`, `SealingTest`, on a 36 KB CC0 fixture ZIM): other schemes blocked and logged, JS disabled and no JS interface, CSP present on every response, path traversal (`zim://…/../`, percent-encoded, double-encoded and backslash variants) rejected, Safe Browsing and file/content access off.
 
+**Sealed article reading on the desktop (Phase 3a).** Articles open in a separate `viewer` window loading `http://zim.localhost/<archiveId>/<path>` (WebView2's form of the `zim` scheme; `apps/desktop/src-tauri/src/protocols.rs` over `crates/desktop-core/src/viewer.rs`). The window has no IPC capability (the ACL denies every command), JavaScript is off (`disable_javascript`), it is incognito, navigation outside the zim origin is cancelled and reported to the main window as text, new windows and downloads are denied. Every response carries `default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; media-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; sandbox` (`'self'` is the zim origin) as a header and a meta tag; the protocol answers only the viewer webview; traversal is refused as on Android. Proven on the real build by `e2e/tauri-smoke.mjs` with the same CC0 sealing fixture as `SealingTest`.
+
 **Text for RAG**
 
-HTML is converted to text natively (jsoup on Android, SwiftSoup on iOS, scraper in Rust), keeping section structure (`{ heading, level, text }[]`). Infoboxes, navboxes, references and "See also" are stripped. Results are kept in a small in-memory LRU cache.
+HTML is converted to text natively (jsoup on Android, SwiftSoup on iOS, scraper in Rust — `crates/desktop-core/src/text.rs` reproduces jsoup 1.23.2 `Element.text()` and Android's ICU `\s`, so desktop retrieval matches the phone 108/108), keeping section structure (`{ heading, level, text }[]`). Infoboxes, navboxes, references and "See also" are stripped. Results are kept in a small in-memory LRU cache.
 
 **Files on disk**
 
@@ -338,7 +341,7 @@ Every file the app opens (ZIM, GGUF, PMTiles, places DB) corresponds to an entry
 
 - **Android:** system `DownloadManager` (resumes after interruption and reboot, honours Wi-Fi-only; avoids dataSync foreground-service limits). It applies the app's network security config (HTTPS only, system CAs; debug builds also trust the local test mirror CA for `127.0.0.1`), and the request carries `User-Agent: SKEPI` (its default names the device model). Active downloads are recorded in app.db and resumed after an app restart.
 - **iOS:** background `URLSession`.
-- **Desktop:** Rust downloader with HTTP Range and per-chunk checks.
+- **Desktop:** Rust downloader (`crates/desktop-core/src/download.rs`, reqwest + rustls, Windows certificate store): `tmp/<file>.partial` with HTTP Range resume from the verified chunk prefix, every 64 MiB chunk checked against the catalog as it arrives (a bad chunk ends that mirror), whole-file hash, atomic rename; downloads are requested by pack id and Rust re-verifies the signed catalog itself.
 - Wi-Fi only by default; on metered networks show size and ask.
 - Free-space check: size + 10% + 1 GB always kept free for the OS.
 
@@ -388,6 +391,8 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
 2. Each 64 MB chunk is checked against `chunkSha256` on arrival; a bad chunk is re-requested alone.
 3. Same atomic install as internet downloads.
 4. Packs not in any valid catalog are shown as "unverified" and never auto-selected.
+
+**Desktop Station mode (Phase 3a, Windows).** `crates/desktop-core/src/station`: the same protocol and rules as `modules/expo-transfer` (QR `{ v, host, port, token, certSha256 }`, per-session EC P-256 certificate from rcgen pinned by `certSha256`, 128-bit token, TLS 1.3 only via rustls, `GET /manifest` and `GET /pack/:id` with Range, the host's signed catalog in the manifest for propagation), for up to 32 concurrent connections (many phones). The UI builds the manifest with `@skepi/core` `buildManifest`; Rust checks it against app.db and the accepted catalog and maps the selected pack ids to files itself. It binds only the chosen local IPv4 address, stops on demand or after 30 minutes idle, and can serve a user-chosen release APK on a cleartext install page (`/`, `/skepi.apk`) showing its signing-certificate SHA-256 against the published release key. Windows Firewall asks the first time; the Station screen explains to allow private networks only.
 
 **App propagation (Android only):** the host serves its own APK with the signing-certificate fingerprint; a phone without the app opens `http://<host>:<port>/` in any browser. iOS does not allow sideloading.
 
@@ -529,7 +534,7 @@ Two moments of use: **preparation** (online; the user chooses and downloads) and
 
 ## Data model and storage
 
-Large data are immutable files. User data live in one encrypted SQLite database (op-sqlite + SQLCipher; 256-bit random key per install, stored with expo-secure-store under an Android Keystore key). Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only; a database from a newer app or an edited migration is refused. Phase 1c ships migration 1 (`packs`, `settings`), Phase 1d migration 2 (`energy_samples`; typed settings for onboarding, disclaimer, UI language, country, storage budget and blackout mode), Phase 2a migration 3 (`packs.source` gains `p2p`; the table is rebuilt with the same rules; developer setting `dev.greekUi`); the other tables below arrive with their features.
+Large data are immutable files. User data live in one encrypted SQLite database (op-sqlite + SQLCipher; 256-bit random key per install, stored with expo-secure-store under an Android Keystore key). Migrations are shared by mobile and desktop (`packages/db`), numbered and forward-only; a database from a newer app or an edited migration is refused. Phase 1c ships migration 1 (`packs`, `settings`), Phase 1d migration 2 (`energy_samples`; typed settings for onboarding, disclaimer, UI language, country, storage budget and blackout mode), Phase 2a migration 3 (`packs.source` gains `p2p`; the table is rebuilt with the same rules; developer setting `dev.greekUi`); the other tables below arrive with their features. On the desktop (Phase 3a) app.db is rusqlite with SQLCipher (vendored OpenSSL); the random key is protected with Windows DPAPI for the current user and only the blob is stored (`db.key`); the same migrations are embedded from `packages/db/migrations.json` (a test keeps it equal to `MIGRATIONS`) with the same ledger rules.
 
 ```
 <content root>/
@@ -597,7 +602,8 @@ No PR merges without a green gate: typecheck, lint, unit tests, release build an
 | Retrieval parity | `e2e/run-parity.ps1` (phone) + `tools/rag-eval` parity | The English questions (Greek with `-IncludeGreek`) through retrieval only on the device and in rag-eval: identical search lists, fused hits, article text hashes, ranked chunks and sources |
 | E2E Android | Maestro on emulator and device | Onboarding, search, article, Layer 1 + AI answer with sources, map, places/POIs, card — in airplane mode; P2P between two emulators on one virtual Wi-Fi (`e2e/run-p2p.ps1`, `-wifi-server-port`/`-wifi-client-port`) with faults (corrupted chunk, drop + resume, tampering host, bad-signature and older catalogs) |
 | E2E iOS | Maestro on simulator | Same flows (AI only on a real device; llama.rn does not support the simulator) |
-| E2E desktop | Playwright on the web UI with mocked commands; tauri-driver smoke on Windows | Main flows and "Station" mode |
+| E2E desktop | Playwright on the web UI with mocked commands (`apps/desktop/e2e/desktop.spec.ts`); tauri-driver smoke on the real Windows build (`e2e/tauri-smoke.mjs`); Station E2E desktop → phone (`e2e/run-station.ps1`) | Main flows, viewer sealing in the real WebView2 (scripts off, IPC denied, CSP, external links as text), AI on the GPU, map, zero egress (app process + webview net log), "Station" mode |
+| Rust (desktop) | `cargo fmt`, `cargo clippy -D warnings`, `cargo test` (`crates/*`, `apps/desktop/src-tauri`) | Catalog parity with TypeScript (`catalog/verification-expectations.json`), Station over pinned TLS 1.3, mirror downloads, SQLCipher + migrations, DPAPI, text extraction, viewer protocol; inference on the tiny GGUF (`--ignored`, needs the model) |
 | Zero-egress | `dumpsys netstats` per app UID + ContentStore request log + local mirror log | Offline flows: zero requests and zero bytes on any real interface. Download flow (local HTTPS mirror via `adb reverse`): requests only to the mirror, generic User-Agent, no query strings, zero bytes on real interfaces |
 | Fuzzing | libFuzzer on ZIM, GGUF and PMTiles loaders, nightly | Crashes and OOM on malicious files |
 | Performance | `/tools/bench` on reference devices (+ T1-simulation mode) | Performance targets, tokens/s, % battery per answer |
@@ -617,7 +623,7 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 | App Store / TestFlight | iOS build | Apple Developer Program (annual fee); same account notarises macOS |
 | Windows | Tauri MSI/NSIS, winget | Without a code-signing certificate SmartScreen warns |
 
-**CI (GitHub Actions):** `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests, the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0) and, since Phase 1d, `android-release-guards`: expo prebuild, the draft-cards gate must fail, `assembleRelease` (debug-signed in CI, draft cards allowed for this check only), the release permission allowlist (`aapt2 dump permissions`) and the release JS bundle rebuild probe (`tools/release-guards`); planned: macOS (iOS, macOS), Windows (Tauri). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
+**CI (GitHub Actions):** `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests, the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0) and, since Phase 1d, `android-release-guards`: expo prebuild, the draft-cards gate must fail, `assembleRelease` (debug-signed in CI, draft cards allowed for this check only), the release permission allowlist (`aapt2 dump permissions`) and the release JS bundle rebuild probe (`tools/release-guards`); since Phase 3a `desktop-windows` (libzim fetched and SHA-256 checked, UI build, `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` without Vulkan, mirror download test); planned: macOS (iOS, macOS). The desktop builds locally with `scripts/with-msvc.ps1` (MSVC environment; uses Microsoft's Windows SDK NuGet packages, portable Strawberry Perl and Ninja when no SDK is installed) and `npx tauri build` (unsigned MSI + NSIS). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
 
 **Distribution note:** sideloaded APKs trigger Google Play Protect prompts on install; Play Store and F-Droid are the user-facing channels.
 
@@ -676,6 +682,7 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - **Phase 2b · iOS** (needs a Mac): iOS from the same Expo app · Swift binding with CoreKiwix.xcframework · iOS native viewer · internal TestFlight · P2P receiver on iOS.
    - Gate: Maestro green on iOS · verified transfer Android→iPhone · fuzzing without crashes.
 4. **Phase 3 · Desktop and public release.** Tauri app for Windows and macOS with "Station" · GitHub Releases, F-Droid, Play, App Store · security review of the threat model.
+   - **Phase 3a · Windows desktop with Station mode — see `docs/phase-3a-report.md`.** Persistent build cache · deterministic GNSS in E2E (debug-only mock provider) · `apps/desktop` (Tauri 2, React over `@skepi/core`) · `crates/zim-ffi` (libzim 9.7.0, same as Android) · llama.cpp in-process with Vulkan · sealed viewer window · MapLibre GL JS over the `maps` protocol · SQLCipher + DPAPI · Rust ContentStore · Station mode · desktop retrieval parity 108/108 with the S23 · unsigned MSI/NSIS.
    - Gate: store approvals · emergency cards reviewed by first-aid professionals · T1 targets measured on a real 4 GB device.
 5. **Later.** Precomputed embeddings for curated packs · NPU on Android · more locales.
 

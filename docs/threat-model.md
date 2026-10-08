@@ -2,7 +2,7 @@
 
 Started in Phase 1c (catalog, downloads, import, viewer); Phase 1d added the structural source filter,
 release guards, emergency cards, location and the tools; Phase 2a added P2P sharing, app propagation,
-and the map and places packs. Updated with every feature that adds an input,
+and the map and places packs; Phase 3a added the Windows desktop app (Tauri 2) and Station mode. Updated with every feature that adds an input,
 a parser or a network path. Architecture context: `docs/architecture.md` ("Security", "Content pipeline").
 
 ## Assets
@@ -28,6 +28,9 @@ a parser or a network path. Architecture context: `docs/architecture.md` ("Secur
 9. **P2P transfer** (Phase 2a): a host phone on the local network (shared LAN or LocalOnlyHotspot), the
    pairing QR code, and the local APK page.
 10. **Map and places packs** (Phase 2a): PMTiles parsed by MapLibre, places SQLite parsed by SQLite.
+11. **Desktop app** (Phase 3a): the main webview and its IPC to the native side, the sealed article
+    viewer window, the `zim` and `maps` custom protocols, the Rust downloader, and Station mode (a LAN
+    server reachable by any device on the network, behind the Windows Firewall).
 
 ## Source text (prompt injection)
 
@@ -90,6 +93,40 @@ does not have the app yet; the fingerprint check is the defence. No `REQUEST_INS
 | Injection through place search | User text becomes quoted FTS5 prefix terms (`placesMatch`); no SQL is built from input. | `places.test.ts` |
 | ODbL attribution | Stored in each places pack (`meta`) and shown on the map with the basemap attribution. | `places.test.ts`, `places.yaml` |
 
+## Desktop app (Phase 3a)
+
+Design: `docs/architecture.md` ("Desktop (Phase 3a)"); code: `apps/desktop` (UI; `src/lib/ipc.ts` is the
+only module that calls the native side), `apps/desktop/src-tauri` (commands, protocols, capabilities),
+`crates/desktop-core` (engines). The webview never names a file path: packs are named by id and resolved
+from app.db; files and folders come from native pickers opened by Rust.
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| **Article HTML reaches Tauri IPC** (a malicious ZIM calls `invoke`) | Articles open in a separate `viewer` window that no capability lists, so the ACL denies every command for it (`capabilities/main.json` names only `main`); JavaScript is off in that webview (`disable_javascript`, WebView2 `IsScriptEnabled = false`); every response carries a CSP without any script source and with `sandbox`; the `zim` protocol answers only the viewer webview. | `e2e/tauri-smoke.mjs` on the real debug and release builds: the sealing fixture's inline script did not run; a host-injected `invoke('zim_search')` was rejected ("not allowed on window viewer"); `fetch` to the IPC endpoint was blocked |
+| Article HTML reaches the network or the disk | CSP `default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; media-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; sandbox` on every response (403/404 included) and as a meta tag; navigation to anything but the zim origin is cancelled and reported to the main window as text; new windows and downloads denied; incognito (nothing persisted). | `crates/desktop-core/src/viewer.rs` tests (CSP on every response, traversal variants rejected); smoke: external `http/https/file/content` images blocked, local image served, external link navigation cancelled and shown as text |
+| Path traversal through `zim://` | The archive id must be a UUID-like token of an open archive; the ZIM path is percent-decoded once; raw, encoded, double-encoded and backslash dot segments and NULs are refused (as on Android). Paths are keys inside the archive; nothing maps to the filesystem. | `viewer.rs` tests |
+| A compromised main webview abuses IPC | 30 narrow commands only (listed in `build.rs` and the capability); no shell, fs or http plugin permissions (the dialog plugin is used from Rust only); a download takes a pack **id** and Rust re-verifies the signed catalog itself (an Ed25519 port with the same rules as `@skepi/core`; `catalog/verification-expectations.json` is checked by both); settings are allowlisted (the catalog state and key list are written only by Rust); places queries must be read-only statements on read-only, verified packs. | `catalog_fixtures.rs` + `fixtures-catalog.test.ts`; `db.rs`, `places.rs` tests |
+| Remote content in the main window | The main window loads only the bundled UI (`frontendDist`); CSP `default-src 'self'; script-src 'self'; connect-src ipc: http://ipc.localhost http://maps.localhost 'self'; object-src 'none'; frame-src 'none'`; MapLibre style, glyphs and sprites are bundled (SHA-256 checked when copied). `freezePrototype` is off (it broke a bundled library); accepted because no remote script can run. | smoke net log at start: only `tauri/ipc/zim/maps.localhost` |
+| Malicious map pack (MapLibre) | The `maps` protocol serves only verified `pmtiles` packs by id, answers only the main webview, CORS limited to the app origin. | `protocols.rs`; smoke map |
+| Malicious GGUF (llama.cpp) | `llm_load` takes a pack id and loads only verified GGUF packs (app.db `CHECK` too). | `commands.rs` |
+| app.db key | 256-bit random key protected with DPAPI (current user, no UI, entropy bound to SKEPI); only the blob is on disk; SQLCipher refuses a wrong key. Residual: any process of the same Windows user can unprotect it (comparable to a Keystore key without user authentication). | `keystore.rs`, `db.rs` tests |
+| Network use outside ContentStore | The Rust downloader (`download.rs`) is the only internet code: HTTPS only, catalog URLs only, `User-Agent: SKEPI`, no proxy discovery, per-chunk SHA-256; debug builds trust the test mirror CA only for `https://127.0.0.1:8443` (`test-mirror` feature, refused in release builds by `build.rs`). | `downloads.rs` against `e2e/mirror`; smoke: zero connections from `skepi-desktop.exe` |
+| WebView2 runtime egress | The app passes `--disable-background-networking --disable-component-update --disable-domain-reliability --no-pings` and disables SmartScreen. **Residual (reported):** on this machine, while online, the Microsoft WebView2 runtime opened TLS connections to Microsoft 365 endpoints (the `outlook.office365.com` / `substrate.office.com` ranges) at start, outside the pages' network stack: the Chromium net log of the app's webviews shows only local origins. No app content is involved; it is governed by Windows/WebView2 policy (e.g. `ExperimentationAndConfigurationServiceControl`, diagnostic data). Offline, nothing leaves. | smoke: runtime connections listed in `results.json` |
+| Unsigned installer | No code-signing certificate yet: SmartScreen warns on install; users check the published SHA-256 of the MSI/NSIS. | — |
+
+### Station mode
+
+The desktop as a P2P host (`crates/desktop-core/src/station`), speaking the protocol of modules/expo-transfer.
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| LAN attacker reads, alters or impersonates | TLS 1.3 only (rustls with ring), a per-session EC P-256 key and self-signed certificate (rcgen, memory only) pinned by the phone from the QR; 128-bit token compared in constant time. | `tests/station_server.rs`: pinned TLS 1.3, other pins refused, TLS 1.2 refused, token required |
+| Serving unselected files or user data | The UI builds the manifest with `@skepi/core` `buildManifest`; Rust checks it lists exactly the selected installed packs (hash, size, kind, version) and carries no catalog or exactly the accepted one, then maps ids to files from app.db itself. Routes: `GET /manifest` and `GET /pack/<id>` (strict id pattern) only; anything else 404, other methods 405. | `station_server.rs` (16 paths incl. traversal and encoded variants, app.db, notes, settings: 404), `check_manifest` tests; Station E2E host log |
+| Many phones / resource abuse | 32 concurrent connections, 30 s socket timeouts, headers ≤ 8 KiB, one request per connection; stops on demand or after 30 minutes without a request. | `station_server.rs` (16 parallel clients, idle stop) |
+| The firewall opened too wide | Windows asks the first time Station mode listens; the app explains beforehand to allow **private** networks only. The server binds only the chosen LAN address (never `0.0.0.0`), and only local (RFC 1918 / link-local) addresses of this computer are offered. If the prompt is dismissed, Windows adds a block rule (seen in Phase 3a) and phones cannot connect until it is allowed. | `station/mod.rs` (`is_local`, address check) |
+| APK page | Cleartext `/` and `/skepi.apk` only, from an APK the user picked; its v3/v2 signing-certificate SHA-256 is shown and compared with the published release key. Residual as on Android: a cleartext page on a hostile LAN; the fingerprint check is the defence. | `apk.rs` test |
+| Phone with a VPN | Android refused to bind the P2P socket to the Wi-Fi network while a VPN was active (EPERM, S23); the client now falls back to normal routing. The host address is still checked as local, the certificate pinned and every chunk verified; a VPN that does not allow LAN traffic still blocks the session (enable LAN access or pause the VPN). | Station E2E finding |
+
 ## Catalog
 
 | Threat | Mitigation | Verified by |
@@ -148,3 +185,5 @@ app.db is SQLCipher (op-sqlite); the 256-bit key is random per install and store
 - Held-out adversarial set: used for the Phase 1d decision (structural filter); a fresh unseen set is needed
   before the public release.
 - Emergency cards: review by certified first-aid instructors (release blocker).
+- Desktop: code signing (SmartScreen); the WebView2 runtime's own connections at start (Microsoft policy);
+  macOS (Keychain instead of DPAPI, WKWebView viewer).
