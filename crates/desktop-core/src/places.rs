@@ -51,7 +51,10 @@ impl Places {
     /// Opens a verified places pack read-only (no writes, no WAL/journal files next to the pack).
     pub fn open(&self, pack_id: &str, path: &Path) -> Result<(), PlacesError> {
         let uri = format!("file:{}?immutable=1", path.display().to_string().replace('\\', "/").replace('?', "%3f").replace('#', "%23"));
-        let conn = Connection::open_with_flags(uri, OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_NO_MUTEX)?;
+        let conn = Connection::open_with_flags(
+            uri,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
         conn.execute_batch("PRAGMA query_only = ON;")?;
         self.dbs.lock().unwrap_or_else(|p| p.into_inner()).insert(pack_id.to_owned(), conn);
         Ok(())
@@ -101,7 +104,10 @@ mod tests {
         let path = dir.path().join("p.sqlite");
         {
             let c = Connection::open(&path).expect("create");
-            c.execute_batch("CREATE TABLE places (id INTEGER PRIMARY KEY, name TEXT, lat REAL); INSERT INTO places VALUES (1, 'Patras', 38.24);").expect("seed");
+            c.execute_batch(
+                "CREATE TABLE places (id INTEGER PRIMARY KEY, name TEXT, lat REAL); INSERT INTO places VALUES (1, 'Patras', 38.24);",
+            )
+            .expect("seed");
         }
         let p = Places::default();
         p.open("places-test", &path).expect("open");
@@ -109,7 +115,9 @@ mod tests {
         assert_eq!(rows[0]["name"], Value::from("Patras"));
         assert!(matches!(p.query("places-test", "DELETE FROM places", &[]), Err(PlacesError::NotReadOnly)));
         assert!(matches!(p.query("places-test", "INSERT INTO places VALUES (2, 'x', 0)", &[]), Err(PlacesError::NotReadOnly)));
-        assert!(p.query("places-test", "PRAGMA query_only = OFF", &[]).is_err() || p.query("places-test", "DELETE FROM places", &[]).is_err());
+        assert!(
+            p.query("places-test", "PRAGMA query_only = OFF", &[]).is_err() || p.query("places-test", "DELETE FROM places", &[]).is_err()
+        );
         assert!(matches!(p.query("other", "SELECT 1", &[]), Err(PlacesError::NotOpen(_))));
     }
 }

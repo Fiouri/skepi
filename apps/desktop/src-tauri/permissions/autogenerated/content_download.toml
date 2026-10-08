@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-content-download"
+description = "Enables the content_download command without any pre-configured scope."
+commands.allow = ["content_download"]
+
+[[permission]]
+identifier = "deny-content-download"
+description = "Denies the content_download command without any pre-configured scope."
+commands.deny = ["content_download"]

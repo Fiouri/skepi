@@ -37,10 +37,7 @@ fn main() {
         local.join("skepi").join("native").join(format!("libzim-{version}"))
     });
     if !dir.is_dir() {
-        panic!(
-            "libzim {version} not found in {} — run native/kiwix/fetch-libzim-windows.ps1 (or set SKEPI_LIBZIM_DIR)",
-            dir.display()
-        );
+        panic!("libzim {version} not found in {} — run native/kiwix/fetch-libzim-windows.ps1 (or set SKEPI_LIBZIM_DIR)", dir.display());
     }
     for (rel, expected) in lock["files"].as_object().expect("files") {
         let got = sha256_file(&dir.join(rel));

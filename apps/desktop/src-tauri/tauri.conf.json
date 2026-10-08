@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SKEPI",
+  "version": "0.1.0",
+  "identifier": "org.skepi.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "pnpm --filter @skepi/desktop dev",
+    "beforeBuildCommand": "pnpm --filter @skepi/desktop build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "SKEPI",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 900,
+        "minHeight": 600,
+        "url": "index.html",
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings"
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob:",
+        "font-src": "'self'",
+        "connect-src": "ipc: http://ipc.localhost http://maps.localhost 'self'",
+        "worker-src": "'self' blob:",
+        "child-src": "blob:",
+        "object-src": "'none'",
+        "frame-src": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'"
+      },
+      "freezePrototype": true,
+      "capabilities": ["main"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "publisher": "SKEPI project",
+    "copyright": "GPL-3.0-or-later",
+    "category": "Education",
+    "shortDescription": "Offline survival knowledge, maps and AI with sources",
+    "licenseFile": "../../../LICENSE",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "resources": {
+      "bin/zim-9.dll": "zim-9.dll",
+      "bin/icuin74.dll": "icuin74.dll",
+      "bin/icuuc74.dll": "icuuc74.dll",
+      "bin/icudt74.dll": "icudt74.dll",
+      "bin/msvcp140.dll": "msvcp140.dll",
+      "bin/vcruntime140.dll": "vcruntime140.dll",
+      "bin/vcruntime140_1.dll": "vcruntime140_1.dll"
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" }
+    }
+  }
+}

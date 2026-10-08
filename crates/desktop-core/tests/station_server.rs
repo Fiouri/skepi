@@ -22,13 +22,34 @@ const TOKEN: &str = "0123456789abcdef0123456789abcdef";
 struct Pin(String);
 
 impl ServerCertVerifier for Pin {
-    fn verify_server_cert(&self, end: &CertificateDer<'_>, _: &[CertificateDer<'_>], _: &ServerName<'_>, _: &[u8], _: UnixTime) -> Result<ServerCertVerified, rustls::Error> {
-        if sha256_hex(end.as_ref()) == self.0 { Ok(ServerCertVerified::assertion()) } else { Err(rustls::Error::General("certificate does not match the pairing code".into())) }
+    fn verify_server_cert(
+        &self,
+        end: &CertificateDer<'_>,
+        _: &[CertificateDer<'_>],
+        _: &ServerName<'_>,
+        _: &[u8],
+        _: UnixTime,
+    ) -> Result<ServerCertVerified, rustls::Error> {
+        if sha256_hex(end.as_ref()) == self.0 {
+            Ok(ServerCertVerified::assertion())
+        } else {
+            Err(rustls::Error::General("certificate does not match the pairing code".into()))
+        }
     }
-    fn verify_tls12_signature(&self, m: &[u8], c: &CertificateDer<'_>, d: &DigitallySignedStruct) -> Result<HandshakeSignatureValid, rustls::Error> {
+    fn verify_tls12_signature(
+        &self,
+        m: &[u8],
+        c: &CertificateDer<'_>,
+        d: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, rustls::Error> {
         rustls::crypto::verify_tls12_signature(m, c, d, &rustls::crypto::ring::default_provider().signature_verification_algorithms)
     }
-    fn verify_tls13_signature(&self, m: &[u8], c: &CertificateDer<'_>, d: &DigitallySignedStruct) -> Result<HandshakeSignatureValid, rustls::Error> {
+    fn verify_tls13_signature(
+        &self,
+        m: &[u8],
+        c: &CertificateDer<'_>,
+        d: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, rustls::Error> {
         rustls::crypto::verify_tls13_signature(m, c, d, &rustls::crypto::ring::default_provider().signature_verification_algorithms)
     }
     fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
@@ -38,7 +59,8 @@ impl ServerCertVerifier for Pin {
 
 fn connector(pin: &str, tls12_only: bool) -> TlsConnector {
     let provider = Arc::new(rustls::crypto::ring::default_provider());
-    let versions: &[&'static rustls::SupportedProtocolVersion] = if tls12_only { &[&rustls::version::TLS12] } else { &[&rustls::version::TLS13] };
+    let versions: &[&'static rustls::SupportedProtocolVersion] =
+        if tls12_only { &[&rustls::version::TLS12] } else { &[&rustls::version::TLS13] };
     let cfg = rustls::ClientConfig::builder_with_provider(provider)
         .with_protocol_versions(versions)
         .expect("versions")
@@ -85,7 +107,13 @@ async fn start(idle: Duration) -> (StationServer, SocketAddr, String, Vec<u8>, t
     let cert = SessionCert::create().expect("cert");
     let mut packs = HashMap::new();
     packs.insert("sel-pack".to_string(), dir.path().join("sel.zim"));
-    let cfg = ServerConfig { token: TOKEN.into(), manifest: br#"{"v":1,"catalog":null,"packs":[]}"#.to_vec(), packs, idle_timeout: idle, max_connections: 32 };
+    let cfg = ServerConfig {
+        token: TOKEN.into(),
+        manifest: br#"{"v":1,"catalog":null,"packs":[]}"#.to_vec(),
+        packs,
+        idle_timeout: idle,
+        max_connections: 32,
+    };
     let server = StationServer::start("127.0.0.1:0".parse().expect("addr"), &cert, cfg).await.expect("start");
     let addr: SocketAddr = format!("127.0.0.1:{}", server.port()).parse().expect("addr");
     (server, addr, cert.sha256, pack, dir)
@@ -156,7 +184,9 @@ async fn many_phones_at_once() {
         let pin = pin.clone();
         tasks.push(tokio::spawn(async move {
             let start = (i % 4) * 65536;
-            request(addr, &pin, "GET", "/pack/sel-pack", Some(TOKEN), Some(&format!("bytes={start}-{}", start + 65535))).await.map(|r| (start, r))
+            request(addr, &pin, "GET", "/pack/sel-pack", Some(TOKEN), Some(&format!("bytes={start}-{}", start + 65535)))
+                .await
+                .map(|r| (start, r))
         }));
     }
     for t in tasks {

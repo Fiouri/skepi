@@ -84,7 +84,11 @@ fn shareable(store: &ContentStore, ids: &[String]) -> Result<Vec<PackRow>, Stati
         if !seen.insert(id.clone()) {
             continue;
         }
-        let row = store.db.get_pack(id).map_err(|e| StationError::Pack(e.to_string()))?.ok_or_else(|| StationError::Pack(format!("{id} is not installed")))?;
+        let row = store
+            .db
+            .get_pack(id)
+            .map_err(|e| StationError::Pack(e.to_string()))?
+            .ok_or_else(|| StationError::Pack(format!("{id} is not installed")))?;
         if !row.verified && row.kind != PackKind::Zim {
             return Err(StationError::Pack(format!("{id}: unverified models, maps and places are never shared")));
         }
@@ -129,7 +133,9 @@ pub fn check_manifest(manifest: &str, rows: &[PackRow], catalog: Option<(Vec<u8>
     match (v.get("catalog"), catalog) {
         (None | Some(Value::Null), _) => {}
         (Some(c), Some((bytes, sig))) => {
-            if c.get("bytes").and_then(Value::as_str) != Some(to_base64(&bytes).as_str()) || c.get("signature").and_then(Value::as_str) != Some(sig.as_str()) {
+            if c.get("bytes").and_then(Value::as_str) != Some(to_base64(&bytes).as_str())
+                || c.get("signature").and_then(Value::as_str) != Some(sig.as_str())
+            {
                 return Err(StationError::Manifest("catalog differs from the accepted one".into()));
             }
         }
@@ -143,7 +149,15 @@ impl Station {
         self.server.lock().unwrap_or_else(|p| p.into_inner()).as_ref().is_some_and(StationServer::is_running)
     }
 
-    pub async fn start(&self, store: &ContentStore, host: &str, pack_ids: &[String], manifest: &str, apk_path: Option<PathBuf>, idle: Duration) -> Result<StationInfo, StationError> {
+    pub async fn start(
+        &self,
+        store: &ContentStore,
+        host: &str,
+        pack_ids: &[String],
+        manifest: &str,
+        apk_path: Option<PathBuf>,
+        idle: Duration,
+    ) -> Result<StationInfo, StationError> {
         if self.is_running() {
             return Err(StationError::Running);
         }
@@ -158,8 +172,15 @@ impl Station {
         let token = crate::catalog::hex(&token);
         let cert = cert::SessionCert::create().map_err(StationError::Io)?;
         let packs: HashMap<String, PathBuf> = rows.iter().map(|r| (r.id.clone(), PathBuf::from(&r.path))).collect();
-        let cfg = ServerConfig { token: token.clone(), manifest: manifest.as_bytes().to_vec(), packs, idle_timeout: idle, max_connections: MAX_CONNECTIONS };
-        let server = StationServer::start(SocketAddr::new(IpAddr::V4(ip), 0), &cert, cfg).await.map_err(|e| StationError::Io(e.to_string()))?;
+        let cfg = ServerConfig {
+            token: token.clone(),
+            manifest: manifest.as_bytes().to_vec(),
+            packs,
+            idle_timeout: idle,
+            max_connections: MAX_CONNECTIONS,
+        };
+        let server =
+            StationServer::start(SocketAddr::new(IpAddr::V4(ip), 0), &cert, cfg).await.map_err(|e| StationError::Io(e.to_string()))?;
         let mut info = StationInfo {
             host: host.into(),
             port: server.port(),
@@ -215,7 +236,9 @@ impl Station {
 /// IPv4 addresses of this computer on local networks (adapters that are up), physical first.
 #[cfg(windows)]
 pub fn local_addresses() -> Vec<LocalAddress> {
-    use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, IP_ADAPTER_ADDRESSES_LH};
+    use windows::Win32::NetworkManagement::IpHelper::{
+        GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, IP_ADAPTER_ADDRESSES_LH,
+    };
     use windows::Win32::NetworkManagement::Ndis::IfOperStatusUp;
     use windows::Win32::Networking::WinSock::{AF_INET, SOCKADDR_IN};
     let mut size: u32 = 32 * 1024;
@@ -223,7 +246,9 @@ pub fn local_addresses() -> Vec<LocalAddress> {
     let flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
     for _ in 0..3 {
         // SAFETY: buf holds `size` bytes, 8-byte aligned (u64), as GetAdaptersAddresses requires.
-        let rc = unsafe { GetAdaptersAddresses(u32::from(AF_INET.0), flags, None, Some(buf.as_mut_ptr().cast::<IP_ADAPTER_ADDRESSES_LH>()), &mut size) };
+        let rc = unsafe {
+            GetAdaptersAddresses(u32::from(AF_INET.0), flags, None, Some(buf.as_mut_ptr().cast::<IP_ADAPTER_ADDRESSES_LH>()), &mut size)
+        };
         if rc == 111 {
             // ERROR_BUFFER_OVERFLOW: size now holds the needed length.
             buf = vec![0; size as usize / 8 + 1];
@@ -241,7 +266,9 @@ pub fn local_addresses() -> Vec<LocalAddress> {
                 // SAFETY: FriendlyName is a NUL-terminated wide string owned by buf.
                 let name = unsafe { a.FriendlyName.to_string() }.unwrap_or_default();
                 let lower = name.to_lowercase();
-                let virtual_adapter = ["vethernet", "virtualbox", "vmware", "wsl", "hyper-v", "loopback", "tailscale", "zerotier"].iter().any(|v| lower.contains(v));
+                let virtual_adapter = ["vethernet", "virtualbox", "vmware", "wsl", "hyper-v", "loopback", "tailscale", "zerotier"]
+                    .iter()
+                    .any(|v| lower.contains(v));
                 let mut u = a.FirstUnicastAddress;
                 while !u.is_null() {
                     // SAFETY: as above, list owned by buf.
@@ -307,10 +334,17 @@ mod tests {
         let rows = vec![row("p1")];
         let cat = Some((b"{}".to_vec(), "sig".to_string()));
         assert!(check_manifest(&manifest(&["p1"], Value::Null), &rows, cat.clone()).is_ok());
-        assert!(check_manifest(&manifest(&["p1"], serde_json::json!({ "bytes": to_base64(b"{}"), "signature": "sig" })), &rows, cat.clone()).is_ok());
+        assert!(
+            check_manifest(&manifest(&["p1"], serde_json::json!({ "bytes": to_base64(b"{}"), "signature": "sig" })), &rows, cat.clone())
+                .is_ok()
+        );
         assert!(check_manifest(&manifest(&["p1", "p2"], Value::Null), &rows, cat.clone()).is_err(), "extra pack");
         assert!(check_manifest(&manifest(&["p2"], Value::Null), &rows, cat.clone()).is_err(), "other pack");
-        assert!(check_manifest(&manifest(&["p1"], serde_json::json!({ "bytes": to_base64(b"[]"), "signature": "sig" })), &rows, cat.clone()).is_err(), "foreign catalog");
+        assert!(
+            check_manifest(&manifest(&["p1"], serde_json::json!({ "bytes": to_base64(b"[]"), "signature": "sig" })), &rows, cat.clone())
+                .is_err(),
+            "foreign catalog"
+        );
         let tampered = manifest(&["p1"], Value::Null).replace(&"a".repeat(64), &"b".repeat(64));
         assert!(check_manifest(&tampered, &rows, cat).is_err(), "other hash");
     }

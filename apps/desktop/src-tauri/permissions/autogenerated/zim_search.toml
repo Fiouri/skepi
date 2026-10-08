@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-zim-search"
+description = "Enables the zim_search command without any pre-configured scope."
+commands.allow = ["zim_search"]
+
+[[permission]]
+identifier = "deny-zim-search"
+description = "Denies the zim_search command without any pre-configured scope."
+commands.deny = ["zim_search"]

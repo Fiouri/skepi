@@ -3,7 +3,9 @@
 //! with the verified/unverified rules, atomic install, and the only internet use of the app:
 //! downloads from catalog mirrors (`download.rs`). Nothing under `tmp/` is ever opened.
 
-use crate::catalog::{self, Catalog, CatalogPack, PackKind, Rejected, Rejection, SequenceState, TrustedKey, verify_catalog, verify_key_list};
+use crate::catalog::{
+    self, Catalog, CatalogPack, PackKind, Rejected, Rejection, SequenceState, TrustedKey, verify_catalog, verify_key_list,
+};
 use crate::db::{AppDb, DbError, PackRow, PackSource};
 use crate::hash::digest_file;
 use serde::Serialize;
@@ -182,9 +184,10 @@ impl ContentStore {
     /// Chooses the newest valid catalog among the embedded one and the stored one (selectCatalog in
     /// apps/mobile/src/lib/catalog.ts): anti-rollback against app.db, nothing unverified used.
     pub fn load_catalog(&self) -> Result<(), ContentError> {
-        let (purpose, pinned) = catalog::pinned_keys(&self.embedded.pinned_keys).map_err(|e| ContentError::Path(e))?;
+        let (purpose, pinned) = catalog::pinned_keys(&self.embedded.pinned_keys).map_err(ContentError::Path)?;
         let trusted = self.trusted(&pinned)?;
-        let mut sources: Vec<(String, Vec<u8>, String)> = vec![("embedded".into(), self.embedded.catalog.clone(), self.embedded.signature.clone())];
+        let mut sources: Vec<(String, Vec<u8>, String)> =
+            vec![("embedded".into(), self.embedded.catalog.clone(), self.embedded.signature.clone())];
         let dir = self.stored_catalog_dir();
         if let (Ok(b), Ok(s)) = (std::fs::read(dir.join("catalog.json")), std::fs::read_to_string(dir.join("catalog.json.sig"))) {
             sources.push(("stored".into(), b, s));
@@ -264,7 +267,8 @@ impl ContentStore {
             sha256: prev.as_ref().and_then(|v| v.get("sha256")?.as_str().map(str::to_owned)),
         };
         let v = verify_key_list(bytes, signature, &trusted, &state)?;
-        let keys: Vec<serde_json::Value> = v.value.0.keys.iter().map(|k| serde_json::json!({ "keyId": k.key_id, "publicKey": k.public_key })).collect();
+        let keys: Vec<serde_json::Value> =
+            v.value.0.keys.iter().map(|k| serde_json::json!({ "keyId": k.key_id, "publicKey": k.public_key })).collect();
         self.db.set_setting("catalog.keyList", &serde_json::json!({ "sequence": v.sequence, "sha256": v.sha256, "keys": keys }))?;
         self.state.write().unwrap_or_else(|p| p.into_inner()).trusted = v.value.1;
         Ok(v.sequence)
@@ -339,7 +343,14 @@ impl ContentStore {
 
     /// Atomic install of a verified file from `tmp/`: whole-file hash, rename into place, register.
     /// An older version of the pack with another file name is deleted only after the swap.
-    pub fn install_verified(&self, entry: &CatalogPack, partial: &Path, source: PackSource, cancel: Option<&AtomicBool>, progress: impl FnMut(u64, u64)) -> Result<PackRow, ContentError> {
+    pub fn install_verified(
+        &self,
+        entry: &CatalogPack,
+        partial: &Path,
+        source: PackSource,
+        cancel: Option<&AtomicBool>,
+        progress: impl FnMut(u64, u64),
+    ) -> Result<PackRow, ContentError> {
         let d = digest_file(partial, entry.chunk_size, cancel, progress)?;
         if d.sha256 != entry.sha256 || d.size_bytes != entry.size_bytes {
             let _ = std::fs::remove_file(partial);
@@ -362,7 +373,12 @@ impl ContentStore {
     /// Imports a local file (USB, Kiwix, another folder): copied into `tmp/`, hashed, looked up in the
     /// catalog. Match = verified; otherwise only a ZIM is kept (unverified, consent before opening);
     /// unverified models, maps and places are rejected.
-    pub fn import_file(&self, src: &Path, cancel: Option<&AtomicBool>, mut progress: impl FnMut(u64, u64)) -> Result<PackRow, ContentError> {
+    pub fn import_file(
+        &self,
+        src: &Path,
+        cancel: Option<&AtomicBool>,
+        mut progress: impl FnMut(u64, u64),
+    ) -> Result<PackRow, ContentError> {
         let name = src.file_name().and_then(|n| n.to_str()).ok_or_else(|| ContentError::Path("invalid file name".into()))?.to_owned();
         let lower = name.to_ascii_lowercase();
         if ![".zim", ".gguf", ".pmtiles", ".sqlite"].iter().any(|e| lower.ends_with(e)) {
@@ -457,7 +473,11 @@ impl ContentStore {
             report.changed.push(p.id.clone());
             if p.kind != PackKind::Zim && entry.is_none() {
                 self.db.remove_pack(&p.id)?;
-                if p.kind == PackKind::Gguf { report.rejected_models.push(name) } else { report.rejected_maps.push(name) }
+                if p.kind == PackKind::Gguf {
+                    report.rejected_models.push(name)
+                } else {
+                    report.rejected_maps.push(name)
+                }
                 continue;
             }
             let verified = entry.is_some();
@@ -512,7 +532,8 @@ impl ContentStore {
             }
         }
         // Partials of catalog packs stay (their verified chunks are the resume point); others go.
-        let keep: Vec<String> = catalog.as_ref().map(|c| c.packs.iter().map(|p| format!("{}.partial", p.file)).collect()).unwrap_or_default();
+        let keep: Vec<String> =
+            catalog.as_ref().map(|c| c.packs.iter().map(|p| format!("{}.partial", p.file)).collect()).unwrap_or_default();
         if let Ok(read) = std::fs::read_dir(root.join("tmp")) {
             for f in read.flatten() {
                 let name = f.file_name().to_string_lossy().into_owned();

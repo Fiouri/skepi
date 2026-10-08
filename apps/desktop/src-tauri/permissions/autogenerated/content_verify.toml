@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-content-verify"
+description = "Enables the content_verify command without any pre-configured scope."
+commands.allow = ["content_verify"]
+
+[[permission]]
+identifier = "deny-content-verify"
+description = "Denies the content_verify command without any pre-configured scope."
+commands.deny = ["content_verify"]

@@ -122,7 +122,12 @@ impl Archive {
     pub fn read_item(&self, path: &str) -> Result<ItemData, ZimError> {
         let item = self.get().read_item(path, MAX_ITEM_BYTES)?;
         let item = item.as_ref().ok_or_else(|| ZimError(format!("no item for {path}")))?;
-        Ok(ItemData { path: item.path().to_owned(), title: item.title().to_owned(), mime: item.mime().to_owned(), data: item.data().to_vec() })
+        Ok(ItemData {
+            path: item.path().to_owned(),
+            title: item.title().to_owned(),
+            mime: item.mime().to_owned(),
+            data: item.data().to_vec(),
+        })
     }
 
     pub fn has_entry(&self, path: &str) -> Result<bool, ZimError> {

@@ -151,7 +151,14 @@ fn resume_point(partial: &Path, entry: &CatalogPack) -> std::io::Result<u64> {
     Ok(offset)
 }
 
-async fn fetch_mirror(http: &Http, url: &str, entry: &CatalogPack, partial: &Path, cancel: &AtomicBool, report: &mut dyn FnMut(u64)) -> Result<MirrorOutcome, ContentError> {
+async fn fetch_mirror(
+    http: &Http,
+    url: &str,
+    entry: &CatalogPack,
+    partial: &Path,
+    cancel: &AtomicBool,
+    report: &mut (dyn FnMut(u64) + Send),
+) -> Result<MirrorOutcome, ContentError> {
     let mut offset = resume_point(partial, entry)?;
     if offset == entry.size_bytes {
         return Ok(MirrorOutcome::Complete);
@@ -222,14 +229,25 @@ async fn fetch_mirror(http: &Http, url: &str, entry: &CatalogPack, partial: &Pat
 }
 
 /// Downloads, verifies and installs one catalog pack, trying the mirrors in order.
-pub async fn download_pack(store: Arc<ContentStore>, http: &Http, pack_id: &str, cancel: Arc<AtomicBool>, mut on: impl FnMut(DownloadProgress) + Send) -> Result<PackRow, ContentError> {
+pub async fn download_pack(
+    store: Arc<ContentStore>,
+    http: &Http,
+    pack_id: &str,
+    cancel: Arc<AtomicBool>,
+    mut on: impl FnMut(DownloadProgress) + Send,
+) -> Result<PackRow, ContentError> {
     let entry = store.download_entry(pack_id)?;
     store.check_space(entry.size_bytes)?;
     let partial = store.tmp_dir().join(format!("{}.partial", entry.file));
     let total = entry.size_bytes;
     let mut rejected = 0u32;
     let mut last_error = String::from("no mirror");
-    let emit = |on: &mut dyn FnMut(DownloadProgress), phase: &'static str, bytes: u64, mirror: u32, rejected: u32, error: Option<String>| {
+    let emit = |on: &mut (dyn FnMut(DownloadProgress) + Send),
+                phase: &'static str,
+                bytes: u64,
+                mirror: u32,
+                rejected: u32,
+                error: Option<String>| {
         on(DownloadProgress { pack_id: entry.id.clone(), phase, bytes, total_bytes: total, mirror, rejected_mirrors: rejected, error });
     };
     for (i, url) in entry.urls.iter().enumerate() {
@@ -270,9 +288,11 @@ pub async fn download_pack(store: Arc<ContentStore>, http: &Http, pack_id: &str,
         let entry2 = entry.clone();
         let partial2 = partial.clone();
         let cancel2 = cancel.clone();
-        let installed = tokio::task::spawn_blocking(move || store2.install_verified(&entry2, &partial2, PackSource::Download, Some(&cancel2), |_, _| {}))
-            .await
-            .map_err(|e| ContentError::Download(e.to_string()))?;
+        let installed = tokio::task::spawn_blocking(move || {
+            store2.install_verified(&entry2, &partial2, PackSource::Download, Some(&cancel2), |_, _| {})
+        })
+        .await
+        .map_err(|e| ContentError::Download(e.to_string()))?;
         match installed {
             Ok(row) => {
                 emit(&mut on, "done", total, mirror, rejected, None);

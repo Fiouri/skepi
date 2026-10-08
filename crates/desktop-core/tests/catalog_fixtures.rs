@@ -11,14 +11,16 @@ fn repo(p: &str) -> PathBuf {
 
 #[test]
 fn committed_catalogs_match_the_typescript_expectations() {
-    let doc: Value = serde_json::from_str(&std::fs::read_to_string(repo("catalog/verification-expectations.json")).expect("read")).expect("json");
+    let doc: Value =
+        serde_json::from_str(&std::fs::read_to_string(repo("catalog/verification-expectations.json")).expect("read")).expect("json");
     let cases = doc["cases"].as_array().expect("cases");
     assert!(cases.len() >= 9);
     for c in cases {
         let dir = c["dir"].as_str().expect("dir");
         let bytes = std::fs::read(repo(&format!("{dir}/catalog.json"))).expect("catalog");
         let sig = std::fs::read_to_string(repo(&format!("{dir}/catalog.json.sig"))).expect("sig");
-        let (_, trusted) = pinned_keys(&std::fs::read_to_string(repo(c["keys"].as_str().expect("keys"))).expect("keys file")).expect("pinned");
+        let (_, trusted) =
+            pinned_keys(&std::fs::read_to_string(repo(c["keys"].as_str().expect("keys"))).expect("keys file")).expect("pinned");
         let state = SequenceState { sequence: c["state"]["sequence"].as_u64(), sha256: c["state"]["sha256"].as_str().map(str::to_owned) };
         let got = verify_catalog(&bytes, &sig, &trusted, &state);
         let label = format!("{dir} with {}", c["keys"]);

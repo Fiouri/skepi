@@ -19,7 +19,11 @@ pub fn parse_range(header: Option<&str>, size: u64) -> Result<Option<(u64, u64)>
     let Some(h) = header else { return Ok(None) };
     let caps = RANGE.captures(h.trim()).ok_or(RangeError::Unsupported)?;
     let start: u64 = caps[1].parse().map_err(|_| RangeError::Unsupported)?;
-    let end = if caps[2].is_empty() { size.saturating_sub(1) } else { caps[2].parse::<u64>().map_err(|_| RangeError::Unsupported)?.min(size.saturating_sub(1)) };
+    let end = if caps[2].is_empty() {
+        size.saturating_sub(1)
+    } else {
+        caps[2].parse::<u64>().map_err(|_| RangeError::Unsupported)?.min(size.saturating_sub(1))
+    };
     if size == 0 || start >= size || end < start {
         return Err(RangeError::Unsatisfiable);
     }

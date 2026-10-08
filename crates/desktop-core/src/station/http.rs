@@ -66,7 +66,8 @@ pub async fn write_head<W: AsyncWrite + Unpin>(out: &mut W, status: u16, reason:
 
 pub async fn plain<W: AsyncWrite + Unpin>(out: &mut W, status: u16, reason: &str) -> std::io::Result<u16> {
     let body = reason.as_bytes();
-    write_head(out, status, reason, &[("Content-Type", "text/plain; charset=utf-8".into()), ("Content-Length", body.len().to_string())]).await?;
+    write_head(out, status, reason, &[("Content-Type", "text/plain; charset=utf-8".into()), ("Content-Length", body.len().to_string())])
+        .await?;
     out.write_all(body).await?;
     Ok(status)
 }
@@ -77,7 +78,8 @@ mod tests {
 
     #[test]
     fn parses_the_request_line_and_headers() {
-        let r = parse_head(b"GET /pack/x HTTP/1.1\r\nHost: 10.0.0.2:4000\r\nAuthorization: Bearer abc\r\nRange: bytes=0-9\r\n\r\n").expect("parse");
+        let r = parse_head(b"GET /pack/x HTTP/1.1\r\nHost: 10.0.0.2:4000\r\nAuthorization: Bearer abc\r\nRange: bytes=0-9\r\n\r\n")
+            .expect("parse");
         assert_eq!(r.method, "GET");
         assert_eq!(r.path, "/pack/x");
         assert_eq!(r.headers.get("authorization").map(String::as_str), Some("Bearer abc"));

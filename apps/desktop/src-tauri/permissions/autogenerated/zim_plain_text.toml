@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-zim-plain-text"
+description = "Enables the zim_plain_text command without any pre-configured scope."
+commands.allow = ["zim_plain_text"]
+
+[[permission]]
+identifier = "deny-zim-plain-text"
+description = "Denies the zim_plain_text command without any pre-configured scope."
+commands.deny = ["zim_plain_text"]

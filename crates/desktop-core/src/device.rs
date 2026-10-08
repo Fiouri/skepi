@@ -61,7 +61,9 @@ fn battery() -> (f64, bool) {
 
 #[cfg(windows)]
 pub fn cpu_info() -> CpuInfo {
-    use windows::Win32::System::SystemInformation::{GetLogicalProcessorInformationEx, RelationProcessorCore, SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX};
+    use windows::Win32::System::SystemInformation::{
+        GetLogicalProcessorInformationEx, RelationProcessorCore, SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX,
+    };
     let logical = std::thread::available_parallelism().map(|n| n.get() as u32).unwrap_or(1);
     let mut len = 0u32;
     // SAFETY: first call with no buffer only reports the needed length.

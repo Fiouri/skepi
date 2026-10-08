@@ -126,7 +126,10 @@ mod tests {
 
     #[test]
     fn parses_archive_and_decoded_path() {
-        assert_eq!(parse_path(&format!("/{ID}/A/Water%20(molecule)")), Some(Target { archive_id: ID.into(), path: "A/Water (molecule)".into() }));
+        assert_eq!(
+            parse_path(&format!("/{ID}/A/Water%20(molecule)")),
+            Some(Target { archive_id: ID.into(), path: "A/Water (molecule)".into() })
+        );
         assert_eq!(parse_path(&format!("/{ID}/Canberra")).map(|t| t.path), Some("Canberra".into()));
     }
 

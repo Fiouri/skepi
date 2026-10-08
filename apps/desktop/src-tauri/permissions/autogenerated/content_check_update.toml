@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-content-check-update"
+description = "Enables the content_check_update command without any pre-configured scope."
+commands.allow = ["content_check_update"]
+
+[[permission]]
+identifier = "deny-content-check-update"
+description = "Denies the content_check_update command without any pre-configured scope."
+commands.deny = ["content_check_update"]

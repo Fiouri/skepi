@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-viewer-close"
+description = "Enables the viewer_close command without any pre-configured scope."
+commands.allow = ["viewer_close"]
+
+[[permission]]
+identifier = "deny-viewer-close"
+description = "Denies the viewer_close command without any pre-configured scope."
+commands.deny = ["viewer_close"]

@@ -60,8 +60,14 @@ pub fn migrate(conn: &mut Connection, list: &[Migration], now_ms: i64) -> Result
     };
     for (v, name) in &applied {
         match list.iter().find(|m| m.version == *v) {
-            None => return Err(DbError::Migration(format!("database has migration {v} ({name}), newer than this app; downgrades are not supported"))),
-            Some(m) if &m.name != name => return Err(DbError::Migration(format!("migration {v} is \"{name}\" in the database but \"{}\" in the code", m.name))),
+            None => {
+                return Err(DbError::Migration(format!(
+                    "database has migration {v} ({name}), newer than this app; downgrades are not supported"
+                )));
+            }
+            Some(m) if &m.name != name => {
+                return Err(DbError::Migration(format!("migration {v} is \"{name}\" in the database but \"{}\" in the code", m.name)));
+            }
             _ => {}
         }
     }
@@ -283,7 +289,10 @@ impl AppDb {
             return Err(DbError::Setting(key.into(), "invalid value".into()));
         }
         self.with(|c| {
-            c.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", params![key, value.to_string()])?;
+            c.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                params![key, value.to_string()],
+            )?;
             Ok(())
         })
     }
@@ -298,7 +307,10 @@ impl AppDb {
     /// Anti-rollback floor (`catalog.accepted`).
     pub fn accepted_catalog(&self) -> Result<SequenceState, DbError> {
         Ok(match self.get_setting("catalog.accepted")? {
-            Some(v) => SequenceState { sequence: v.get("sequence").and_then(Value::as_u64), sha256: v.get("sha256").and_then(Value::as_str).map(str::to_owned) },
+            Some(v) => SequenceState {
+                sequence: v.get("sequence").and_then(Value::as_u64),
+                sha256: v.get("sha256").and_then(Value::as_str).map(str::to_owned),
+            },
             None => SequenceState::default(),
         })
     }

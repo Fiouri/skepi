@@ -26,6 +26,7 @@ struct Mirror(Child);
 impl Drop for Mirror {
     fn drop(&mut self) {
         let _ = self.0.kill();
+        let _ = self.0.wait();
     }
 }
 
@@ -38,7 +39,12 @@ fn admin(path: &str) -> String {
 }
 
 fn start_mirror() -> Mirror {
-    let child = Command::new("node").arg(repo("e2e/mirror/server.mjs")).stdout(Stdio::null()).stderr(Stdio::null()).spawn().expect("node e2e/mirror/server.mjs");
+    let mut child = Command::new("node")
+        .arg(repo("e2e/mirror/server.mjs"))
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("node e2e/mirror/server.mjs");
     for _ in 0..100 {
         if TcpStream::connect("127.0.0.1:8443").is_ok() && TcpStream::connect("127.0.0.1:8444").is_ok() {
             admin("/reset");
@@ -46,6 +52,8 @@ fn start_mirror() -> Mirror {
         }
         std::thread::sleep(Duration::from_millis(100));
     }
+    let _ = child.kill();
+    let _ = child.wait();
     panic!("test mirror did not start");
 }
 
@@ -70,14 +78,21 @@ async fn mirror_downloads_fallback_rejection_resume_updates_and_imports() {
 
     // Good download: verified chunk by chunk, installed atomically.
     let mut phases = Vec::new();
-    let row = download_pack(s.clone(), &http, "test-smoke-en", Arc::new(AtomicBool::new(false)), |p| phases.push(p.phase)).await.expect("download");
+    let row = download_pack(s.clone(), &http, "test-smoke-en", Arc::new(AtomicBool::new(false)), |p| phases.push(p.phase))
+        .await
+        .expect("download");
     assert!(row.verified && row.source == PackSource::Download);
-    assert_eq!(sha256_hex(&std::fs::read(&row.path).expect("file")), std::fs::read(repo("tools/rag-eval/fixtures/eval-smoke-en.zim")).map(|b| sha256_hex(&b)).expect("fixture"));
+    assert_eq!(
+        sha256_hex(&std::fs::read(&row.path).expect("file")),
+        std::fs::read(repo("tools/rag-eval/fixtures/eval-smoke-en.zim")).map(|b| sha256_hex(&b)).expect("fixture")
+    );
     assert!(phases.contains(&"verifying") && phases.last() == Some(&"done"));
 
     // First mirror corrupt: rejected at its first chunk, the second mirror succeeds.
     let mut rejected = 0;
-    let row = download_pack(s.clone(), &http, "test-mirror-fallback", Arc::new(AtomicBool::new(false)), |p| rejected = p.rejected_mirrors).await.expect("fallback");
+    let row = download_pack(s.clone(), &http, "test-mirror-fallback", Arc::new(AtomicBool::new(false)), |p| rejected = p.rejected_mirrors)
+        .await
+        .expect("fallback");
     assert!(row.verified);
     assert_eq!(rejected, 1);
 

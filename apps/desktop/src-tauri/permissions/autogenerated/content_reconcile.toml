@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-content-reconcile"
+description = "Enables the content_reconcile command without any pre-configured scope."
+commands.allow = ["content_reconcile"]
+
+[[permission]]
+identifier = "deny-content-reconcile"
+description = "Denies the content_reconcile command without any pre-configured scope."
+commands.deny = ["content_reconcile"]

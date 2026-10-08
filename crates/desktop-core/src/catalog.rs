@@ -269,8 +269,21 @@ pub fn is_allowed_download_url(url: &str) -> bool {
 }
 
 const PACK_FIELDS: &[&str] = &[
-    "id", "kind", "version", "file", "title", "lang", "sizeBytes", "sha256", "chunkSize", "chunkSha256", "urls", "license",
-    "attribution", "minTier", "tags",
+    "id",
+    "kind",
+    "version",
+    "file",
+    "title",
+    "lang",
+    "sizeBytes",
+    "sha256",
+    "chunkSize",
+    "chunkSha256",
+    "urls",
+    "license",
+    "attribution",
+    "minTier",
+    "tags",
 ];
 
 fn parse_pack(v: &Value, path: &str) -> Result<CatalogPack, String> {
@@ -398,7 +411,11 @@ pub fn parse_key_list(data: &Value) -> Result<KeyList, String> {
         if decode_key(public_key).is_none() {
             return Err(format!("{path}.publicKey: expected 32 bytes (base64)"));
         }
-        keys.push(KeyListEntry { key_id: text(ko.get("keyId"), &format!("{path}.keyId"), Some(&KEY_ID))?.to_owned(), public_key: public_key.to_owned(), role });
+        keys.push(KeyListEntry {
+            key_id: text(ko.get("keyId"), &format!("{path}.keyId"), Some(&KEY_ID))?.to_owned(),
+            public_key: public_key.to_owned(),
+            role,
+        });
     }
     if keys.iter().filter(|k| k.role == "active").count() != 1 {
         return Err("keys.keys: exactly one active key required".into());
@@ -432,7 +449,10 @@ fn check_sequence(sequence: u64, digest: &str, state: &SequenceState) -> Result<
 pub fn verify_catalog(bytes: &[u8], signature: &str, trusted: &[TrustedKey], state: &SequenceState) -> Result<Verified<Catalog>, Rejected> {
     let data = parse_json(bytes)?;
     let key_id = data.get("keyId").and_then(Value::as_str).unwrap_or("");
-    let key = trusted.iter().find(|k| k.key_id == key_id).ok_or_else(|| reject(Rejection::UnknownKey, format!("key \"{key_id}\" is not trusted")))?;
+    let key = trusted
+        .iter()
+        .find(|k| k.key_id == key_id)
+        .ok_or_else(|| reject(Rejection::UnknownKey, format!("key \"{key_id}\" is not trusted")))?;
     if !verify_bytes(bytes, signature, key) {
         return Err(reject(Rejection::BadSignature, format!("signature does not verify with {key_id}")));
     }
@@ -443,17 +463,29 @@ pub fn verify_catalog(bytes: &[u8], signature: &str, trusted: &[TrustedKey], sta
 }
 
 /// Key rotation: signed by a currently trusted key, no rollback; its keys then replace the trusted set.
-pub fn verify_key_list(bytes: &[u8], signature: &str, trusted: &[TrustedKey], state: &SequenceState) -> Result<Verified<(KeyList, Vec<TrustedKey>)>, Rejected> {
+pub fn verify_key_list(
+    bytes: &[u8],
+    signature: &str,
+    trusted: &[TrustedKey],
+    state: &SequenceState,
+) -> Result<Verified<(KeyList, Vec<TrustedKey>)>, Rejected> {
     let data = parse_json(bytes)?;
     let signer = data.get("signedBy").and_then(Value::as_str).unwrap_or("");
-    let key = trusted.iter().find(|k| k.key_id == signer).ok_or_else(|| reject(Rejection::UnknownKey, format!("signer \"{signer}\" is not trusted")))?;
+    let key = trusted
+        .iter()
+        .find(|k| k.key_id == signer)
+        .ok_or_else(|| reject(Rejection::UnknownKey, format!("signer \"{signer}\" is not trusted")))?;
     if !verify_bytes(bytes, signature, key) {
         return Err(reject(Rejection::BadSignature, format!("signature does not verify with {signer}")));
     }
     let list = parse_key_list(&data).map_err(|e| reject(Rejection::Schema, e))?;
     let digest = sha256_hex(bytes);
     check_sequence(list.sequence, &digest, state)?;
-    let keys = list.keys.iter().filter_map(|k| decode_key(&k.public_key).map(|pk| TrustedKey { key_id: k.key_id.clone(), public_key: pk })).collect();
+    let keys = list
+        .keys
+        .iter()
+        .filter_map(|k| decode_key(&k.public_key).map(|pk| TrustedKey { key_id: k.key_id.clone(), public_key: pk }))
+        .collect();
     Ok(Verified { sequence: list.sequence, value: (list, keys), sha256: digest })
 }
 
@@ -479,7 +511,8 @@ pub fn pinned_keys(text: &str) -> Result<(String, Vec<TrustedKey>), String> {
         return Err("pinned keys: not a pinned keys file".into());
     }
     let decode = |k: &PinnedKeyInput| -> Result<TrustedKey, String> {
-        let pk = decode_key(&k.public_key).filter(|_| KEY_ID.is_match(&k.key_id)).ok_or_else(|| format!("invalid pinned key {}", k.key_id))?;
+        let pk =
+            decode_key(&k.public_key).filter(|_| KEY_ID.is_match(&k.key_id)).ok_or_else(|| format!("invalid pinned key {}", k.key_id))?;
         Ok(TrustedKey { key_id: k.key_id.clone(), public_key: pk })
     };
     Ok((f.purpose.clone(), vec![decode(&f.active)?, decode(&f.backup)?]))
@@ -525,7 +558,10 @@ mod tests {
         let sig = signed(&sk, &body);
         let mut flipped = body.clone().into_bytes();
         flipped[20] ^= 1;
-        assert_eq!(verify_catalog(&flipped, &sig, std::slice::from_ref(&tk), &SequenceState::default()).unwrap_err().reason, Rejection::BadSignature);
+        assert_eq!(
+            verify_catalog(&flipped, &sig, std::slice::from_ref(&tk), &SequenceState::default()).unwrap_err().reason,
+            Rejection::BadSignature
+        );
         assert_eq!(verify_catalog(body.as_bytes(), &sig, &[other], &SequenceState::default()).unwrap_err().reason, Rejection::UnknownKey);
         let newer = SequenceState { sequence: Some(4), sha256: None };
         assert_eq!(verify_catalog(body.as_bytes(), &sig, std::slice::from_ref(&tk), &newer).unwrap_err().reason, Rejection::Rollback);

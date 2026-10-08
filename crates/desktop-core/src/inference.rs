@@ -107,10 +107,7 @@ impl Inference {
         let current = Arc::new(std::sync::Mutex::new(None));
         let cur = current.clone();
         let (ready_tx, ready_rx) = channel::<Result<(), String>>();
-        std::thread::Builder::new()
-            .name("skepi-inference".into())
-            .spawn(move || worker(rx, cur, ready_tx))
-            .map_err(|e| e.to_string())?;
+        std::thread::Builder::new().name("skepi-inference".into()).spawn(move || worker(rx, cur, ready_tx)).map_err(|e| e.to_string())?;
         ready_rx.recv().map_err(|e| e.to_string())??;
         Ok(Self { tx, current })
     }
@@ -248,7 +245,12 @@ fn worker(rx: Receiver<Cmd>, current: Arc<std::sync::Mutex<Option<LoadedModel>>>
     }
 }
 
-fn load_model(backend: &LlamaBackend, path: &std::path::Path, opts: &LoadOptions, progress: Option<ProgressSink>) -> Result<(LlamaModel, bool, String), String> {
+fn load_model(
+    backend: &LlamaBackend,
+    path: &std::path::Path,
+    opts: &LoadOptions,
+    progress: Option<ProgressSink>,
+) -> Result<(LlamaModel, bool, String), String> {
     let gpu = best_gpu();
     let want_gpu = opts.gpu_layers > 0 && gpu.is_some();
     let params = |layers: u32, progress: Option<ProgressSink>| -> Result<LlamaModelParams, String> {
@@ -282,7 +284,11 @@ fn load_model(backend: &LlamaBackend, path: &std::path::Path, opts: &LoadOptions
 }
 
 fn render_prompt(model: &LlamaModel, template: Option<&LlamaChatTemplate>, messages: &[ChatMessage]) -> Result<String, String> {
-    let chat: Vec<LlamaChatMessage> = messages.iter().map(|m| LlamaChatMessage::new(m.role.clone(), m.content.clone())).collect::<Result<_, _>>().map_err(|e| e.to_string())?;
+    let chat: Vec<LlamaChatMessage> = messages
+        .iter()
+        .map(|m| LlamaChatMessage::new(m.role.clone(), m.content.clone()))
+        .collect::<Result<_, _>>()
+        .map_err(|e| e.to_string())?;
     let fallback;
     let tmpl = match template {
         Some(t) => t,
@@ -333,7 +339,15 @@ fn generate(
         cached.extend_from_slice(&tokens[pos..end]);
         pos = end;
         if abort.load(Ordering::Relaxed) {
-            return Ok(GenerateResult { text: String::new(), prompt_tokens: tokens.len() as u32, cached_prompt_tokens: keep as u32, generated_tokens: 0, time_to_first_token_ms: None, tokens_per_second: None, stop_reason: "abort" });
+            return Ok(GenerateResult {
+                text: String::new(),
+                prompt_tokens: tokens.len() as u32,
+                cached_prompt_tokens: keep as u32,
+                generated_tokens: 0,
+                time_to_first_token_ms: None,
+                tokens_per_second: None,
+                stop_reason: "abort",
+            });
         }
     }
 
@@ -342,7 +356,12 @@ fn generate(
         let grammar = json_schema_to_grammar(&schema.to_string()).map_err(|e| format!("grammar: {e}"))?;
         chain.push(LlamaSampler::grammar(model, &grammar, "root").map_err(|e| format!("grammar: {e}"))?);
     }
-    chain.extend([LlamaSampler::top_k(40), LlamaSampler::top_p(0.95, 1), LlamaSampler::min_p(0.05, 1), LlamaSampler::temp(req.temperature)]);
+    chain.extend([
+        LlamaSampler::top_k(40),
+        LlamaSampler::top_p(0.95, 1),
+        LlamaSampler::min_p(0.05, 1),
+        LlamaSampler::temp(req.temperature),
+    ]);
     chain.push(if req.temperature <= 0.0 { LlamaSampler::greedy() } else { LlamaSampler::dist(0x5EED) });
     let mut sampler = LlamaSampler::chain_simple(chain);
 

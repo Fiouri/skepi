@@ -15,7 +15,12 @@ pub struct FileDigest {
 }
 
 /// Hashes `path`; `progress(hashed, total)` roughly every 16 MiB; stops with `Interrupted` when `cancel` is set.
-pub fn digest_file(path: &Path, chunk_size: u64, cancel: Option<&AtomicBool>, mut progress: impl FnMut(u64, u64)) -> io::Result<FileDigest> {
+pub fn digest_file(
+    path: &Path,
+    chunk_size: u64,
+    cancel: Option<&AtomicBool>,
+    mut progress: impl FnMut(u64, u64),
+) -> io::Result<FileDigest> {
     let mut file = File::open(path)?;
     let total = file.metadata()?.len();
     let mut whole = Sha256::new();

@@ -80,7 +80,13 @@ impl Shared {
         if log.len() >= 500 {
             log.pop_front();
         }
-        log.push_back(LogEntry { method: method.into(), path: path.chars().take(120).collect(), status, peer: peer.ip().to_string(), at_ms: now_ms() });
+        log.push_back(LogEntry {
+            method: method.into(),
+            path: path.chars().take(120).collect(),
+            status,
+            peer: peer.ip().to_string(),
+            at_ms: now_ms(),
+        });
     }
 
     fn stop(&self, reason: &str) {
@@ -109,7 +115,10 @@ impl StationServer {
             .with_protocol_versions(&[&rustls::version::TLS13])
             .map_err(std::io::Error::other)?
             .with_no_client_auth()
-            .with_single_cert(vec![CertificateDer::from(cert.cert_der.clone())], PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(cert.key_der.clone())))
+            .with_single_cert(
+                vec![CertificateDer::from(cert.cert_der.clone())],
+                PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(cert.key_der.clone())),
+            )
             .map_err(std::io::Error::other)?;
         let acceptor = TlsAcceptor::from(Arc::new(tls));
         let listener = TcpListener::bind(bind).await?;
@@ -197,8 +206,10 @@ impl StationServer {
 }
 
 async fn serve(s: &Shared, acceptor: TlsAcceptor, tcp: TcpStream, peer: SocketAddr) -> std::io::Result<()> {
-    let mut tls = tokio::time::timeout(SOCKET_TIMEOUT, acceptor.accept(tcp)).await.map_err(|_| std::io::Error::other("handshake timeout"))??;
-    let req = tokio::time::timeout(SOCKET_TIMEOUT, read_request(&mut tls)).await.map_err(|_| std::io::Error::other("request timeout"))??;
+    let mut tls =
+        tokio::time::timeout(SOCKET_TIMEOUT, acceptor.accept(tcp)).await.map_err(|_| std::io::Error::other("handshake timeout"))??;
+    let req =
+        tokio::time::timeout(SOCKET_TIMEOUT, read_request(&mut tls)).await.map_err(|_| std::io::Error::other("request timeout"))??;
     s.last_activity.store(now_ms(), Ordering::SeqCst);
     s.requests.fetch_add(1, Ordering::SeqCst);
     let status = route(s, &req, &mut tls).await?;
@@ -217,7 +228,13 @@ async fn route<W: tokio::io::AsyncWrite + Unpin>(s: &Shared, req: &super::http::
     }
     if req.path == "/manifest" {
         let m = &s.cfg.manifest;
-        write_head(out, 200, "OK", &[("Content-Type", "application/json".into()), ("Content-Length", m.len().to_string()), ("Cache-Control", "no-store".into())]).await?;
+        write_head(
+            out,
+            200,
+            "OK",
+            &[("Content-Type", "application/json".into()), ("Content-Length", m.len().to_string()), ("Cache-Control", "no-store".into())],
+        )
+        .await?;
         out.write_all(m).await?;
         s.bytes.fetch_add(m.len() as u64, Ordering::SeqCst);
         return Ok(200);
@@ -232,13 +249,18 @@ async fn route<W: tokio::io::AsyncWrite + Unpin>(s: &Shared, req: &super::http::
     let range = match parse_range(req.headers.get("range").map(String::as_str), size) {
         Ok(r) => r,
         Err(_) => {
-            write_head(out, 416, "Range Not Satisfiable", &[("Content-Range", format!("bytes */{size}")), ("Content-Length", "0".into())]).await?;
+            write_head(out, 416, "Range Not Satisfiable", &[("Content-Range", format!("bytes */{size}")), ("Content-Length", "0".into())])
+                .await?;
             return Ok(416);
         }
     };
     let (start, end) = range.unwrap_or((0, size.saturating_sub(1)));
     let length = if size == 0 { 0 } else { end - start + 1 };
-    let mut headers = vec![("Content-Type", "application/octet-stream".to_string()), ("Content-Length", length.to_string()), ("Accept-Ranges", "bytes".to_string())];
+    let mut headers = vec![
+        ("Content-Type", "application/octet-stream".to_string()),
+        ("Content-Length", length.to_string()),
+        ("Accept-Ranges", "bytes".to_string()),
+    ];
     if range.is_some() {
         headers.push(("Content-Range", format!("bytes {start}-{end}/{size}")));
     }

@@ -52,7 +52,10 @@ pub fn signing_cert_sha256(path: &Path) -> Result<String, String> {
     // End of central directory: the last 0x06054b50 within the final 64 KiB + 22 bytes.
     let tail_len = size.min(65_557) as usize;
     let tail = read_at(&mut f, size - tail_len as u64, tail_len).map_err(|e| e.to_string())?;
-    let eocd = (0..=tail_len - 22).rev().find(|&i| tail[i..i + 4] == [0x50, 0x4b, 0x05, 0x06]).ok_or("not an APK (no end of central directory)")?;
+    let eocd = (0..=tail_len - 22)
+        .rev()
+        .find(|&i| tail[i..i + 4] == [0x50, 0x4b, 0x05, 0x06])
+        .ok_or("not an APK (no end of central directory)")?;
     let cd_offset = u64::from(u32le(&tail, eocd + 16).ok_or("bad EOCD")?);
     if cd_offset < 32 {
         return Err("APK has no signing block".into());
@@ -77,7 +80,12 @@ pub fn signing_cert_sha256(path: &Path) -> Result<String, String> {
         found.push((id, value));
         at += 8 + len;
     }
-    let value = found.iter().find(|(id, _)| *id == V3_ID).or_else(|| found.iter().find(|(id, _)| *id == V2_ID)).map(|(_, v)| *v).ok_or("no v2/v3 signature")?;
+    let value = found
+        .iter()
+        .find(|(id, _)| *id == V3_ID)
+        .or_else(|| found.iter().find(|(id, _)| *id == V2_ID))
+        .map(|(_, v)| *v)
+        .ok_or("no v2/v3 signature")?;
     // signers -> first signer -> signed data -> digests (skip) -> certificates -> first certificate.
     let (signers, _) = lp(value, 0).ok_or("bad signers")?;
     let (signer, _) = lp(signers, 0).ok_or("bad signer")?;
@@ -93,7 +101,13 @@ fn esc(s: &str) -> String {
 }
 
 fn page(name: &str, size: u64, fingerprint: &str, official: bool) -> Vec<u8> {
-    let fp = fingerprint.to_ascii_uppercase().as_bytes().chunks(2).map(|c| String::from_utf8_lossy(c).into_owned()).collect::<Vec<_>>().join(":");
+    let fp = fingerprint
+        .to_ascii_uppercase()
+        .as_bytes()
+        .chunks(2)
+        .map(|c| String::from_utf8_lossy(c).into_owned())
+        .collect::<Vec<_>>()
+        .join(":");
     let mb = format!("{:.1}", size as f64 / 1_048_576.0);
     let note = if official {
         "This fingerprint matches the published SKEPI release key."

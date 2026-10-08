@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-content-import"
+description = "Enables the content_import command without any pre-configured scope."
+commands.allow = ["content_import"]
+
+[[permission]]
+identifier = "deny-content-import"
+description = "Denies the content_import command without any pre-configured scope."
+commands.deny = ["content_import"]

@@ -104,7 +104,12 @@ impl Default for ZimRegistry {
 
 impl ZimRegistry {
     pub fn new() -> Self {
-        Self { roots: RwLock::new(Vec::new()), archives: RwLock::new(HashMap::new()), order: RwLock::new(Vec::new()), text_cache: Mutex::new(VecDeque::new()) }
+        Self {
+            roots: RwLock::new(Vec::new()),
+            archives: RwLock::new(HashMap::new()),
+            order: RwLock::new(Vec::new()),
+            text_cache: Mutex::new(VecDeque::new()),
+        }
     }
 
     /// Folders archives may be opened from (the content folder; canonicalised).
@@ -205,7 +210,14 @@ impl ZimRegistry {
                             .suggest(query, per)?
                             .into_iter()
                             .enumerate()
-                            .map(|(rank, h)| SearchHit { archive_id: id.clone(), path: h.path, title: h.title, snippet: h.has_snippet.then_some(h.snippet), score: None, rank: rank as u32 })
+                            .map(|(rank, h)| SearchHit {
+                                archive_id: id.clone(),
+                                path: h.path,
+                                title: h.title,
+                                snippet: h.has_snippet.then_some(h.snippet),
+                                score: None,
+                                rank: rank as u32,
+                            })
                             .collect())
                     })
                 })
@@ -245,7 +257,13 @@ impl ZimRegistry {
 
     pub fn article_html(&self, id: &str, path: &str) -> Result<ArticleHtml, ZimError> {
         let item = self.read_item(id, path)?;
-        Ok(ArticleHtml { archive_id: id.into(), path: item.path, title: item.title, mime_type: item.mime, html: String::from_utf8_lossy(&item.data).into_owned() })
+        Ok(ArticleHtml {
+            archive_id: id.into(),
+            path: item.path,
+            title: item.title,
+            mime_type: item.mime,
+            html: String::from_utf8_lossy(&item.data).into_owned(),
+        })
     }
 
     pub fn plain_text(&self, id: &str, path: &str) -> Result<ArticleText, ZimError> {
@@ -311,7 +329,8 @@ mod tests {
         let syn = reg.open(&fixtures().join("eval-synthetic.zim")).expect("open").archive_id;
         let s = reg.suggest("canber", 8, None).expect("suggest");
         assert_eq!(s.first().map(|h| (h.archive_id.as_str(), h.path.as_str(), h.rank)), Some((en.as_str(), "Canberra", 0)));
-        let order: Vec<_> = reg.suggest("water", 3, Some(&[syn.clone(), en.clone()])).expect("ordered").into_iter().map(|h| h.archive_id).collect();
+        let order: Vec<_> =
+            reg.suggest("water", 3, Some(&[syn.clone(), en.clone()])).expect("ordered").into_iter().map(|h| h.archive_id).collect();
         // Requested archive order is kept: no synthetic hit after the first English one.
         let first_en = order.iter().position(|a| *a == en).unwrap_or(order.len());
         assert!(order[first_en..].iter().all(|a| *a == en), "{order:?}");

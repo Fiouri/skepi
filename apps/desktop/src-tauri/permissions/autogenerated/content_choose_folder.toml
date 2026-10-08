@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-content-choose-folder"
+description = "Enables the content_choose_folder command without any pre-configured scope."
+commands.allow = ["content_choose_folder"]
+
+[[permission]]
+identifier = "deny-content-choose-folder"
+description = "Denies the content_choose_folder command without any pre-configured scope."
+commands.deny = ["content_choose_folder"]

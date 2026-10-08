@@ -42,11 +42,71 @@ const BLOCK_TAGS: &[&str] = &["p", "li", "dd", "dt", "blockquote", "pre"];
 
 // jsoup 1.23.2 TagSet (HTML namespace): Block, PreserveWhitespace and TextBoundary options.
 const JSOUP_BLOCK: &[&str] = &[
-    "html", "head", "body", "frameset", "script", "noscript", "style", "meta", "link", "title", "frame", "noframes", "section", "nav",
-    "aside", "hgroup", "header", "footer", "p", "h1", "h2", "h3", "h4", "h5", "h6", "dialog", "search", "ul", "ol", "pre", "div",
-    "blockquote", "hr", "address", "figure", "figcaption", "form", "fieldset", "dl", "dt", "dd", "li", "table", "caption", "thead",
-    "tfoot", "tbody", "colgroup", "col", "tr", "th", "td", "details", "menu", "plaintext", "template", "article", "main", "center",
-    "dir", "applet", "marquee", "listing", "math", "svg",
+    "html",
+    "head",
+    "body",
+    "frameset",
+    "script",
+    "noscript",
+    "style",
+    "meta",
+    "link",
+    "title",
+    "frame",
+    "noframes",
+    "section",
+    "nav",
+    "aside",
+    "hgroup",
+    "header",
+    "footer",
+    "p",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "dialog",
+    "search",
+    "ul",
+    "ol",
+    "pre",
+    "div",
+    "blockquote",
+    "hr",
+    "address",
+    "figure",
+    "figcaption",
+    "form",
+    "fieldset",
+    "dl",
+    "dt",
+    "dd",
+    "li",
+    "table",
+    "caption",
+    "thead",
+    "tfoot",
+    "tbody",
+    "colgroup",
+    "col",
+    "tr",
+    "th",
+    "td",
+    "details",
+    "menu",
+    "plaintext",
+    "template",
+    "article",
+    "main",
+    "center",
+    "dir",
+    "applet",
+    "marquee",
+    "listing",
+    "math",
+    "svg",
 ];
 const JSOUP_PRESERVE_WS: &[&str] = &["pre", "plaintext", "title", "textarea", "script"];
 const JSOUP_TEXT_BOUNDARY: &[&str] = &[
@@ -121,10 +181,10 @@ fn walk(node: NodeRef<'_, Node>, accum: &mut String) {
     match node.value() {
         Node::Text(t) => {
             if preserve_whitespace(node.parent()) {
-                accum.push_str(&**t);
+                accum.push_str(t);
             } else {
                 let strip = last_is_space(accum);
-                append_normalised(accum, &**t, strip);
+                append_normalised(accum, t, strip);
             }
         }
         Node::Element(e) => {

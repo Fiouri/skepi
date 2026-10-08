@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-zim-open-installed"
+description = "Enables the zim_open_installed command without any pre-configured scope."
+commands.allow = ["zim_open_installed"]
+
+[[permission]]
+identifier = "deny-zim-open-installed"
+description = "Denies the zim_open_installed command without any pre-configured scope."
+commands.deny = ["zim_open_installed"]
