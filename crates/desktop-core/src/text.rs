@@ -223,12 +223,14 @@ fn java_trim(s: &str) -> &str {
     s.trim_matches(|c: char| c <= ' ')
 }
 
-/// Java/Kotlin `Regex("\\s+")` (ASCII whitespace) replaced with one space, then trimmed.
-fn collapse_ascii_ws(s: &str) -> String {
+/// Kotlin `replace(Regex("\\s+"), " ").trim()` as it runs on Android: the platform regex is ICU, whose
+/// `\s` is Unicode whitespace (thin and narrow no-break spaces included), and Kotlin's `trim()` is
+/// Unicode-aware too. (An ASCII-only collapse changed the spaces of 16 of 108 parity articles.)
+fn collapse_ws(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut in_ws = false;
     for c in s.chars() {
-        if matches!(c, ' ' | '\t' | '\n' | '\x0b' | '\x0c' | '\r') {
+        if c.is_whitespace() {
             if !in_ws {
                 out.push(' ');
                 in_ws = true;
@@ -238,7 +240,7 @@ fn collapse_ascii_ws(s: &str) -> String {
             in_ws = false;
         }
     }
-    java_trim(&out).to_owned()
+    out.trim_matches(char::is_whitespace).to_owned()
 }
 
 fn has_block_ancestor(el: &ElementRef<'_>) -> bool {
@@ -277,7 +279,7 @@ pub fn extract_sections(html: &str, title: &str) -> Vec<Section> {
     let mut buffer = String::new();
 
     let flush = |buffer: &mut String, sections: &mut Vec<Section>, heading: &str, level: u8, dropping: bool| {
-        let text = buffer.split('\n').map(collapse_ascii_ws).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("\n");
+        let text = buffer.split('\n').map(collapse_ws).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("\n");
         if !text.is_empty() && !dropping {
             sections.push(Section { heading: heading.to_owned(), level, text });
         }
@@ -288,7 +290,7 @@ pub fn extract_sections(html: &str, title: &str) -> Vec<Section> {
         let tag = name(&el);
         if let Some(digit) = tag.strip_prefix('h').and_then(|d| d.parse::<u8>().ok()) {
             flush(&mut buffer, &mut sections, &heading, level, dropping);
-            let heading_text = collapse_ascii_ws(&jsoup_text(el));
+            let heading_text = collapse_ws(&jsoup_text(el));
             if digit == 1 && heading_text == title {
                 continue;
             }
@@ -331,6 +333,13 @@ mod tests {
         assert_eq!(text_of("<p>a <b>bold</b>text</p>"), "a boldtext");
         assert_eq!(text_of("<p>x\u{a0}\u{a0}y\u{200b}z</p>"), "x yz");
         assert_eq!(text_of("<span>a</span><span>b</span>"), "ab");
+    }
+
+    #[test]
+    fn unicode_spaces_collapse_like_android() {
+        // Thin space, narrow no-break space and ideographic space become one ASCII space (ICU \s).
+        let html = "<html><body><p>3\u{2009}760 km\u{202f}2 \u{3000} total</p></body></html>";
+        assert_eq!(extract_sections(html, "T")[0].text, "3 760 km 2 total");
     }
 
     #[test]

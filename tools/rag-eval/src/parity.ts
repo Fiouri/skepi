@@ -19,7 +19,10 @@ import { SidecarZimEngine } from './zimEngine';
 /**
  * Device/eval retrieval parity (no LLM).
  *   --write-queries <file>  query list from the en golden set (+ el with --greek; frozen locale, manual)
- *   --device <file>         the phone's parity/device.json: rerun the same list here and compare
+ *   --device <file>         the phone's parity/device.json (or another engine's report): rerun the same
+ *                           list here and compare
+ *   --engine python|desktop python-libzim (default) or the desktop app's Rust engine (--sidecar <exe>,
+ *                           default target/release/zim-sidecar.exe)
  * Exit 1 on any difference; the report names the first pipeline step where each question diverges.
  */
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -38,6 +41,8 @@ const { values: args } = parseArgs({
     'write-queries': { type: 'string' },
     device: { type: 'string' },
     zim: { type: 'string', multiple: true },
+    engine: { type: 'string', default: 'python' },
+    sidecar: { type: 'string' },
     python: { type: 'string' },
     out: { type: 'string' },
     // English-only until v1: the Greek questions (and the Greek pack) only on request.
@@ -100,7 +105,11 @@ async function main(): Promise<number> {
   const zims = args.zim ?? [...lock.zimDefault, ...(args.greek ? lock.zimLocale : [])].map((id) => join(cacheDir(), lock.zim[id]?.file ?? id));
   for (const z of zims) if (!existsSync(z)) throw new Error(`missing ${z} (scripts/provision.ps1 -DownloadOnly)`);
 
-  const knowledge = new SidecarZimEngine(args.python ?? process.env.SKEPI_PYTHON ?? 'python');
+  const desktop = args.engine === 'desktop';
+  if (!desktop && args.engine !== 'python') throw new Error('--engine must be python or desktop');
+  const sidecar = resolve(args.sidecar ?? join(REPO, 'target', 'release', 'zim-sidecar.exe'));
+  if (desktop && !existsSync(sidecar)) throw new Error(`missing ${sidecar} (cargo build --release -p desktop-core --bin zim-sidecar)`);
+  const knowledge = new SidecarZimEngine(desktop ? { command: sidecar } : (args.python ?? process.env.SKEPI_PYTHON ?? 'python'));
   try {
     const archives = [];
     for (const z of zims) archives.push(await knowledge.open(z));
@@ -112,7 +121,7 @@ async function main(): Promise<number> {
     }
     const evalRun: ParityReport = {
       schema: 1,
-      engine: 'rag-eval (python-libzim)',
+      engine: desktop ? 'desktop (Rust libzim 9.7.0 + text.rs)' : 'rag-eval (python-libzim)',
       createdAt: new Date().toISOString(),
       config: device.config,
       archives: archives.map((a) => ({ archiveId: a.archiveId, name: a.name, language: a.language, articleCount: a.articleCount })),

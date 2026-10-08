@@ -30,8 +30,13 @@ export class SidecarZimEngine implements KnowledgeEngine {
   private nextId = 1;
   private stderr = '';
 
-  constructor(python: string) {
-    this.child = spawn(python, [SIDECAR], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
+  /**
+   * `python` runs zim_sidecar.py with that interpreter; `{ command }` runs another engine speaking the
+   * same protocol (the desktop's Rust sidecar, crates/desktop-core/src/bin/zim-sidecar.rs).
+   */
+  constructor(engine: string | { command: string; args?: string[] }) {
+    const [command, argv] = typeof engine === 'string' ? [engine, [SIDECAR]] : [engine.command, engine.args ?? []];
+    this.child = spawn(command, argv, { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
     this.child.stderr.setEncoding('utf8');
     this.child.stderr.on('data', (chunk: string) => {
       this.stderr = (this.stderr + chunk).slice(-4000);

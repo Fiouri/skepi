@@ -1,0 +1,6 @@
+status=ready lang=en medical=no tier=T3
+layer1=58ms retrieval=16ms
+budget=T2/en 2600 chars, sources=4
+model=qwen2.5-1.5b-instruct-q4_0.gguf gpu=NVIDIA GeForce RTX 4060 Ti
+ttft=75ms tok/s=30.8 prompt=574 cached=92
+summary=shown kept=1/3
