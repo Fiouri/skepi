@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectMobileTier, pickModel, resolveInferenceProfile, T1_PROFILE } from '../src';
+import { detectDesktopTier, detectMobileTier, pickModel, resolveDesktopProfile, resolveInferenceProfile, T1_PROFILE, T3_PROFILE } from '../src';
 
 const S23_CPU = { cores: 8, performanceCores: 5, performanceCoreIds: [3, 4, 5, 6, 7] };
 const MODELS = [
@@ -99,5 +99,42 @@ describe('resolveInferenceProfile', () => {
     expect(p.effectiveTier).toBe('T1');
     expect(p.load.threads).toBe(4);
     expect(p.load.cpuAffinity).toBeUndefined();
+  });
+});
+
+describe('desktop tiers (Phase 3a)', () => {
+  const models = [
+    { id: 'qwen2.5-1.5b-instruct-q4_0.gguf', sizeBytes: 1_066_227_232 },
+    { id: 'qwen2.5-0.5b-instruct-q4_0.gguf', sizeBytes: 428_730_208 },
+  ];
+  const cpu = { cores: 20, performanceCores: 6, performanceCoreIds: [0, 1, 2, 3, 4, 5] };
+
+  it('is T3 with a GPU of 4 GB+ or with 16 GB RAM', () => {
+    expect(detectDesktopTier(8_000, { name: 'RTX 4060 Ti', vramMb: 8188 })).toBe('T3');
+    expect(detectDesktopTier(15_700, null)).toBe('T3');
+    expect(detectDesktopTier(65_300, null)).toBe('T3');
+    expect(detectDesktopTier(8_000, { name: 'Intel UHD', vramMb: 128 })).toBe('T2');
+    expect(detectDesktopTier(5_000, null)).toBe('T1');
+    expect(detectDesktopTier(2_000, { name: 'RTX', vramMb: 8000 })).toBe('T0');
+  });
+
+  it('offloads every layer on a GPU with the T3 budget and context', () => {
+    const p = resolveDesktopProfile({ totalRamMb: 65_300, cpu, gpu: { name: 'RTX 4060 Ti', vramMb: 8188 }, models, simulateT1: false });
+    expect(p).toMatchObject({ effectiveTier: 'T3', budgetTier: 'T3', summaryMode: 'auto', modelId: 'qwen2.5-1.5b-instruct-q4_0.gguf' });
+    expect(p.load).toEqual({ contextSize: T3_PROFILE.contextSize, threads: 6, useMmap: true, useMlock: false, gpuLayers: 99 });
+  });
+
+  it('prefers a 7B model on T3 when one is installed and runs on CPU without a GPU', () => {
+    const p = resolveDesktopProfile({ totalRamMb: 32_000, cpu, gpu: null, models: [...models, { id: 'qwen2.5-7b-instruct-q4_k_m.gguf', sizeBytes: 4.7e9 }], simulateT1: false });
+    expect(p.modelId).toBe('qwen2.5-7b-instruct-q4_k_m.gguf');
+    expect(p.load.gpuLayers).toBe(0);
+  });
+
+  it('uses the mobile profiles below T3 (unpinned) and T1-simulation as on mobile', () => {
+    const t2 = resolveDesktopProfile({ totalRamMb: 8_000, cpu, gpu: null, models, simulateT1: false });
+    expect(t2).toMatchObject({ effectiveTier: 'T2', budgetTier: 'T2' });
+    expect(t2.load.cpuAffinity).toBeUndefined();
+    const sim = resolveDesktopProfile({ totalRamMb: 65_300, cpu, gpu: { name: 'RTX', vramMb: 8188 }, models, simulateT1: true });
+    expect(sim).toMatchObject({ mode: 't1-simulation', effectiveTier: 'T1', detectedTier: 'T3', summaryMode: 'on-demand' });
   });
 });
