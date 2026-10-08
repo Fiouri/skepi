@@ -145,7 +145,7 @@ Not evaluated in this phase (the mandatory items took the time). Still open.
   ([`phase2a/e2e/s23/`](phase2a/e2e/s23/)).
 - Maestro P2P between two emulators + places on the host emulator: **10/10, P2P E2E PASS** (§3).
 - Unplugged energy run over wireless adb: §6.
-- CI (GitHub Actions on push): see the commit status of this report's push.
+- CI: GitHub Actions run 37705093268 (push of `77af8d2`): `verify`, `rag-eval-smoke` and `android-release-guards` (draft-cards gate fails as required, release APK, PERMISSION ALLOWLIST: PASS, BUNDLE REBUILD PROBE: PASS) green.
 
 ## Deviations and open items
 
