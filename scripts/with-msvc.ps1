@@ -6,7 +6,8 @@
 
   powershell -File scripts/with-msvc.ps1 cargo test --workspace
 #>
-param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Command)
+# No param block: arguments such as `--ignored` or `--` reach the command untouched ($args).
+$Command = @($args)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $Command -or $Command.Count -eq 0) { throw 'usage: with-msvc.ps1 <command> [args...]' }

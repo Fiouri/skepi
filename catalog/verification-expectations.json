@@ -1,0 +1,23 @@
+{
+  "comment": "Expected verifyCatalog outcomes for the committed catalogs. Checked by tools/catalog-builder/test/fixtures-catalog.test.ts (TypeScript) and crates/desktop-core/tests/catalog_fixtures.rs (Rust port): both must agree.",
+  "cases": [
+    { "dir": "catalog/embedded/debug", "keys": "catalog/keys/test.json", "state": { "sequence": null, "sha256": null },
+      "expect": { "ok": true, "sequence": 3, "sha256": "bccd647f33fcd7344498615dae0688c0b0ea3dbfc14f5ef3046e99c4d7633f4b" } },
+    { "dir": "catalog/embedded/release", "keys": "catalog/keys/release.json", "state": { "sequence": null, "sha256": null },
+      "expect": { "ok": true, "sequence": 2, "sha256": "447e62980ec2392183d628789f768f1087737fba6feea662ef84eae374c00cc6" } },
+    { "dir": "catalog/embedded/release", "keys": "catalog/keys/test.json", "state": { "sequence": null, "sha256": null },
+      "expect": { "ok": false, "reason": "unknown_key" } },
+    { "dir": "catalog/embedded/debug", "keys": "catalog/keys/release.json", "state": { "sequence": null, "sha256": null },
+      "expect": { "ok": false, "reason": "unknown_key" } },
+    { "dir": "e2e/mirror/catalogs/good", "keys": "catalog/keys/test.json", "state": { "sequence": 3, "sha256": "bccd647f33fcd7344498615dae0688c0b0ea3dbfc14f5ef3046e99c4d7633f4b" },
+      "expect": { "ok": true, "sequence": 4, "sha256": "1667b1a9861eb5d2a3244b1873614b0b53adf3c94186f156ac0a2c5f611f76f2" } },
+    { "dir": "e2e/mirror/catalogs/wrong-key", "keys": "catalog/keys/test.json", "state": { "sequence": 3, "sha256": null },
+      "expect": { "ok": false, "reason": "bad_signature" } },
+    { "dir": "e2e/mirror/catalogs/tampered", "keys": "catalog/keys/test.json", "state": { "sequence": 3, "sha256": null },
+      "expect": { "ok": false, "reason": "bad_signature" } },
+    { "dir": "e2e/mirror/catalogs/rollback", "keys": "catalog/keys/test.json", "state": { "sequence": 3, "sha256": "bccd647f33fcd7344498615dae0688c0b0ea3dbfc14f5ef3046e99c4d7633f4b" },
+      "expect": { "ok": false, "reason": "rollback" } },
+    { "dir": "catalog/embedded/debug", "keys": "catalog/keys/test.json", "state": { "sequence": 3, "sha256": "0000000000000000000000000000000000000000000000000000000000000000" },
+      "expect": { "ok": false, "reason": "sequence_reuse" } }
+  ]
+}

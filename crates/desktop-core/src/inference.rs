@@ -76,6 +76,8 @@ pub struct GenerateResult {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GpuDevice {
+    /// ggml backend device index (`LlamaModelParams::with_devices`).
+    pub index: usize,
     pub name: String,
     pub description: String,
     pub backend: String,
@@ -139,12 +141,20 @@ impl Inference {
     }
 }
 
+/// The device to offload to: the discrete GPU with the most memory, else an integrated one.
+pub fn best_gpu() -> Option<GpuDevice> {
+    let mut all = gpu_devices();
+    all.sort_by_key(|d| (d.integrated, std::cmp::Reverse(d.vram_mb)));
+    all.into_iter().next()
+}
+
 /// GPUs llama.cpp can offload to (Vulkan devices on Windows), for desktop tier detection.
 pub fn gpu_devices() -> Vec<GpuDevice> {
     list_llama_ggml_backend_devices()
         .into_iter()
         .filter(|d| matches!(d.device_type, LlamaBackendDeviceType::Gpu | LlamaBackendDeviceType::IntegratedGpu))
         .map(|d| GpuDevice {
+            index: d.index,
             integrated: matches!(d.device_type, LlamaBackendDeviceType::IntegratedGpu),
             name: d.name,
             description: d.description,
@@ -204,7 +214,7 @@ fn worker(rx: Receiver<Cmd>, current: Arc<std::sync::Mutex<Option<LoadedModel>>>
                     }
                 };
                 let template = model.chat_template(None).ok();
-                let devices: Vec<String> = if gpu { gpu_devices().into_iter().map(|d| d.description).collect() } else { Vec::new() };
+                let devices: Vec<String> = if gpu { best_gpu().into_iter().map(|d| d.description).collect() } else { Vec::new() };
                 let loaded = LoadedModel {
                     model_id: model_id.clone(),
                     context_size: ctx.n_ctx(),
@@ -239,30 +249,35 @@ fn worker(rx: Receiver<Cmd>, current: Arc<std::sync::Mutex<Option<LoadedModel>>>
 }
 
 fn load_model(backend: &LlamaBackend, path: &std::path::Path, opts: &LoadOptions, progress: Option<ProgressSink>) -> Result<(LlamaModel, bool, String), String> {
-    let has_gpu = !gpu_devices().is_empty();
-    let want_gpu = opts.gpu_layers > 0 && has_gpu;
-    let params = |layers: u32, progress: Option<ProgressSink>| {
-        let p = LlamaModelParams::default().with_n_gpu_layers(layers).with_use_mmap(opts.use_mmap).with_use_mlock(opts.use_mlock);
-        match progress {
+    let gpu = best_gpu();
+    let want_gpu = opts.gpu_layers > 0 && gpu.is_some();
+    let params = |layers: u32, progress: Option<ProgressSink>| -> Result<LlamaModelParams, String> {
+        let base = LlamaModelParams::default().with_n_gpu_layers(layers).with_use_mmap(opts.use_mmap).with_use_mlock(opts.use_mlock);
+        // One device only: splitting layers between a discrete GPU and the iGPU is slower than either.
+        let p = match (&gpu, layers > 0) {
+            (Some(g), true) => base.with_devices(&[g.index]).map_err(|e| format!("device: {e}"))?,
+            _ => base,
+        };
+        Ok(match progress {
             Some(mut sink) => p.with_progress_callback(move |f| {
                 sink(f);
                 true
             }),
             None => p,
-        }
+        })
     };
     if want_gpu {
-        match LlamaModel::load_from_file(backend, path, &params(opts.gpu_layers, progress)) {
+        match LlamaModel::load_from_file(backend, path, &params(opts.gpu_layers, progress)?) {
             Ok(m) => return Ok((m, true, String::new())),
             Err(e) => {
                 let reason = format!("GPU load failed ({e}); running on the CPU");
-                let m = LlamaModel::load_from_file(backend, path, &params(0, None)).map_err(|e| format!("model: {e}"))?;
+                let m = LlamaModel::load_from_file(backend, path, &params(0, None)?).map_err(|e| format!("model: {e}"))?;
                 return Ok((m, false, reason));
             }
         }
     }
     let reason = if opts.gpu_layers == 0 { "CPU selected".to_string() } else { "no GPU device found".to_string() };
-    let m = LlamaModel::load_from_file(backend, path, &params(0, progress)).map_err(|e| format!("model: {e}"))?;
+    let m = LlamaModel::load_from_file(backend, path, &params(0, progress)?).map_err(|e| format!("model: {e}"))?;
     Ok((m, false, reason))
 }
 
