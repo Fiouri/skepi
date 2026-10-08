@@ -1,8 +1,9 @@
 # Tools (release build, airplane mode): GNSS fix (location permission granted by run-e2e.ps1; the first
 # fix without A-GPS can take minutes) and the SMS hand-off, which only opens the SMS app with the text
-# filled in (nothing is sent); then the SOS torch, red screen SOS and compass. -SimulateGnss feeds the gps
-# provider from a shell test provider when the phone has no sky view. The location steps come first:
-# on the S23, test-provider positions stopped arriving once the torch had been switched on.
+# filled in (nothing is sent); then the SOS torch, red screen SOS and compass. Indoors, run-e2e.ps1
+# -MockLocation runs this flow on the debug build with its debug-only mock provider (a fixed fix, no shell
+# test provider; deterministic). The location steps come first: on the S23, shell test-provider positions
+# (-SimulateGnss, release builds) stopped arriving once the torch had been switched on.
 appId: ${APP_ID}
 name: SKEPI tools (offline)
 onFlowComplete:

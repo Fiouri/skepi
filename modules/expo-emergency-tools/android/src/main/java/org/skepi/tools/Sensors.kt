@@ -150,6 +150,14 @@ internal class GnssFix(
       cancel()
       if (!hasPermission) return@post done(Result.failure(ToolsException("ERR_LOCATION_PERMISSION", "Location permission not granted")))
       if (!gpsEnabled) return@post done(Result.failure(ToolsException("ERR_GPS_DISABLED", "Location (GPS) is turned off")))
+      // Debug builds only (E2E): a fixed fix after a short "locating" phase; null in release builds.
+      MockLocation.read(context)?.let { mock ->
+        pending = done
+        val t = Runnable { finish(Result.success(mock)) }
+        timeout = t
+        handler.postDelayed(t, MOCK_FIX_DELAY_MS)
+        return@post
+      }
       val last = try {
         manager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
       } catch (e: Exception) {
@@ -212,6 +220,8 @@ internal class GnssFix(
   }
 
   companion object {
+    private const val MOCK_FIX_DELAY_MS = 1_000L
+
     fun toMap(location: Location): Map<String, Any?> = mapOf(
       "latitude" to location.latitude,
       "longitude" to location.longitude,
