@@ -92,7 +92,7 @@ export function App() {
   ];
 
   return (
-    <div className="app" style={themeVars(theme)} data-theme={theme.name}>
+    <div className="app" style={themeVars(theme)} data-theme={theme.name} data-status={status}>
       <nav className="tabs" aria-label="SKEPI">
         <div className="brand">SKEPI</div>
         <button type="button" className="emergency" data-testid="emergency-button" onClick={() => { nav.openCard(null); }}>

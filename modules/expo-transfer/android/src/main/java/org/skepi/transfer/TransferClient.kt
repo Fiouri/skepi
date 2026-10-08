@@ -52,8 +52,24 @@ class TransferClient(
     }
   }
 
+  /**
+   * A socket on the network of the host's subnet. With a VPN active, Android may refuse to bind a
+   * socket to the underlying Wi-Fi network (EPERM; found with a VPN on the S23 in the Phase 3a Station
+   * E2E): the socket then uses normal routing. The address is still a local one (`parseLocal`), the
+   * certificate is still pinned, and every chunk is still checked against the signed catalog.
+   */
+  private fun newSocket(): Socket {
+    val bound = socketFactory ?: return SocketFactory.getDefault().createSocket()
+    return try {
+      bound.createSocket()
+    } catch (e: java.net.SocketException) {
+      if (e.message?.contains("EPERM") != true) throw e
+      SocketFactory.getDefault().createSocket()
+    }
+  }
+
   private fun open(): SSLSocket {
-    val raw = (socketFactory ?: SocketFactory.getDefault()).createSocket()
+    val raw = newSocket()
     raw.connect(InetSocketAddress(address, port), 10_000)
     raw.soTimeout = 30_000
     val tls = sslContext.socketFactory.createSocket(raw, host, port, true) as SSLSocket

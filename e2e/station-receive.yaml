@@ -1,0 +1,81 @@
+# Phase 3a Station E2E (e2e/run-station.ps1): the phone receives packs from the desktop's Station mode
+# over the LAN. The pairing code is typed (release builds have no test hand-off; the camera QR path is
+# the same code). Every chunk is checked against this phone's signed catalog.
+#   CODE          pairing code from the desktop (JSON)
+#   PACK          pack to receive (must be "Verified by the signed catalog" on this phone)
+#   DESELECT      optional pack offered but not wanted ("-" for none)
+#   CATALOG_TEXT  expected catalog decision (regex)
+appId: ${APP_ID}
+name: SKEPI Station receive
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "(tab-search|onboarding)"
+    timeout: 600000
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-library
+- scrollUntilVisible:
+    element:
+      id: library-receive
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: library-receive
+- extendedWaitUntil:
+    visible:
+      id: receive-screen
+    timeout: 15000
+- tapOn:
+    id: receive-code
+- inputText: ${CODE}
+- hideKeyboard
+- tapOn:
+    id: receive-connect
+- extendedWaitUntil:
+    visible:
+      id: receive-catalog
+    timeout: 60000
+- assertVisible:
+    id: receive-catalog
+    text: ${CATALOG_TEXT}
+- assertVisible:
+    id: offer-status-${PACK}
+    text: "Verified by the signed catalog"
+- runFlow:
+    when:
+      true: ${DESELECT != '-'}
+    commands:
+      - tapOn:
+          id: offer-${DESELECT}
+- takeScreenshot: e2e/out/station-01-offers-${APP_ID}
+- scrollUntilVisible:
+    element:
+      id: receive-start
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: receive-start
+- scrollUntilVisible:
+    element:
+      id: offer-${PACK}
+    direction: UP
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: receive-result-${PACK}
+      text: 'Installed \(verified\)'
+    timeout: 900000
+- assertVisible:
+    id: receive-progress-${PACK}
+    text: '.*chunk (\d+)/\1 verified.*'
+- takeScreenshot: e2e/out/station-02-installed-${APP_ID}
+- scrollUntilVisible:
+    element:
+      id: receive-disconnect
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: receive-disconnect

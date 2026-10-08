@@ -163,7 +163,7 @@ try {
   const main = await wd('GET', `/session/${S}/window`);
 
   await waitFor(() => visible('search-screen'), 60_000, 'app start');
-  await waitFor(async () => !(await visible('verifying')) && (await visible('disclaimer')), 180_000, 'reconcile + disclaimer');
+  await waitFor(async () => (await findAll('.app[data-status="ready"]')).length > 0 && (await visible('disclaimer')), 600_000, 'reconcile + disclaimer');
   await click(tid('disclaimer-accept'));
   sampleEgress();
 
