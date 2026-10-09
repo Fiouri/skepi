@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildCatalog, sequenceOf, signKeyList, verifyCatalogDir, verifyKeyListDir, writeSigned } from './build';
 import { keygen, readPinnedKeys, readSecretKey, REPO_ROOT, type PinnedKeysFile } from './keys';
+import { checkFixtures } from './fixtures';
 import { mergeManifests, readManifest } from './manifest';
 import { defaultCacheDir, legacySkepiDir, migrateDir, resolveCacheDir, skepiHome } from './paths';
 
@@ -17,7 +18,7 @@ import { defaultCacheDir, legacySkepiDir, migrateDir, resolveCacheDir, skepiHome
  *   verify  --dir <dir> --pinned catalog/keys/<purpose>.json [--release]
  *   migrate-cache [--cache <dir>]   moves %TEMP%\skepi\{cache,keys} to %LOCALAPPDATA%\skepi (SHA-256 checked)
  */
-const USAGE = 'usage: catalog <keygen|pin|build|keylist|verify|migrate-cache> [options] (see src/cli.ts)';
+const USAGE = 'usage: catalog <keygen|pin|build|keylist|verify|migrate-cache|check-fixtures> [options] (see src/cli.ts)';
 
 const [command, ...rest] = process.argv.slice(2).filter((a, i) => !(i === 0 && a === '--'));
 const { values: args } = parseArgs({
@@ -112,6 +113,13 @@ async function main(): Promise<number> {
       await writeSigned(resolve(need('out', args.out)), 'keys.json', signed);
       console.log(`key list signed by ${signer.keyId}: active ${next.active.keyId}, backup ${next.backup.keyId}`);
       return 0;
+    }
+    case 'check-fixtures': {
+      // Every file the test catalogs, manifests and tests use is committed (CI: verify job).
+      const problems = checkFixtures(REPO_ROOT);
+      for (const p of problems) console.error(`${p.from}: ${p.file}: ${p.problem}`);
+      console.log(problems.length === 0 ? 'FIXTURES OK: every referenced test file is committed' : `FIXTURES FAIL: ${String(problems.length)} problems`);
+      return problems.length === 0 ? 0 : 1;
     }
     case 'migrate-cache': {
       const legacy = legacySkepiDir();
