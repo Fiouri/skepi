@@ -168,13 +168,22 @@ jobs:
       - name: Desktop UI build (frontend embedded by the Tauri shell)
         run: pnpm --filter @skepi/desktop build
       - run: cargo fmt --all -- --check
+      # Cargo steps run in the MSVC environment with Ninja for CMake (scripts/with-msvc.ps1): with the
+      # Visual Studio generator, ggml-vulkan's shader-generator sub-build fails its install step.
       - name: Clippy (default build, Vulkan)
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        shell: pwsh
+        run: ./scripts/with-msvc.ps1 cargo clippy --workspace --all-targets -- -D warnings
       - name: Clippy (CPU-only build)
-        run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+        shell: pwsh
+        run: ./scripts/with-msvc.ps1 cargo clippy --workspace --all-targets --no-default-features -- -D warnings
       - name: Tests (Vulkan build)
-        run: cargo test --workspace
-      - name: CPU-only build (no Vulkan)
-        run: cargo build -p skepi-desktop --no-default-features
+        shell: pwsh
+        run: ./scripts/with-msvc.ps1 cargo test --workspace
+      - name: CPU-only build (no Vulkan, no Vulkan SDK)
+        shell: pwsh
+        env:
+          VULKAN_SDK: ''
+        run: ./scripts/with-msvc.ps1 cargo build -p skepi-desktop --no-default-features
       - name: Downloads against the local HTTPS test mirror (Node)
-        run: cargo test -p desktop-core --features test-mirror --test downloads
+        shell: pwsh
+        run: ./scripts/with-msvc.ps1 cargo test -p desktop-core --features test-mirror --test downloads

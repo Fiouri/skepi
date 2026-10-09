@@ -54,6 +54,9 @@ if (-not (Test-Path $installedSdk) -or $env:SKEPI_WINSDK_DIR) {
 if (-not $env:CMAKE_GENERATOR) {
   $tools = Get-ChildItem -Directory -ErrorAction SilentlyContinue (Join-Path $env:LOCALAPPDATA 'skepi\tools') -Filter 'ninja-*' | Sort-Object Name -Descending | Select-Object -First 1
   if ($tools) { $env:PATH = "$($tools.FullName);$env:PATH" }
+  # Visual Studio ships Ninja with its CMake tools (used on CI runners).
+  $vsNinja = Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja'
+  if (-not (Get-Command ninja.exe -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path $vsNinja 'ninja.exe'))) { $env:PATH = "$vsNinja;$env:PATH" }
   if (Get-Command ninja.exe -ErrorAction SilentlyContinue) { $env:CMAKE_GENERATOR = 'Ninja' }
 }
 
