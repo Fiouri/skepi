@@ -150,6 +150,24 @@ without packets, runtime updates by Edge Update, overrides by `WEBVIEW2_ADDITION
 admin policy, undocumented flag names) is listed in `docs/threat-model.md`, "WebView2 runtime egress".
 `egress.mjs --expect-none` is the gate for every release and runtime upgrade.
 
+## CI results (GitHub Actions)
+
+`desktop-windows` reached green after four fixes; durations per job (minutes):
+
+| Run | verify | rag-eval-smoke | android-release-guards | desktop-windows | Cause / fix |
+| --- | --- | --- | --- | --- | --- |
+| 37925617904 | ✅ 1.2 | ✅ 1.6 | ✅ 41.5 | ❌ 11.9 | No Vulkan SDK; `--no-default-features` did not reach `desktop-core` through the Tauri crate → pinned SDK (`native/vulkan`), `vulkan` feature forwarded |
+| 37948561448 | ✅ 1.5 | ✅ 1.3 | ✅ 36.0 | ❌ 8.6 | ggml-vulkan's shader-generator sub-build fails under the Visual Studio 18 generator → cargo through `with-msvc.ps1` with Ninja |
+| 37953252531 | ✅ 1.0 | ✅ 1.5 | ✅ 41.0 | ❌ 2.4 | pwsh drops an unquoted `--` when calling a script (`unexpected argument '-D'`) → `'--'` |
+| 37958420170 | ✅ 0.9 | ✅ 2.7 | ✅ 40.1 | ❌ 52.3 | `e2e/fixtures/p2p-propagation.zim` never committed (`*.zim` ignored) although the test catalogs pin it → committed; `catalog check-fixtures` now guards this |
+| 37964981477 #1 (cold cache) | ✅ 1.1 | ✅ 1.7 | ✅ 39.5 | ✅ 54.2 | Swatinem/rust-cache added (llama.cpp CPU + Vulkan build output) |
+| 37964981477 #2 (warm cache) | ✅ 1.1 | ✅ 1.7 | ✅ 38.2 | ✅ **5.3** | rust-cache hit; Vulkan SDK from cache |
+
+Warm `desktop-windows` steps: Vulkan clippy 47 s, CPU-only clippy 7 s, tests 50 s, CPU-only build 24 s,
+mirror test 17 s (cold: 16 min, 3.5 min, 17 min, 4 min, 7 min). The whole run is then bounded by
+`android-release-guards` (~38–41 min, mostly llama.rn's native build), which the next CI change caches
+(Gradle build cache + ccache), together with a path filter: docs-only changes run `verify` only.
+
 ## Deviations and open items
 
 - **Release catalog propagation:** a release phone accepts only release-key catalogs; propagation was
