@@ -3,7 +3,8 @@
 # the same code). Every chunk is checked against this phone's signed catalog.
 #   CODE          pairing code from the desktop (JSON)
 #   PACK          pack to receive (must be "Verified by the signed catalog" on this phone)
-#   DESELECT      optional pack offered but not wanted ("-" for none)
+#   DESELECT      optional pack offered, auto-selected but not wanted ("-" for none)
+#   OTHER         optional pack whose offer status is checked ("-" for none); OTHER_TEXT its status
 #   CATALOG_TEXT  expected catalog decision (regex)
 appId: ${APP_ID}
 name: SKEPI Station receive
@@ -44,6 +45,13 @@ name: SKEPI Station receive
 - assertVisible:
     id: offer-status-${PACK}
     text: "Verified by the signed catalog"
+- runFlow:
+    when:
+      true: ${OTHER != '-'}
+    commands:
+      - assertVisible:
+          id: offer-status-${OTHER}
+          text: ${OTHER_TEXT}
 - runFlow:
     when:
       true: ${DESELECT != '-'}

@@ -38,6 +38,8 @@ if (-not $HostIp) {
   $HostIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like '192.168.*' -or $_.IPAddress -like '10.*' } | Where-Object { $_.InterfaceAlias -notlike 'vEthernet*' -and $_.InterfaceAlias -notlike '*VPN*' -and $_.InterfaceAlias -notlike 'Nord*' } | Select-Object -First 1).IPAddress
 }
 if (-not $HostIp) { throw 'no LAN address found (connect this computer and the phone to the same router)' }
+$state = (& adb @adbArgs get-state 2>$null)
+if ($state -ne 'device') { throw "phone not connected over adb ($Serial): connect it (USB or e2e/adb-wireless.ps1) and retry" }
 $phoneIp = ((& adb @adbArgs shell ip -4 addr show wlan0) | Select-String -Pattern 'inet (\d+\.\d+\.\d+\.\d+)').Matches[0].Groups[1].Value
 Write-Host "desktop $HostIp, phone $phoneIp"
 
@@ -51,9 +53,11 @@ cmd /c mklink /H (Join-Path $content 'zim\wikipedia_en_medicine_mini_2026-04.zim
 
 # The pairing code is JSON: values go into a generated copy of the flow instead of maestro.bat -e
 # (cmd.exe mangles quotes). Single-quoted YAML scalars hold JSON as is.
-function Invoke-Flow([string]$AppId, [string]$Pack, [string]$Deselect, [string]$CatalogText, [string]$Report, [string]$Code) {
+function Invoke-Flow([string]$AppId, [string]$Pack, [string]$Deselect, [string]$CatalogText, [string]$Report, [string]$Code, [string]$Other = '-', [string]$OtherText = '') {
   $flow = Get-Content -Raw (Join-Path $PSScriptRoot 'station-receive.yaml')
   $flow = $flow.Replace("`${DESELECT != '-'}", $(if ($Deselect -ne '-') { 'true' } else { 'false' }))
+  $flow = $flow.Replace("`${OTHER != '-'}", $(if ($Other -ne '-') { 'true' } else { 'false' }))
+  $flow = $flow.Replace('${OTHER}', $Other).Replace('${OTHER_TEXT}', "'" + $OtherText.Replace("'", "''") + "'")
   $flow = $flow.Replace('${APP_ID}', $AppId).Replace('${PACK}', $Pack).Replace('${DESELECT}', $Deselect)
   $flow = $flow.Replace('${CATALOG_TEXT}', "'" + $CatalogText.Replace("'", "''") + "'").Replace('${CODE}', "'" + $Code + "'")
   $gen = Join-Path $PSScriptRoot 'station-receive.gen.yaml'
@@ -73,6 +77,8 @@ Start-Sleep -Seconds 2
 $hostArgs = @((Join-Path $root 'apps\desktop\e2e\station-host.mjs'), '--app', $App, '--content', $content, '--appdata', $appData, '--host', $HostIp,
   '--packs', 'wikipedia_en_medicine_mini,test-propagation', '--out', $out, '--update', '--add-after-update', (Join-Path $root 'e2e\fixtures\p2p-propagation.zim'))
 $hostProc = Start-Process -FilePath node -ArgumentList $hostArgs -PassThru -NoNewWindow -RedirectStandardOutput (Join-Path $out 'host.log') -RedirectStandardError (Join-Path $out 'host.err')
+# Keep the process handle: without it PowerShell reports ExitCode as null after the process exits.
+$null = $hostProc.Handle
 $results = @()
 Push-Location $root
 try {
@@ -90,7 +96,8 @@ try {
     # Release app: remove its medicine pack; the next start's reconcile forgets it.
     & adb @adbArgs shell am force-stop org.skepi.app | Out-Null
     & adb @adbArgs shell rm -f /sdcard/Android/data/org.skepi.app/files/zim/wikipedia_en_medicine_mini_2026-04.zim | Out-Null
-    $results += [pscustomobject]@{ Run = 'release'; Exit = (Invoke-Flow 'org.skepi.app' 'wikipedia_en_medicine_mini' 'test-propagation' '.*not accepted.*' 'report-station-release.xml' $code) }
+    # The propagation pack is not in the release catalog: offered as unverified, never pre-selected.
+    $results += [pscustomobject]@{ Run = 'release'; Exit = (Invoke-Flow 'org.skepi.app' 'wikipedia_en_medicine_mini' '-' '.*not accepted.*' 'report-station-release.xml' $code 'test-propagation' 'Unverified.*') }
     $sha = (((& adb @adbArgs shell "sha256sum /sdcard/Android/data/org.skepi.app/files/zim/wikipedia_en_medicine_mini_2026-04.zim 2>/dev/null") -join '') -split '\s+')[0]
     Write-Host "release app: received file sha256 $sha"
     $results += [pscustomobject]@{ Run = 'release-sha'; Exit = $(if ($sha -eq '55153075b0773ea9c04a3db295ec5898129434ab5cae087dcb7822f37a81f358') { 0 } else { 1 }) }
