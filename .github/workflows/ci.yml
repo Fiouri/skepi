@@ -125,6 +125,11 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_NOHASHDIR: 'true'
       CCACHE_MAXSIZE: 1500M
+      # The Android Gradle plugin installs NDK 27.1 on every run (not in the runner image), so the
+      # compiler's mtime changes: hash its content instead (first warm run had 0 cross-run hits).
+      CCACHE_COMPILERCHECK: content
+      # Codegen headers are regenerated each run; their fresh mtimes would disable direct-mode hits.
+      CCACHE_SLOPPINESS: include_file_mtime,include_file_ctime
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
     steps:
@@ -149,10 +154,10 @@ jobs:
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .ccache
-          key: ccache-android-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ccache-android-v2-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ccache-android-${{ hashFiles('pnpm-lock.yaml') }}-
-            ccache-android-
+            ccache-android-v2-${{ hashFiles('pnpm-lock.yaml') }}-
+            ccache-android-v2-
       - run: ccache --zero-stats
       - run: pnpm install --frozen-lockfile
       - name: Expo prebuild (android/ is generated, never committed)
@@ -172,12 +177,14 @@ jobs:
         run: ./gradlew assembleRelease -PskepiDebugSign=true -PskepiAllowDraftCards=true --build-cache --console=plain
       - name: ccache statistics
         if: always()
-        run: ccache --show-stats --verbose
+        run: |
+          ccache --show-stats --verbose
+          ccache --evict-older-than 7d
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: always() && github.ref == 'refs/heads/main'
         with:
           path: .ccache
-          key: ccache-android-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ccache-android-v2-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Permission allowlist (aapt2 dump permissions)
         run: |
           apk=$(ls apps/mobile/android/app/build/outputs/apk/release/*.apk | head -n 1)
