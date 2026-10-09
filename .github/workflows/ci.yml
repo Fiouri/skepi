@@ -172,10 +172,10 @@ jobs:
       # Visual Studio generator, ggml-vulkan's shader-generator sub-build fails its install step.
       - name: Clippy (default build, Vulkan)
         shell: pwsh
-        run: ./scripts/with-msvc.ps1 cargo clippy --workspace --all-targets -- -D warnings
+        run: ./scripts/with-msvc.ps1 cargo clippy --workspace --all-targets '--' -D warnings
       - name: Clippy (CPU-only build)
         shell: pwsh
-        run: ./scripts/with-msvc.ps1 cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+        run: ./scripts/with-msvc.ps1 cargo clippy --workspace --all-targets --no-default-features '--' -D warnings
       - name: Tests (Vulkan build)
         shell: pwsh
         run: ./scripts/with-msvc.ps1 cargo test --workspace
