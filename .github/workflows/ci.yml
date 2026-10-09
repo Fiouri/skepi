@@ -1,6 +1,7 @@
-# Linux CI: typecheck, lint, unit tests, the rag-eval smoke subset (llama.cpp on CPU), and the
-# Android release guards (permission allowlist on the release APK, release JS bundle rebuild probe,
-# draft emergency cards gate). The full rag-eval run and Maestro E2E run locally (phase reports).
+# CI: typecheck, lint, unit tests and the committed-fixtures check (verify, every change); the rag-eval
+# smoke subset (llama.cpp on CPU), the Android release guards (permission allowlist on the release APK,
+# release JS bundle rebuild probe, draft emergency cards gate) and the Windows desktop crates (skipped
+# when only docs change). The full rag-eval run and Maestro E2E run locally (phase reports).
 # Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
 name: CI
 
@@ -12,11 +13,38 @@ on:
 permissions:
   contents: read
 
+# Superseded pull-request runs are cancelled; pushes to main are not (a docs-only push would otherwise
+# cancel the previous push's code checks and then skip them).
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Path filter: a change that touches only docs/** or *.md files skips the heavy jobs (rag-eval smoke,
+  # Android release guards, Windows desktop); verify always runs. Unknown bases (new branch, force push
+  # without history) count as code changes.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "base unknown: running every job"; echo "code=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only "$BASE...$HEAD")
+          echo "$files"
+          code=$(echo "$files" | grep -v -E '^docs/|\.md$' | grep -c . || true)
+          if [ -z "$files" ] || [ "$code" -gt 0 ]; then echo "code=true" >> "$GITHUB_OUTPUT"; else echo "docs only: heavy jobs skipped"; echo "code=false" >> "$GITHUB_OUTPUT"; fi
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -28,11 +56,15 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Every file the test catalogs, manifests and tests use is committed
+        run: pnpm --filter @skepi/catalog-builder exec tsx src/cli.ts check-fixtures
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
 
   rag-eval-smoke:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -81,8 +113,20 @@ jobs:
           if-no-files-found: ignore
 
   android-release-guards:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 150
+    # Native code (llama.rn built from source, op-sqlite/SQLCipher, React Native) compiles through ccache:
+    # CMake 3.17+ reads CMAKE_<LANG>_COMPILER_LAUNCHER from the environment, so the NDK builds that the
+    # Android Gradle plugin starts pick it up without touching generated or third-party build files.
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_NOHASHDIR: 'true'
+      CCACHE_MAXSIZE: 1500M
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -94,14 +138,29 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      # Gradle User Home: dependencies, wrapper, transforms and the local build cache (enabled below with
+      # --build-cache); written on main only.
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: ccache
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ccache
+          ccache --version | head -n 1
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .ccache
+          key: ccache-android-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-android-${{ hashFiles('pnpm-lock.yaml') }}-
+            ccache-android-
+      - run: ccache --zero-stats
       - run: pnpm install --frozen-lockfile
       - name: Expo prebuild (android/ is generated, never committed)
         run: pnpm --filter @skepi/mobile run prebuild
       - name: Release build must fail with draft emergency cards
         working-directory: apps/mobile/android
         run: |
-          if ./gradlew skepiCheckEmergencyCards --console=plain > gate.log 2>&1; then
+          if ./gradlew skepiCheckEmergencyCards --build-cache --console=plain > gate.log 2>&1; then
             cat gate.log
             echo "::error::the draft-cards gate let a release build through"
             exit 1
@@ -110,7 +169,15 @@ jobs:
           grep -q "emergency cards are DRAFT" gate.log
       - name: Release APK (debug-signed in CI, draft cards allowed for this check only)
         working-directory: apps/mobile/android
-        run: ./gradlew assembleRelease -PskepiDebugSign=true -PskepiAllowDraftCards=true --console=plain
+        run: ./gradlew assembleRelease -PskepiDebugSign=true -PskepiAllowDraftCards=true --build-cache --console=plain
+      - name: ccache statistics
+        if: always()
+        run: ccache --show-stats --verbose
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always() && github.ref == 'refs/heads/main'
+        with:
+          path: .ccache
+          key: ccache-android-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Permission allowlist (aapt2 dump permissions)
         run: |
           apk=$(ls apps/mobile/android/app/build/outputs/apk/release/*.apk | head -n 1)
@@ -119,9 +186,11 @@ jobs:
         run: node node_modules/tsx/dist/cli.mjs tools/release-guards/src/bundle-probe-cli.ts
 
   # Phase 3a: the Windows desktop crates (zim-ffi, desktop-core, the Tauri shell). libzim comes from the
-  # pinned official Windows build (native/kiwix, SHA-256 checked); llama.cpp is built without Vulkan here
-  # (no Vulkan SDK on the runner; the GPU path is tested locally, docs/phase-3a-report.md).
+  # pinned official Windows build (native/kiwix, SHA-256 checked); llama.cpp is built with Vulkan (pinned
+  # LunarG SDK, native/vulkan) and CPU-only.
   desktop-windows:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
     timeout-minutes: 150
     env:
