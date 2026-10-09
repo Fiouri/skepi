@@ -41,13 +41,18 @@ fn handle(reg: &ZimRegistry, req: &Value) -> Result<Value, String> {
                 "sizeBytes": a.size_bytes,
             }))
         }
-        "search" => Ok(serde_json::to_value(reg.search(str_arg(req, "query")?, limit, ids(req).as_deref(), false).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?),
-        "suggest" => Ok(serde_json::to_value(reg.suggest(str_arg(req, "query")?, limit, ids(req).as_deref()).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?),
+        "search" => {
+            Ok(serde_json::to_value(reg.search(str_arg(req, "query")?, limit, ids(req).as_deref(), false).map_err(|e| e.to_string())?)
+                .map_err(|e| e.to_string())?)
+        }
+        "suggest" => Ok(serde_json::to_value(reg.suggest(str_arg(req, "query")?, limit, ids(req).as_deref()).map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?),
         "plainText" => {
             let t = reg.plain_text(str_arg(req, "archiveId")?, str_arg(req, "path")?).map_err(|e| e.to_string())?;
             Ok(json!({ "archiveId": t.archive_id, "path": t.path, "title": t.title, "sections": t.sections }))
         }
-        "html" => Ok(serde_json::to_value(reg.article_html(str_arg(req, "archiveId")?, str_arg(req, "path")?).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?),
+        "html" => Ok(serde_json::to_value(reg.article_html(str_arg(req, "archiveId")?, str_arg(req, "path")?).map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?),
         "exists" => match reg.read_item(str_arg(req, "archiveId")?, str_arg(req, "path")?) {
             Ok(item) => Ok(json!({ "path": item.path, "title": item.title })),
             Err(_) => Ok(Value::Null),

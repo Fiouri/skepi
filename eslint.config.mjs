@@ -112,4 +112,10 @@ export default tseslint.config(
     files: ['**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
   },
+  {
+    // Desktop test and build tooling in plain Node (never shipped): local WebDriver, asset copy.
+    files: ['apps/desktop/e2e/**/*.mjs', 'apps/desktop/scripts/**/*.mjs'],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly', fetch: 'readonly', setTimeout: 'readonly', Buffer: 'readonly' } },
+    rules: { 'no-restricted-globals': 'off' },
+  },
 );
