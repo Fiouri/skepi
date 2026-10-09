@@ -1,0 +1,47 @@
+{
+  "rows": [
+    [
+      "2:44:12 PM",
+      "192.168.1.8",
+      "GET",
+      "/pack/test-propagation",
+      "206"
+    ],
+    [
+      "2:44:06 PM",
+      "192.168.1.8",
+      "GET",
+      "/manifest",
+      "200"
+    ],
+    [
+      "2:42:47 PM",
+      "192.168.1.8",
+      "GET",
+      "/pack/wikipedia_en_medicine_mini",
+      "206"
+    ],
+    [
+      "2:42:46 PM",
+      "192.168.1.8",
+      "GET",
+      "/pack/wikipedia_en_medicine_mini",
+      "206"
+    ],
+    [
+      "2:42:45 PM",
+      "192.168.1.8",
+      "GET",
+      "/pack/wikipedia_en_medicine_mini",
+      "206"
+    ],
+    [
+      "2:42:39 PM",
+      "192.168.1.8",
+      "GET",
+      "/manifest",
+      "200"
+    ]
+  ],
+  "status": "Serving · 1 phone · 6 requests · 163.0 MB sent"
+}
