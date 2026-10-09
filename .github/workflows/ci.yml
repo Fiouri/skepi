@@ -140,12 +140,14 @@ jobs:
         run: |
           rustup toolchain install 1.98.1 --profile minimal -c rustfmt -c clippy
           rustup default 1.98.1
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Cargo registry + dependency build output, including llama-cpp-sys-2's CMake build (CPU and
+      # Vulkan, the slowest part). rust-cache keys on the toolchain, Cargo.lock and Cargo.toml files;
+      # the key adds the llama.cpp crate and the native inputs (libzim, Vulkan SDK). Saved even when a
+      # later step fails, so a red run does not throw the llama.cpp build away.
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          path: |
-            ~/.cargo/registry
-            target
-          key: desktop-${{ hashFiles('Cargo.lock', 'native/kiwix/libzim-windows.lock.json', 'native/vulkan/vulkan-sdk-windows.lock.json') }}
+          key: llama-cpp-sys-2-0.1.159-${{ hashFiles('native/kiwix/libzim-windows.lock.json', 'native/vulkan/vulkan-sdk-windows.lock.json') }}
+          cache-on-failure: 'true'
       - name: libzim (official Windows build, SHA-256 pinned)
         shell: pwsh
         run: ./native/kiwix/fetch-libzim-windows.ps1

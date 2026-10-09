@@ -25,3 +25,6 @@ AGENTS.md
 # Small E2E map fixture (OSM via Protomaps, ODbL; see its README)
 !apps/desktop/e2e/fixtures/*.pmtiles
 e2e/station-receive.gen.yaml
+# P2P/Station propagation fixture (CC0, 60 KB): its SHA-256 is pinned in the signed test catalogs, so
+# the committed bytes are the fixture (e2e/fixtures/build_p2p_zim.py output is not reproducible).
+!e2e/fixtures/p2p-propagation.zim
