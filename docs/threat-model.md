@@ -111,8 +111,48 @@ from app.db; files and folders come from native pickers opened by Rust.
 | Malicious GGUF (llama.cpp) | `llm_load` takes a pack id and loads only verified GGUF packs (app.db `CHECK` too). | `commands.rs` |
 | app.db key | 256-bit random key protected with DPAPI (current user, no UI, entropy bound to SKEPI); only the blob is on disk; SQLCipher refuses a wrong key. Residual: any process of the same Windows user can unprotect it (comparable to a Keystore key without user authentication). | `keystore.rs`, `db.rs` tests |
 | Network use outside ContentStore | The Rust downloader (`download.rs`) is the only internet code: HTTPS only, catalog URLs only, `User-Agent: SKEPI`, no proxy discovery, per-chunk SHA-256; debug builds trust the test mirror CA only for `https://127.0.0.1:8443` (`test-mirror` feature, refused in release builds by `build.rs`). | `downloads.rs` against `e2e/mirror`; smoke: zero connections from `skepi-desktop.exe` |
-| WebView2 runtime egress | The app passes `--disable-background-networking --disable-component-update --disable-domain-reliability --no-pings` and disables SmartScreen. **Residual (reported):** on this machine, while online, the Microsoft WebView2 runtime opened TLS connections to Microsoft 365 endpoints (the `outlook.office365.com` / `substrate.office.com` ranges) at start, outside the pages' network stack: the Chromium net log of the app's webviews shows only local origins. No app content is involved; it is governed by Windows/WebView2 policy (e.g. `ExperimentationAndConfigurationServiceControl`, diagnostic data). Offline, nothing leaves. | smoke: runtime connections listed in `results.json` |
+| WebView2 runtime egress | See "WebView2 runtime egress" below: browser arguments switch off the runtime's background services and its Microsoft-account integration (`msOneAuthWAM`), and the WebView2 API turns off SmartScreen reputation checks. Measured online, idle and in use: no connection outside loopback. | `apps/desktop/e2e/egress.mjs --expect-none` (`docs/phase3a/egress`) |
 | Unsigned installer | No code-signing certificate yet: SmartScreen warns on install; users check the published SHA-256 of the MSI/NSIS. | — |
+
+### WebView2 runtime egress
+
+The Microsoft WebView2 Runtime is a browser with its own services. The app restricts it:
+
+- Browser arguments (`apps/desktop/src-tauri/src/commands.rs` `BROWSER_ARGS`, same for every webview):
+  `--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msOneAuthWAM,msLoadOneAuthInBackground,msEdgeOSAccountInfoSubstrate --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings`.
+- WebView2 API (`src/webview2.rs`, every navigation of every webview): `IsReputationCheckingRequired = false`
+  (no SmartScreen lookup of navigations or downloads).
+
+Measurement (`apps/desktop/e2e/egress.mjs`): the release app starts directly (no WebDriver, so the
+runtime runs with the app's own arguments), online, 120 s idle, then used through UI Automation
+(search, article in the sealed viewer, Ask with the AI on the GPU, map, place search, emergency cards,
+library, settings), then 60 s idle; every TCP/UDP endpoint of the `skepi-desktop.exe` process tree is
+sampled (~0.5 s); names come from the Windows DNS cache and the Chromium net log.
+
+| | Before (Phase 3a arguments) | After |
+| --- | --- | --- |
+| Remote connections | `msedgewebview2.exe` (browser process): 4 TLS connections to **`substrate.office.com`** (CNAME `outlook.cloud.microsoft`, Exchange Online addresses such as 40.104.205.130), from ~2–4 s after start until ~110 s; nothing during use or afterwards | **none** (idle, in use, after use) |
+| Cause | The runtime's Microsoft-account integration (OneAuth over WAM: `oneauth.dll`, `MicrosoftAccountWAMExtension.dll` loaded, WinHTTP outside the Chromium network stack, so absent from the net log) fetching the Windows account's profile | — |
+
+Controlled experiments (same binary, arguments overridden): `msOneAuthWAM` alone removes the
+connection; `msEdgeOSAccountInfoSubstrate`, `msLoadOneAuthInBackground` or the account-info cache flags
+alone do not. The app disables all three for defence in depth.
+
+What remains, and what the app cannot switch off:
+
+- **IPv6 reachability probe:** at start the network service "connects" a UDP socket to a Microsoft
+  IPv6 address (`2603:1020:201:10::10f`) to learn whether IPv6 is routable. A UDP connect sends no
+  packet (net log: `UDP_CONNECT`, then `-109` unreachable on this network); not egress.
+- **WebView2 Runtime updates** are done by Microsoft Edge Update, a Windows service shared by all
+  apps, not by this app; administrators control it by Edge Update policy.
+- **Undocumented flags:** the `ms*` feature names are internal to the runtime (found in
+  `msedge.dll`, runtime 154.0.4258.62). A future runtime could rename them: run
+  `egress.mjs --expect-none` for every release and runtime upgrade.
+- **Overrides outside the app:** the `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` environment variable (or a
+  WebView2 policy set by an administrator) replaces the app's arguments; a user or admin who sets it
+  opts out of these protections.
+- Deliberate network use is unchanged: pack downloads (ContentStore, on request) and Station mode
+  (LAN, on request).
 
 ### Station mode
 
@@ -185,5 +225,5 @@ app.db is SQLCipher (op-sqlite); the 256-bit key is random per install and store
 - Held-out adversarial set: used for the Phase 1d decision (structural filter); a fresh unseen set is needed
   before the public release.
 - Emergency cards: review by certified first-aid instructors (release blocker).
-- Desktop: code signing (SmartScreen); the WebView2 runtime's own connections at start (Microsoft policy);
-  macOS (Keychain instead of DPAPI, WKWebView viewer).
+- Desktop: code signing (SmartScreen); re-measure WebView2 egress on runtime upgrades (internal flag
+  names); macOS (Keychain instead of DPAPI, WKWebView viewer).

@@ -51,6 +51,25 @@ Content (ZIM, GGUF, PMTiles) is not bundled; provision a connected device (app i
 `scripts/provision.ps1` (English packs + Greek locale pack, Q4_0 model), then run the offline E2E with
 `e2e/run-e2e.ps1`. Answer quality: `pnpm --filter @skepi/rag-eval eval` (see [`tools/rag-eval`](tools/rag-eval/README.md)).
 
+## Privacy
+
+SKEPI has no accounts, analytics, ads or telemetry. It uses the network only when you ask it to:
+downloading packs from the signed catalog's mirrors, and sharing packs over the local network (P2P on
+phones, Station mode on the desktop). Everything else (search, articles, AI answers, maps, places,
+emergency cards) runs offline on the device.
+
+- **Android:** egress is checked in every E2E run in airplane mode (0 requests, 0 bytes outside
+  ContentStore).
+- **Windows desktop:** the app process makes no connection. The Microsoft WebView2 Runtime that draws
+  the UI is a browser with its own services; the app switches off its background networking, component
+  updates, domain-reliability reports, pings, SmartScreen reputation checks and Microsoft-account
+  integration. Measured online with the app idle and in use (`apps/desktop/e2e/egress.mjs`): no
+  connection outside the computer. Before that last switch, the runtime fetched the Windows account's
+  profile from `substrate.office.com` at every start. What the app cannot control: WebView2 Runtime
+  updates (Microsoft Edge Update, shared by all apps) and settings an administrator or user applies to
+  WebView2 (e.g. the `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` variable). Details:
+  [`docs/threat-model.md`](docs/threat-model.md), "WebView2 runtime egress".
+
 ## License
 
 GPL-3.0-or-later (required by libzim / libkiwix). See [LICENSE](LICENSE).

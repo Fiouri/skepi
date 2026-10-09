@@ -1,0 +1,30 @@
+{
+  "app": "F:\\Projects\\SKEPI\\target\\release\\skepi-desktop.exe",
+  "browserArgs": "(app defaults)",
+  "webview2Runtime": "154.0.4258.62",
+  "idleS": 120,
+  "tailS": 60,
+  "use": true,
+  "marks": [
+    {
+      "phase": "start",
+      "t": 1791557644732
+    },
+    {
+      "phase": "use",
+      "t": 1791557764745
+    },
+    {
+      "phase": "tail",
+      "t": 1791557844262
+    },
+    {
+      "phase": "stop",
+      "t": 1791557904264
+    }
+  ],
+  "samples": 275,
+  "maxProcesses": 8,
+  "tcp": [],
+  "udp": []
+}

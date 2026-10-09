@@ -17,7 +17,7 @@ threats: `docs/threat-model.md` ("Desktop app (Phase 3a)", "Station mode"). Evid
 | Station: S23 release receives a pack, every chunk verified | Done: `wikipedia_en_medicine_mini` (155.3 MB), chunk 3/3 verified, SHA-256 `55153075…f358` |
 | Station: a newer signed catalog propagates | Done on the debug app (test-key catalog 4 + `test-propagation`); release app correctly refuses the test-key catalog (`unknown_key`) — propagation to a **release** phone needs a release-key catalog (owner) |
 | Desktop never serves unselected packs or user data | Done: host log 6/6 requests expected, 0 unexpected; `station_server.rs` 16 forbidden paths → 404 |
-| Zero egress offline | App process: 0 connections; webviews: only `tauri/ipc/zim/maps.localhost`. Residual: WebView2 runtime connections to Microsoft while online (see Deviations) |
+| Zero egress offline | App process: 0 connections; webviews: only `tauri/ipc/zim/maps.localhost`. Online too, after the follow-up: no connection outside loopback from the whole process tree, idle and in use (see "WebView2 egress") |
 
 ## Part A
 
@@ -102,16 +102,24 @@ pairing code (same JSON as the QR).
 | `connectedAndroidTest` (S23) | 35 passed, 0 failed |
 | Maestro on the S23, airplane mode | 8/8 first run; blocked WebView requests 0, ContentStore requests 0, bytes 0, SMS intents 1 (`docs/phase3a/e2e-s23`) |
 | Station E2E desktop → S23 | PASS |
+| Egress online, release app idle + in use (`egress.mjs --expect-none`) | PASS: no connection outside loopback (before the follow-up: `substrate.office.com` at start) |
 
-CI: new `desktop-windows` job (libzim fetch with SHA-256, UI build, fmt, clippy, tests without Vulkan,
-mirror download test).
+CI: new `desktop-windows` job: libzim fetch with SHA-256; LunarG Vulkan SDK 1.4.363.0 pinned by SHA-256
+(`native/vulkan`, equal to LunarG's published hash), installed unattended and pruned to the ~40 MB that
+ggml-vulkan's build uses, cached by the lock file; UI build; fmt; clippy for the Vulkan build and the
+CPU-only build (`--no-default-features`, which now really drops Vulkan: the Tauri crate forwards the
+`vulkan` feature); tests on the Vulkan build; a CPU-only build; mirror download test. The first CI run
+failed because `--no-default-features` did not reach `desktop-core` through the Tauri crate and the
+runner had no Vulkan SDK.
 
 ## Build setup (Windows)
 
 `scripts/with-msvc.ps1` loads vcvars64 (VS 2019 Build Tools 14.29) and, when no Windows SDK is installed,
 uses Microsoft's NuGet packages (no admin), Ninja for CMake, and portable Strawberry Perl (SQLCipher's
 vendored OpenSSL). It also names the SDK `rc.exe` (npx puts the npm package `rc` first on PATH, which
-broke llama.cpp's CMake compiler check in release builds). Tools in `%LOCALAPPDATA%\skepi\tools`
+broke llama.cpp's CMake compiler check in release builds) and uses Ninja for CMake whenever available
+(with an installed SDK, the VS 2019 MSBuild generator failed in ggml-vulkan's shader-generator
+sub-build). Vulkan SDK: `native/vulkan/fetch-vulkan-sdk.ps1`. Tools in `%LOCALAPPDATA%\skepi\tools`
 (SHA-256 of the downloads):
 
 | Tool | SHA-256 |
@@ -122,15 +130,35 @@ broke llama.cpp's CMake compiler check in release builds). Tools in `%LOCALAPPDA
 | Ninja 1.13.2 | `07fc8261…` |
 | msedgedriver 154.0.4258.62 (tauri-driver) | `c99f91b6…` |
 
+## WebView2 egress (follow-up)
+
+WebView2 Runtime 154.0.4258.62, release build, online, `egress.mjs` (`docs/phase3a/egress`):
+
+| | Before | After |
+| --- | --- | --- |
+| Arguments | `--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings` | + `msOneAuthWAM,msLoadOneAuthInBackground,msEdgeOSAccountInfoSubstrate` in `--disable-features`; `IsReputationCheckingRequired = false` on every webview (WebView2 API) |
+| Idle (0–120 s) | browser process → `substrate.office.com:443` (4 TLS connections, from ~4 s to ~110 s) | none |
+| In use (search, viewer, Ask/AI, map, places, cards, library, settings) | none | none |
+| Idle after use (60 s) | none | none |
+| UDP | none | none |
+
+The connection was the runtime's Microsoft-account integration (OneAuth over WAM, WinHTTP, so not in
+the Chromium net log; host named from the Windows DNS cache: `substrate.office.com` →
+`outlook.cloud.microsoft`). Experiments with the same binary: `msOneAuthWAM` alone removes it; the
+other identity flags alone do not. What cannot be switched off by the app (IPv6 reachability probe
+without packets, runtime updates by Edge Update, overrides by `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` or
+admin policy, undocumented flag names) is listed in `docs/threat-model.md`, "WebView2 runtime egress".
+`egress.mjs --expect-none` is the gate for every release and runtime upgrade.
+
 ## Deviations and open items
 
 - **Release catalog propagation:** a release phone accepts only release-key catalogs; propagation was
   shown on the debug app with the test key. Needs the owner to sign a release catalog with sequence ≥ 3
   (key offline, `tools/catalog-builder/README.md`).
-- **WebView2 runtime egress (residual):** while online, `msedgewebview2.exe` opened TLS connections to
-  Microsoft 365 endpoints at start, outside the pages' network stack (the Chromium net log of the app's
-  webviews shows only local origins); not app content, governed by Windows/WebView2 policy. Offline,
-  nothing leaves. Reported in the smoke `results.json`.
+- **WebView2 runtime egress — fixed (follow-up):** the first measurement attributed the runtime's
+  connections loosely; `apps/desktop/e2e/egress.mjs` now measures the real release app online (direct
+  start with its own arguments, 120 s idle, use through UI Automation, 60 s idle, ~0.5 s sampling of
+  the process tree). See "WebView2 egress" below.
 - **Unsigned installers:** SmartScreen warning until code signing.
 - **`freezePrototype` off:** it broke a bundled library; accepted because no remote script can run.
 - macOS desktop: later phase.
