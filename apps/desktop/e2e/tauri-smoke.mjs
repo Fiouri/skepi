@@ -90,7 +90,7 @@ const ENTER = '';
 // as src-tauri/src/commands.rs BROWSER_ARGS, so the egress check sees the app's real configuration.
 const NETLOG = resolve(args.out, 'webview-netlog.json');
 const BROWSER_ARGS = [
-  '--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection',
+  '--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msOneAuthWAM,msLoadOneAuthInBackground,msEdgeOSAccountInfoSubstrate',
   '--disable-background-networking',
   '--disable-component-update',
   '--disable-domain-reliability',
@@ -159,7 +159,7 @@ driver.stdout.on('data', () => undefined);
 
 try {
   await waitFor(() => fetch(`${WD}/status`).then((r) => r.ok), 20_000, 'tauri-driver');
-  S = (await wd('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'wry', 'tauri:options': { application: resolve(args.app), args: BROWSER_ARGS } } } })).sessionId;
+  S = (await wd('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'wry', 'tauri:options': { application: resolve(args.app), webviewOptions: { additionalBrowserArguments: BROWSER_ARGS } } } } })).sessionId;
   const main = await wd('GET', `/session/${S}/window`);
 
   await waitFor(() => visible('search-screen'), 60_000, 'app start');

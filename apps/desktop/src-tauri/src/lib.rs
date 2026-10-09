@@ -4,6 +4,7 @@
 pub mod commands;
 pub mod protocols;
 pub mod state;
+pub mod webview2;
 
 use state::AppState;
 use tauri::Manager;
@@ -21,6 +22,11 @@ pub fn run() {
             let state = AppState::open(&app_data, &app_data.join("content")).map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
             app.manage(state);
             Ok(())
+        })
+        .on_page_load(|webview, payload| {
+            if payload.event() == tauri::webview::PageLoadEvent::Started {
+                webview2::harden(webview);
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::zim_open_installed,

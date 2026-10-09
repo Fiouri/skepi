@@ -20,7 +20,7 @@
         "minWidth": 900,
         "minHeight": 600,
         "url": "index.html",
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings"
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msOneAuthWAM,msLoadOneAuthInBackground,msEdgeOSAccountInfoSubstrate --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings"
       }
     ],
     "security": {

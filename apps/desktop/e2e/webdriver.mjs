@@ -39,9 +39,10 @@ export function driverPaths(tauriDriver, edgeDriver) {
   return { tauriDriver: t, edgeDriver: e };
 }
 
-/** The same browser arguments as src-tauri/src/commands.rs BROWSER_ARGS (msedgedriver replaces the app's). */
+/** The same browser arguments as src-tauri/src/commands.rs BROWSER_ARGS: msedgedriver replaces the app's, so they are passed
+ * again as WebView2 options (ms:edgeOptions.webviewOptions.additionalBrowserArguments, a list). */
 export const BROWSER_ARGS = [
-  '--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection',
+  '--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msOneAuthWAM,msLoadOneAuthInBackground,msEdgeOSAccountInfoSubstrate',
   '--disable-background-networking',
   '--disable-component-update',
   '--disable-domain-reliability',
@@ -66,7 +67,7 @@ export class Driver {
 
   async open(app) {
     await waitFor(() => fetch(`${this.base}/status`).then((r) => r.ok), 20_000, 'tauri-driver');
-    const value = await this.wd('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'wry', 'tauri:options': { application: resolve(app), args: BROWSER_ARGS } } } });
+    const value = await this.wd('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'wry', 'tauri:options': { application: resolve(app), webviewOptions: { additionalBrowserArguments: BROWSER_ARGS } } } } });
     this.session = value.sessionId;
     this.main = await this.wd('GET', `/session/${this.session}/window`);
     return this;

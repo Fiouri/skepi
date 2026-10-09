@@ -114,8 +114,12 @@ pub async fn zim_plain_text(state: State<'_, AppState>, archive_id: String, path
 }
 
 /// WebView2 browser arguments shared by every webview (one WebView2 environment per data folder):
-/// Tauri's defaults plus no background networking (zero egress while offline).
-pub const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings";
+/// Tauri's defaults (mini menu, PDF UI, SmartScreen off); the runtime's Microsoft-account integration
+/// off (`msOneAuthWAM`, `msLoadOneAuthInBackground`, `msEdgeOSAccountInfoSubstrate`: without them the
+/// browser process fetched the Windows account's profile from substrate.office.com at every start,
+/// measured with apps/desktop/e2e/egress.mjs); no background networking, component updates,
+/// domain reliability reports or pings. docs/threat-model.md, "WebView2 runtime egress".
+pub const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msOneAuthWAM,msLoadOneAuthInBackground,msEdgeOSAccountInfoSubstrate --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings";
 
 fn viewer_url(archive_id: &str, path: &str, anchor: Option<&str>) -> Res<Url> {
     let encoded: String = path
