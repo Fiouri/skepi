@@ -123,10 +123,11 @@ jobs:
   # (no Vulkan SDK on the runner; the GPU path is tested locally, docs/phase-3a-report.md).
   desktop-windows:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     env:
       SKEPI_CACHE_DIR: ${{ github.workspace }}\.cache\skepi
       SKEPI_LIBZIM_DIR: ${{ github.workspace }}\.cache\libzim
+      SKEPI_VULKAN_DIR: ${{ github.workspace }}\.cache\vulkan-sdk
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -144,14 +145,36 @@ jobs:
           path: |
             ~/.cargo/registry
             target
-          key: desktop-${{ hashFiles('Cargo.lock', 'native/kiwix/libzim-windows.lock.json') }}
+          key: desktop-${{ hashFiles('Cargo.lock', 'native/kiwix/libzim-windows.lock.json', 'native/vulkan/vulkan-sdk-windows.lock.json') }}
       - name: libzim (official Windows build, SHA-256 pinned)
         shell: pwsh
         run: ./native/kiwix/fetch-libzim-windows.ps1
+      # The same Vulkan-enabled llama.cpp as local builds: LunarG SDK pinned by SHA-256, pruned to what
+      # ggml-vulkan's CMake build uses (~40 MB) and cached by the lock file.
+      - id: vulkan-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}\.cache\vulkan-sdk
+          key: vulkan-sdk-${{ hashFiles('native/vulkan/vulkan-sdk-windows.lock.json', 'native/vulkan/fetch-vulkan-sdk.ps1') }}
+      - name: Vulkan SDK (LunarG, SHA-256 pinned)
+        if: steps.vulkan-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: ./native/vulkan/fetch-vulkan-sdk.ps1
+      - name: VULKAN_SDK
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:SKEPI_VULKAN_DIR\Bin\glslc.exe")) { throw 'Vulkan SDK missing' }
+          "VULKAN_SDK=$env:SKEPI_VULKAN_DIR" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - name: Desktop UI build (frontend embedded by the Tauri shell)
         run: pnpm --filter @skepi/desktop build
       - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
-      - run: cargo test --workspace --no-default-features
+      - name: Clippy (default build, Vulkan)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Clippy (CPU-only build)
+        run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+      - name: Tests (Vulkan build)
+        run: cargo test --workspace
+      - name: CPU-only build (no Vulkan)
+        run: cargo build -p skepi-desktop --no-default-features
       - name: Downloads against the local HTTPS test mirror (Node)
-        run: cargo test -p desktop-core --no-default-features --features test-mirror --test downloads
+        run: cargo test -p desktop-core --features test-mirror --test downloads

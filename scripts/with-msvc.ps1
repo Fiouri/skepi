@@ -48,7 +48,13 @@ if (-not (Test-Path $installedSdk) -or $env:SKEPI_WINSDK_DIR) {
   $ninja = Get-ChildItem -Directory -ErrorAction SilentlyContinue (Join-Path $env:LOCALAPPDATA 'skepi\tools') -Filter 'ninja-*' | Sort-Object Name -Descending | Select-Object -First 1
   if (-not $ninja) { throw 'Ninja not found in %LOCALAPPDATA%\skepi\tools\ninja-* (needed with the NuGet SDK)' }
   $env:PATH = "$($ninja.FullName);$env:PATH"
-  $env:CMAKE_GENERATOR = 'Ninja'
+}
+# CMake builds (llama.cpp) with Ninja whenever it is available: with an installed SDK the VS 2019
+# MSBuild generator failed its compiler check in the ggml-vulkan shader-generator sub-build (Phase 3a).
+if (-not $env:CMAKE_GENERATOR) {
+  $tools = Get-ChildItem -Directory -ErrorAction SilentlyContinue (Join-Path $env:LOCALAPPDATA 'skepi\tools') -Filter 'ninja-*' | Sort-Object Name -Descending | Select-Object -First 1
+  if ($tools) { $env:PATH = "$($tools.FullName);$env:PATH" }
+  if (Get-Command ninja.exe -ErrorAction SilentlyContinue) { $env:CMAKE_GENERATOR = 'Ninja' }
 }
 
 $env:PATH = (($env:PATH -split ';') | Where-Object { $_ -and $_ -notmatch '\\Git\\usr\\bin$' -and $_ -notmatch '^/usr/bin$' -and $_ -notmatch '\\msys64\\usr\\bin$' }) -join ';'
