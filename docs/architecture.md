@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`; Phase 3a (Windows desktop app with Tauri 2 and Station mode) — report `docs/phase-3a-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`; Phase 3a (Windows desktop app with Tauri 2 and Station mode) — report `docs/phase-3a-report.md`; **Developer Preview `v0.1.0-preview`** (Android + Windows; preview build mode, About, problem reports, held-out set 2 rules) — report `docs/preview-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -82,7 +82,7 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /contracts         TS interfaces: KnowledgeEngine, InferenceEngine, ContentStore, TransferService, DeviceProfile
   /db                SQL migrations + typed queries (shared mobile/desktop)
   /i18n              English strings; Greek kept but frozen until after v1 (developer flag); typed catalogs + locale resolution
-  /emergency-cards   Curated static emergency cards (typed data + per-step sources), English master (shown); Greek translation kept, not shown until reviewed; per-country emergency numbers; release check for draft cards
+  /emergency-cards   Curated static emergency cards (typed data + per-step sources), English master (shown); Greek translation kept, not shown until reviewed; per-country emergency numbers; release check for draft cards; `preview` entry without step text (Developer Preview builds)
   /ui-tokens         Colours, type scale, touch targets, light and blackout themes (WCAG AA checked in tests)
 /modules
   /expo-zim          Kotlin + Swift binding over libkiwix/libzim, plus the native article viewer
@@ -259,7 +259,7 @@ Every answer comes in **two layers**, both built only from passages found on the
 2. **Emergency and medical intercept:** fixed lexicons per language (English, Greek). An emergency match shows the emergency number and the card slot immediately; a medical match (doses, drugs, symptoms, diseases, treatment) shows the number and Layer 1 first and gates the AI summary behind a tap.
 3. **Query rewrite (T2+ only, later phase):** the LLM with GBNF outputs `{ queries: { lang: string, terms: string[] }[], intent }`. Today every tier uses the question without stopwords.
 4. **Retrieval:** in each open pack, Xapian full-text with the conjunctive query plus single-keyword queries (always, not only when the conjunctive query is short) and title suggestions for all keywords and adjacent keyword pairs; all lists merged with reciprocal rank fusion over the **rank inside each archive** (never the position in an engine's concatenated multi-archive list; Phase 1c parity fix), packs in another language than the question offset by one full list, deterministic tie-breaks; top 8 articles. Folding maps the Greek final ς to σ for matching; queries restore ς because the ZIM index keeps it (Phase 1b fix: Greek single-word questions found nothing).
-5. **Passage selection:** sections are first cleaned of injected text (`sanitizeSourceText`: the Phase 1d **structural filter** — forged `<source>` blocks/tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines, sentences addressed to the model/assistant/AI/summariser, each with the rest of its paragraph — plus the Phase 1b lexicon; section text keeps one line per block element so paragraphs bound the removal), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
+5. **Passage selection:** sections are first cleaned of injected text (`sanitizeSourceText`: the Phase 1d **structural filter** — forged `<source>` blocks/tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines, sentences addressed to the model/assistant/AI/summariser, each with the rest of its paragraph — plus the Phase 1b lexicon, and (Developer Preview) `<!-- … -->` spans written as text; section text keeps one line per block element so paragraphs bound the removal; every `|` is a unit boundary and text between two `|` is a table cell, kept apart through sanitizing, chunking and validation and never highlighted alone in Layer 1), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
 6. **Context budget, in characters** per tier and language, converted with the active model's tokens-per-character (table above). Every passage must pass the no-source bar and contain the question's numbers; when the question names an article (full title match), passages come from that article. Otherwise preference for diversity across articles. Articles are ordered by their best passage; **passages of one article keep reading order** (lead first) — rag-eval coverage en 60 → 72%, el 40 → 47% (Phase 1c).
 7. **No source:** if the best chunk covers < 60% of the query terms or scores < 0.5, show "No relevant source found". No Layer 1 passages, no generation. Calibrated with rag-eval.
 8. **Prompt and output format:** a short fixed system prompt (`rag-v5-json-short`, KV-cache prefix; asks for `covered: false` on personal and future questions), passages wrapped in `<source id="S1" title="…">…</source>` with tag characters neutralised, then a one-line language instruction and the question. The model must answer in grammar-constrained JSON `{covered, sentences[1..n]{text ≤ maxLength, source ∈ ids}}`. Source text is data, not instructions.
@@ -402,6 +402,33 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
 - `modules/expo-transfer` (Kotlin): `SessionCert` (fresh EC P-256 key, minimal DER self-signed certificate per session), `TransferServer` (TLS 1.3 only, token, `GET /manifest`, `GET /pack/<id>` with Range, 4 connections, 30 s timeouts, 30 min idle stop), `TransferClient` (pinning trust manager, local addresses only, chunk written at its offset and hashed while writing), `LocalNetwork` (LAN address, LocalOnlyHotspot, WifiNetworkSpecifier join, socket factory of the matching network), `ApkServer` (cleartext `/` and `/skepi.apk` only), `Qr` + `QrScannerView` (ZXing core, CameraX). Debug builds only: corrupt/drop/tamper faults and the pairing file for the two-emulator E2E.
 - App: Library → "Share packs nearby" / "Receive packs nearby". Partial files live in `tmp/<file>.p2p.partial` and survive restarts for resuming; installs go through ContentStore (`installReceived`: whole-file hash, atomic rename, `packs.source = 'p2p'`, migration 3).
 - Permissions: INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE (LAN); CHANGE_WIFI_STATE plus NEARBY_WIFI_DEVICES (`neverForLocation`, Android 13+) or ACCESS_FINE_LOCATION (Android 8–12) for LocalOnlyHotspot; CHANGE_NETWORK_STATE for WifiNetworkSpecifier (Android 10+; older receivers join the hotspot in Wi-Fi settings); CAMERA for the QR code only, asked on the Receive screen. No REQUEST_INSTALL_PACKAGES, no foreground service (the Share/Receive screens keep the screen awake).
+
+## Developer Preview (v0.1.0-preview)
+
+- **Build mode.** `SKEPI_PREVIEW=1` (Android also `-PskepiPreview=true`, which fails fast without the
+  variable) makes Metro (`apps/mobile/metro.config.js`) and Vite (`apps/desktop/vite.config.ts`) resolve
+  `@skepi/emergency-cards` to `src/preview.ts`: the same runtime API over cards with titles, intercept
+  topics, keywords and review status only (`preview-cards.generated.ts`, generated from the full cards
+  with a staleness test). Cards show "Under professional review" plus the emergency numbers; a permanent
+  "Developer preview — not for emergency use" label is on home and About (`PREVIEW_BUILD`). The built
+  bundles are scanned for every advice text of the full cards (`tools/release-guards` `preview-cards`,
+  UTF-8 and UTF-16LE): Android in Gradle right after the JS bundle, desktop in CI. Full builds keep the
+  draft gate (`skepiCheckEmergencyCards`).
+- **About.** Licence, content/data/model licences, release signing fingerprint
+  (`ANDROID_RELEASE_SIGNING_SHA256` in `@skepi/core`, equal to the Station check in Rust), privacy, and
+  third-party notices generated by `tools/notices` into `apps/*/src/generated/third-party-notices.json`:
+  the app's run-time JavaScript dependency tree (resolved like Node; workspace packages and
+  platform-specific binaries excluded), the Rust crates the Windows app links, the Android release
+  runtime classpath with POM licences (`gradlew :app:skepiAndroidDependencies`), and native libraries
+  and assets not visible in package metadata (`tools/notices/src/native.ts`). CI checks the JavaScript
+  and Rust parts are current.
+- **Problem reports.** `problemReportText` (`@skepi/core`): question, shown Layer 1 excerpts and AI
+  sentences, cited sources, app version — nothing else. Copy, or save (Android: `reports/` in the app
+  folder; Windows: native save dialog through the narrow `report_save` command, `.txt`, ≤ 256 KiB). No
+  network call.
+- **Held-out sets on the phone.** Bench → "Run held-out set" (`apps/mobile/src/lib/heldout.ts`) runs the
+  Ask pipeline with the phone's profile and model over the packs plus the set's archive;
+  `e2e/run-heldout.ps1` drives it and `tools/rag-eval/src/heldoutDevice.ts` judges it like the eval runs.
 
 ## Security
 
@@ -682,6 +709,7 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - **Phase 2b · iOS** (needs a Mac): iOS from the same Expo app · Swift binding with CoreKiwix.xcframework · iOS native viewer · internal TestFlight · P2P receiver on iOS.
    - Gate: Maestro green on iOS · verified transfer Android→iPhone · fuzzing without crashes.
 4. **Phase 3 · Desktop and public release.** Tauri app for Windows and macOS with "Station" · GitHub Releases, F-Droid, Play, App Store · security review of the threat model.
+   - **Developer Preview `v0.1.0-preview` — see `docs/preview-report.md`.** Held-out set 2 (own report section; eval, desktop and Android pipelines) and the generic rules it led to (links never shown, comment spans removed, table cells, Layer 1 labelled "Source excerpts — not verified advice") · preview build mode: card steps not shipped (bundler alias to `@skepi/emergency-cards/preview`, bundles scanned) · About screens with generated third-party notices (`tools/notices`) · "Report a problem with this answer" (text only, nothing sent) · release catalog sequence 3 propagated desktop Station → S23 · draft GitHub pre-release.
    - **Phase 3a · Windows desktop with Station mode — see `docs/phase-3a-report.md`.** Persistent build cache · deterministic GNSS in E2E (debug-only mock provider) · `apps/desktop` (Tauri 2, React over `@skepi/core`) · `crates/zim-ffi` (libzim 9.7.0, same as Android) · llama.cpp in-process with Vulkan · sealed viewer window · MapLibre GL JS over the `maps` protocol · SQLCipher + DPAPI · Rust ContentStore · Station mode · desktop retrieval parity 108/108 with the S23 · unsigned MSI/NSIS.
    - Gate: store approvals · emergency cards reviewed by first-aid professionals · T1 targets measured on a real 4 GB device.
 5. **Later.** Precomputed embeddings for curated packs · NPU on Android · more locales.
@@ -711,7 +739,7 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Test devices | Galaxy S23 (T2) now; T1 targets pending; T1-simulation mode until a 4 GB device is available. |
 | Answer model | Two layers: Layer 1 extractive (instant), Layer 2 AI summary (automatic on T2+, on demand on T1). |
 | Latency targets | Layer 1 < 1 s and sources < 2 s on T1; first token < 15 s on T2; T1 first-token target set after measurement. |
-| Citation checks | JSON per-sentence output; bigram support check; numbers with units must be verbatim in the source or the sentence is removed; adversarial rag-eval set. |
+| Citation checks | JSON per-sentence output; bigram support check; numbers with units must be verbatim in the source or the sentence is removed; an AI sentence with a URL or e-mail address is never shown (Developer Preview); adversarial rag-eval set. |
 | Article viewer | Native viewer in expo-zim (not react-native-webview), with sealing instrumentation tests. |
 | ICU | Excluded (ADR). Re-test any new locale without ICU. |
 | Files from SAF | Copied into app-specific storage (fd-only breaks the Xapian index). |
