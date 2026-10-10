@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="67.383" timestamp="2026-10-10T16:02:19">
+    <testcase id="SKEPI places and emergency POIs (offline)" name="SKEPI places and emergency POIs (offline)" classname="SKEPI places and emergency POIs (offline)" file="e2e\places.yaml" time="67.342" timestamp="2026-10-10T16:02:19" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

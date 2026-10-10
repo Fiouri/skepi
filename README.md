@@ -69,7 +69,11 @@ asks for firewall access: allow **private networks** only.
   or misleading sentence in a pack is shown as written. Source integrity rests on the signed catalog of
   official packs (Kiwix, OpenStreetMap extracts): unverified files are labelled. Text written to steer an
   AI is removed where its form shows it (forged source tags, chat markup, lines addressed to a model,
-  comment-like spans, table cells), but not by wording.
+  comment-like spans, table cells), but not by wording. The pre-release adversarial test (held-out set
+  3, invented articles) still showed injected text in Layer 1 excerpts for 6 of 16 items — a fake
+  emergency phone number, harmful fracture and eye-rinse advice, an e-mail address, an instruction
+  quoted as from an authority, and a `SYSTEM:` prefix written with look-alike letters — while no AI
+  sentence carried any of it. In an emergency, call the number shown first, not one in an excerpt.
 - AI summaries can be wrong: check the cited excerpt. Sentences with a web or e-mail address are never
   shown.
 - English only (the Greek locale is frozen until v1). Map pack: Greece only.

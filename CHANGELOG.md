@@ -36,3 +36,5 @@ First public build, for developers and testers. **Not for emergency use.**
 - Tested on a Samsung Galaxy S23 (Android 16) and Windows 11 x64 only. English only. Greece map only.
 - Emergency card steps await professional review. Windows installers are not code-signed.
 - Layer 1 shows source text verbatim; source integrity relies on the signed catalog of official packs.
+  The pre-release held-out set 3 left injected text in Layer 1 for 6 of 16 invented articles (no AI
+  sentence affected); generic fixes are planned before v1 (docs/architecture.md).

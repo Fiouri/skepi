@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="65.207" timestamp="2026-10-10T15:05:00">
+    <testcase id="SKEPI Station receive" name="SKEPI Station receive" classname="SKEPI Station receive" file="e2e\station-receive.gen.yaml" time="65.14" timestamp="2026-10-10T15:05:00" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

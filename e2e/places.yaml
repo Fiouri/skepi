@@ -21,6 +21,8 @@ onFlowComplete:
 - tapOn:
     id: search-input
 - inputText: Patras
+# The keyboard may cover the first results (the Developer Preview label adds a line at the top).
+- hideKeyboard
 - extendedWaitUntil:
     visible:
       id: place-result-0
@@ -29,28 +31,36 @@ onFlowComplete:
 - assertVisible: ".*Πάτρα · city.*"
 - takeScreenshot: e2e/out/places-01-english
 # Local (Greek) name: found through name / name:el, shown in English with the local name
+- tapOn:
+    id: search-input
 - eraseText: 20
 - inputText: ${LOCAL_NAME}
+- hideKeyboard
 - extendedWaitUntil:
     visible:
       id: place-result-0
       text: ".*Thessaloniki.*"
     timeout: 10000
+- tapOn:
+    id: search-input
 - eraseText: 20
 - inputText: "hospital patras"
+- hideKeyboard
 - extendedWaitUntil:
     visible:
       id: place-result-0
       text: ".*Patras General.*Hospital.*"
     timeout: 10000
 - takeScreenshot: e2e/out/places-02-hospital
+- tapOn:
+    id: search-input
 - eraseText: 20
 - inputText: Patras
+- hideKeyboard
 - extendedWaitUntil:
     visible:
       id: place-result-0
     timeout: 10000
-- hideKeyboard
 - tapOn:
     id: place-result-0
 # The map opens on the place, offline, with the POI layer from the places pack

@@ -6,6 +6,7 @@ appId: ${APP_ID}
 name: SKEPI emergency cards (offline)
 env:
   ASK_QUESTION: Someone collapsed and is not breathing. How do I do CPR?
+  QUAKE_QUESTION: What should I do in an earthquake?
 onFlowComplete:
   - setAirplaneMode: disabled
 ---
@@ -82,12 +83,42 @@ onFlowComplete:
 - assertVisible:
     id: inline-card-cpr
 - assertVisible: "(Draft — not reviewed by first-aid professionals|Under professional review)"
+- assertVisible:
+    id: inline-card-cpr
+    below:
+      id: emergency-banner
 - takeScreenshot: e2e/out/cards-03-ask-card-first
 - extendedWaitUntil:
     visible:
       id: ask-phase
       text: "done"
     timeout: 30000
+- tapOn:
+    id: ask-clear
+# An emergency question that the packs answer: the country's number comes before the first Layer 1
+# excerpt (architecture: "User safety").
+- tapOn:
+    id: ask-input
+- inputText: ${QUAKE_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: layer1
+    timeout: 30000
+- assertVisible:
+    id: emergency-banner
+- assertVisible:
+    id: layer1
+    below:
+      id: emergency-banner
+- takeScreenshot: e2e/out/cards-05-number-before-layer1
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 120000
 - tapOn:
     id: ask-clear
 # Home search finds cards with no pack involved

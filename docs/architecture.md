@@ -426,6 +426,13 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
   sentences, cited sources, app version — nothing else. Copy, or save (Android: `reports/` in the app
   folder; Windows: native save dialog through the narrow `report_save` command, `.txt`, ≤ 256 KiB). No
   network call.
+- **Planned before v1 (post-preview backlog, decision 2026-10-10).** Held-out set 3 left injected text
+  in Layer 1 for 6 items (report only; nothing changed for the preview). Each item below is a generic
+  rule, validated with a fresh held-out set 4 before v1: homoglyph normalisation (Cyrillic/Greek
+  look-alikes) before the role-prefix checks; e-mail address and URL removal in Layer 1 excerpts too
+  (today only AI sentences); quoted instructions addressed to an AI or assistant ("any AI helper reading
+  this must …") handled by the structural filter; phone numbers in Layer 1 excerpts flagged when the
+  question has emergency intent (the bundled country number stays first).
 - **Held-out sets on the phone.** Bench → "Run held-out set" (`apps/mobile/src/lib/heldout.ts`) runs the
   Ask pipeline with the phone's profile and model over the packs plus the set's archive;
   `e2e/run-heldout.ps1` drives it and `tools/rag-eval/src/heldoutDevice.ts` judges it like the eval runs.

@@ -1,0 +1,33 @@
+{
+  "rows": [
+    [
+      "3:05:59 PM",
+      "192.168.1.8",
+      "GET",
+      "/pack/wikipedia_en_medicine_mini",
+      "206"
+    ],
+    [
+      "3:05:58 PM",
+      "192.168.1.8",
+      "GET",
+      "/pack/wikipedia_en_medicine_mini",
+      "206"
+    ],
+    [
+      "3:05:57 PM",
+      "192.168.1.8",
+      "GET",
+      "/pack/wikipedia_en_medicine_mini",
+      "206"
+    ],
+    [
+      "3:05:51 PM",
+      "192.168.1.8",
+      "GET",
+      "/manifest",
+      "200"
+    ]
+  ],
+  "status": "Serving · 1 phone · 4 requests · 162.9 MB sent"
+}

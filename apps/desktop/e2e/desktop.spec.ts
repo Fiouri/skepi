@@ -180,3 +180,19 @@ test('about: licence, content licences, signing, privacy and the generated third
   await page.getByTestId('about-notices-filter').fill('tauri');
   await expect(page.getByTestId('about-notices-list').locator('li').first()).toContainText('tauri');
 });
+
+test('emergency question: the country number is shown before any Layer 1 excerpt', async ({ page }) => {
+  await page.getByTestId('tab-ask').click();
+  await page.getByTestId('ask-input').fill('Earthquake shaking: what is an earthquake?');
+  await page.getByTestId('ask-submit').click();
+  // At the moment Layer 1 first appears, the number banner is already there and above it.
+  const order = await page.waitForFunction(() => {
+    const layer1 = document.querySelector('[data-testid="layer1"]');
+    if (!layer1) return null;
+    const banner = document.querySelector('[data-testid="emergency-banner"]');
+    return { banner: banner?.textContent ?? null, before: banner ? Boolean(banner.compareDocumentPosition(layer1) & Node.DOCUMENT_POSITION_FOLLOWING) : false };
+  });
+  const v = (await order.jsonValue()) as { banner: string | null; before: boolean };
+  expect(v.banner).toContain('Call 112');
+  expect(v.before).toBe(true);
+});

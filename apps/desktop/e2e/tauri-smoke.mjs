@@ -271,6 +271,24 @@ try {
   await screenshot('map');
   sampleEgress();
 
+  // Emergency question: the country number before any Layer 1 excerpt.
+  await click(tid('tab-ask'));
+  await clear(tid('ask-input'));
+  await type(tid('ask-input'), 'What should I do in an earthquake?');
+  await click(tid('ask-submit'));
+  const order = await waitFor(
+    async () =>
+      wd('POST', `/session/${S}/execute/sync`, {
+        script:
+          "const l=document.querySelector('[data-testid=\"layer1\"]'); if(!l) return null; const b=document.querySelector('[data-testid=\"emergency-banner\"]'); return { banner: b ? b.textContent : null, before: b ? Boolean(b.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING) : false };",
+        args: [],
+      }),
+    60_000,
+    'Layer 1 for the emergency question',
+  );
+  check('emergency question: country number shown before any Layer 1 excerpt', order.before === true && /Call 112/.test(order.banner ?? ''), JSON.stringify(order));
+  await click(tid('ask-clear'));
+
   await click(tid('emergency-button'));
   await click(tid('card-open-cpr'));
   if (preview) {

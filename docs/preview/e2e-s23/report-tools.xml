@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="70.415" timestamp="2026-10-10T15:51:00">
+    <testcase id="SKEPI tools (offline)" name="SKEPI tools (offline)" classname="SKEPI tools (offline)" file="e2e\tools.yaml" time="70.328" timestamp="2026-10-10T15:51:00" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

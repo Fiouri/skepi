@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="53.466" timestamp="2026-10-10T15:56:37">
+    <testcase id="SKEPI medical flow (offline)" name="SKEPI medical flow (offline)" classname="SKEPI medical flow (offline)" file="e2e\medical.yaml" time="53.431" timestamp="2026-10-10T15:56:37" status="SUCCESS"/>
+  </testsuite>
+</testsuites>
