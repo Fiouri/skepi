@@ -2,14 +2,14 @@
   "expo": {
     "name": "SKEPI",
     "slug": "skepi",
-    "version": "0.0.1",
+    "version": "0.1.0-preview",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "skepi",
     "userInterfaceStyle": "light",
     "android": {
       "package": "org.skepi.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

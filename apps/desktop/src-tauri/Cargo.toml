@@ -1,6 +1,6 @@
 [package]
 name = "skepi-desktop"
-version = "0.1.0"
+version = "0.1.0-preview"
 description = "SKEPI for Windows: offline knowledge, maps, AI with sources, Station mode"
 edition.workspace = true
 license.workspace = true
