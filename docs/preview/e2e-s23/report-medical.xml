@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testsuites>
-  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="62.036" timestamp="2026-10-10T20:37:35">
-    <testcase id="SKEPI medical flow (offline)" name="SKEPI medical flow (offline)" classname="SKEPI medical flow (offline)" file="e2e\medical.yaml" time="62.0" timestamp="2026-10-10T20:37:35" status="SUCCESS"/>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="49.403" timestamp="2026-10-10T22:13:00">
+    <testcase id="SKEPI medical flow (offline)" name="SKEPI medical flow (offline)" classname="SKEPI medical flow (offline)" file="e2e\medical.yaml" time="49.373" timestamp="2026-10-10T22:13:00" status="SUCCESS"/>
   </testsuite>
 </testsuites>

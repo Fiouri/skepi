@@ -96,7 +96,7 @@ eval alone (architecture, threat model).
 | rag-eval smoke (Qwen2.5-0.5B) | PASS: citation precision 100%, refusal 100% |
 | Retrieval parity (final APK) | S23 ↔ rag-eval **108/108**, desktop ↔ S23 **108/108** identical (`docs/preview/parity/`) |
 | `assembleRelease` (preview, arm64, release key) | PASS: `skepiCheckPreviewBundle` 0/202, release catalog and signing checks |
-| `connectedAndroidTest` (S23) | 35 passed, 0 failed, 0 skipped (after the no-AI rule; the later fix changed one UI string only) |
+| `connectedAndroidTest` (S23) | 35 passed, 0 failed, 0 skipped (final tree) |
 | Maestro on the S23, airplane mode, final APK | **8/8 on the first run**; 0 ContentStore requests; SMS hand-off 1 (`docs/preview/e2e-s23/`) |
 | `tauri build` (preview) | PASS: MSI 38.5 MiB, NSIS 22.4 MiB; `dist` 0/202 card texts |
 | Playwright (desktop, mocked native side) | 13/13 |
@@ -114,14 +114,22 @@ eval alone (architecture, threat model).
 4. After the no-AI-on-emergency change: 8/8 on the first run. The screenshot showed the notice text
    "use the sources below" under the excerpts; the string was corrected ("use the source excerpts"),
    both apps rebuilt, and the final APK passed **8/8 on its first run** too.
+5. Final artifacts, rebuilt from a lockfile-exact install (see "Artifacts"): **8/8 on the first run**.
 
 ## Artifacts
 
 | File | SHA-256 |
 | --- | --- |
 | `skepi-0.1.0-preview-arm64.apk` | `3323ad94155eccfdd4972d6d7048a10273e96255731589f1fd0f274569f4666a` |
-| `SKEPI_0.1.0-preview_x64_en-US.msi` | `84c0aaf282a24071a2047151944376680a82b5f57f691e0670e9d03f4b188136` |
-| `SKEPI_0.1.0-preview_x64-setup.exe` | `d258161a1dec3071149a07dd2723bf9ee3b3861e09f8effc0d82a7d9ecdf1726` |
+| `SKEPI_0.1.0-preview_x64_en-US.msi` | `41bf64f02f14bf3d5e80304ed44d0c937f0cab6c88e2792795af24501593d905` |
+| `SKEPI_0.1.0-preview_x64-setup.exe` | `4e6593130d63166c73e08f72950eb15a9823ddd297b5ea5f379d548a5a92cacc` |
+
+All three were built from a clean `pnpm install --frozen-lockfile` (the first CI run of the notices
+check found a stale package in the local `node_modules` that is not in the lockfile; the dependency tree
+was then verified identical to a fresh clone). The APK came out byte-identical to the previous build;
+the installers changed (notices: 394 components). Every check in "Verification" was re-run on these
+exact files: Maestro 8/8 on the first run, `connectedAndroidTest` 35/0, held-out sets 2 and 3 on the
+S23 (0 AI findings), parity 108/108 both ways, smoke 26/26, egress PASS.
 
 Android: arm64-v8a, signed with the release key (certificate SHA-256 `7d61c382…447e`). Windows: x64,
 **not code-signed** (SmartScreen warning; check the SHA-256 first).

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testsuites>
-  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="165.966" timestamp="2026-10-10T20:40:31">
-    <testcase id="SKEPI blackout mode (offline)" name="SKEPI blackout mode (offline)" classname="SKEPI blackout mode (offline)" file="e2e\blackout.yaml" time="165.899" timestamp="2026-10-10T20:40:31" status="SUCCESS"/>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="165.928" timestamp="2026-10-10T22:15:42">
+    <testcase id="SKEPI blackout mode (offline)" name="SKEPI blackout mode (offline)" classname="SKEPI blackout mode (offline)" file="e2e\blackout.yaml" time="165.869" timestamp="2026-10-10T22:15:42" status="SUCCESS"/>
   </testsuite>
 </testsuites>

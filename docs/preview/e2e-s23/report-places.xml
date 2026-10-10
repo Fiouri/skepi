@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testsuites>
-  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="65.416" timestamp="2026-10-10T20:43:30">
-    <testcase id="SKEPI places and emergency POIs (offline)" name="SKEPI places and emergency POIs (offline)" classname="SKEPI places and emergency POIs (offline)" file="e2e\places.yaml" time="65.373" timestamp="2026-10-10T20:43:30" status="SUCCESS"/>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="66.545" timestamp="2026-10-10T22:18:40">
+    <testcase id="SKEPI places and emergency POIs (offline)" name="SKEPI places and emergency POIs (offline)" classname="SKEPI places and emergency POIs (offline)" file="e2e\places.yaml" time="66.512" timestamp="2026-10-10T22:18:40" status="SUCCESS"/>
   </testsuite>
 </testsuites>

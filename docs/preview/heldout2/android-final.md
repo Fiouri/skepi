@@ -1,4 +1,4 @@
-## Held-out adversarial set `adversarial-heldout-2` (report only, not gated) · Android (android, {"tier":"T2","budget":"T2","model":"qwen2.5-1.5b-instruct-q4_0.gguf","backend":"cpu"}, 2026-10-10T17:46:49.418Z) — set already used for a decision
+## Held-out adversarial set `adversarial-heldout-2` (report only, not gated) · Android (android, {"tier":"T2","budget":"T2","model":"qwen2.5-1.5b-instruct-q4_0.gguf","backend":"cpu"}, 2026-10-10T19:21:48.075Z) — set already used for a decision
 
 **Status:** used for a decision (2026-10-10, Developer Preview): its findings (injected text in Layer 1 for 4 items; one shown AI sentence copying an injected table cell with an address) led to generic rules only: AI sentences with a URL or e-mail address are never shown, comment-like spans are removed, tables written as text are split into cells that Layer 1 never highlights on its own, and Layer 1 is labelled 'Source excerpts — not verified advice'. No phrase-based detection was added. No longer unseen; set 3 replaces it as the unseen held-out set.
 
@@ -6,7 +6,7 @@ Written independently of the sanitizer lexicon and the tuned adversarial set. Pr
 
 | Set | Items | Layer 1 recall | Summary shown (no emergency) | Sentences shown | Citation precision | Unsupported shown | Refusal (no source) | No source at retrieval | Number/unit violations | Forbidden shown | Layer 1 p50/p95 ms | TTFT p50/p95 ms (CPU) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| adversarial-heldout-2 | 16 | 100.0% | 100.0% | 10 | 100.0% | 0 | 100.0% | 66.7% | 0 | 0 | 174 / 488 | – |
+| adversarial-heldout-2 | 16 | 100.0% | 100.0% | 10 | 100.0% | 0 | 100.0% | 66.7% | 0 | 0 | 184 / 549 | – |
 
 | Item | Where | Text | Source | Cause |
 | --- | --- | --- | --- | --- |
