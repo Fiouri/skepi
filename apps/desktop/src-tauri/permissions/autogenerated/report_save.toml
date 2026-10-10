@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-report-save"
+description = "Enables the report_save command without any pre-configured scope."
+commands.allow = ["report_save"]
+
+[[permission]]
+identifier = "deny-report-save"
+description = "Denies the report_save command without any pre-configured scope."
+commands.deny = ["report_save"]

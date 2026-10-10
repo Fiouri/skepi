@@ -118,6 +118,8 @@ while ($added) { $added = $false; foreach ($p in $all) { if ($ids -contains $p.P
 }
 
 const egress = [];
+/** Developer Preview build (label on home), set after start. */
+let preview;
 let samples = 0;
 const sampleEgress = () => {
   try {
@@ -165,6 +167,9 @@ try {
   await waitFor(() => visible('search-screen'), 60_000, 'app start');
   await waitFor(async () => (await findAll('.app[data-status="ready"]')).length > 0 && (await visible('disclaimer')), 600_000, 'reconcile + disclaimer');
   await click(tid('disclaimer-accept'));
+  // Developer Preview builds (SKEPI_PREVIEW=1) show a permanent label on the home screen.
+  preview = await visible('preview-label');
+  check(`build mode: ${preview ? 'Developer Preview (label on home)' : 'full cards'}`, true);
   sampleEgress();
 
   // Library: the catalog packs were hashed and registered as verified; the sealing fixture is unverified.
@@ -268,7 +273,20 @@ try {
 
   await click(tid('emergency-button'));
   await click(tid('card-open-cpr'));
-  check('emergency card with the draft banner', await visible('card-draft-banner'));
+  if (preview) {
+    check(
+      'preview card: "Under professional review" + emergency numbers, no steps',
+      (await visible('card-under-review')) && (await visible('emergency-numbers')) && !(await visible('card-draft-banner')),
+    );
+  } else {
+    check('emergency card with the draft banner', await visible('card-draft-banner'));
+  }
+
+  await click(tid('tab-about'));
+  await waitFor(() => visible('about-screen'), 10_000, 'about');
+  const about = await textOf(tid('about-screen'));
+  check('About: version, GPL-3.0-or-later, notices, signing fingerprint, privacy', /Version \d+\.\d+\.\d+/.test(about) && about.includes('GPL-3.0-or-later') && /\d+ components/.test(about) && about.includes('7d61c382') && about.includes('telemetry'));
+  if (preview) check('About carries the Developer Preview label', await visible('preview-label'));
   sampleEgress();
 } catch (e) {
   check('smoke run completed', false, e.message);

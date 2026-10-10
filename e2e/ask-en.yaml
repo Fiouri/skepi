@@ -71,7 +71,7 @@ onFlowComplete:
     visible:
       id: layer1-passage-0
     timeout: 15000
-- assertVisible: "From the sources"
+- assertVisible: "Source excerpts — not verified advice"
 - takeScreenshot: e2e/out/03-layer1
 - extendedWaitUntil:
     visible:

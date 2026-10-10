@@ -53,6 +53,9 @@ export interface Messages {
     stopReading: string;
     open: string;
     step: (n: number) => string;
+    /** Developer Preview builds: cards ship without steps until professionally reviewed. */
+    underReview: string;
+    underReviewDetail: string;
   };
   blackout: {
     title: string;
@@ -353,5 +356,54 @@ export interface Messages {
       log: string;
       noPacks: string;
     };
+  };
+  /** Developer Preview (v0.1.0-preview): permanent label on home and About. */
+  preview: {
+    label: string;
+  };
+  /** About screen (both apps). */
+  about: {
+    title: string;
+    open: string;
+    version: (v: string) => string;
+    licenceTitle: string;
+    licence: string;
+    sourceCode: string;
+    contentTitle: string;
+    wikipedia: string;
+    maps: string;
+    places: string;
+    model: string;
+    cardSources: string;
+    noticesTitle: string;
+    notices: (p: { components: number; npm: number; cargo: number; maven: number; native: number }) => string;
+    showNotices: string;
+    hideNotices: string;
+    filter: string;
+    signingTitle: string;
+    signingAndroid: (sha256: string) => string;
+    signingDesktop: string;
+    privacyTitle: string;
+    privacy: string;
+    savedReports: string;
+    noSavedReports: string;
+  };
+  /** "Report a problem with this answer": prepares text only, nothing is sent. */
+  report: {
+    button: string;
+    title: string;
+    hint: string;
+    copy: string;
+    copied: string;
+    save: string;
+    saved: (where: string) => string;
+    close: string;
+    question: string;
+    layer1: string;
+    ai: string;
+    noAi: string;
+    sources: string;
+    version: string;
+    describe: string;
   };
 }

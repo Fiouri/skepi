@@ -3,11 +3,15 @@
  * apps/mobile/plugins/withEmergencyCards.js):
  * - every card must pass the structural checks;
  * - draft cards (not reviewed by first-aid professionals) fail the build, unless `--allow-draft`
- *   is given (Gradle: -PskepiAllowDraftCards=true), which is for internal testing builds only.
+ *   is given (Gradle: -PskepiAllowDraftCards=true), which is for internal testing builds only;
+ * - `--preview` (Gradle: -PskepiPreview=true, Developer Preview builds) passes with drafts, because those
+ *   builds bundle the preview entry without any step text; the bundle itself is checked after it is
+ *   built (tools/release-guards preview-cards).
  */
 import { CARDS, draftCards, validateCards } from '../src/index';
 
 const allowDraft = process.argv.includes('--allow-draft');
+const preview = process.argv.includes('--preview');
 
 const problems = validateCards();
 if (problems.length > 0) {
@@ -22,6 +26,12 @@ if (drafts.length === 0) {
 }
 
 const list = drafts.map((c) => c.id).join(', ');
+if (preview) {
+  console.log(
+    `SKEPI emergency cards: Developer Preview build: ${String(drafts.length)} draft cards (${list}) ship without any step text ("Under professional review"); the bundle is checked after it is built.`,
+  );
+  process.exit(0);
+}
 if (!allowDraft) {
   console.error(
     [

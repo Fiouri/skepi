@@ -78,6 +78,8 @@ export interface MockRecord {
   calls: { command: string; args: Record<string, unknown> }[];
   viewer: { archiveId: string; path: string; anchor: string | null }[];
   station: { manifest: string; packIds: string[] } | null;
+  /** Last problem report saved (report_save). */
+  report: string | null;
   emit: (event: string, payload: string) => void;
 }
 
@@ -118,6 +120,7 @@ export function mockBackend(): Backend {
     calls: [],
     viewer: [],
     station: null,
+    report: null,
     emit: (event, payload) => {
       for (const l of listeners.get(event) ?? []) l(payload);
     },
@@ -243,6 +246,10 @@ export function mockBackend(): Backend {
     station_stop: () => {
       stationRunning = false;
       return null;
+    },
+    report_save: (a) => {
+      record.report = String(a.text);
+      return 'C:/Users/tester/Documents/skepi-problem-report.txt';
     },
     station_status: () =>
       record.station

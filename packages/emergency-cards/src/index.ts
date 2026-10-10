@@ -1,4 +1,4 @@
-import { foldText, tokenize, type EmergencyTopic } from '@skepi/core';
+import { createCardsApi } from './api';
 import { bleeding, burns, choking, cpr, fractures, heatstroke, hypothermia, poisoning } from './cards/medical';
 import { earthquake, fire, flood, waterPurification } from './cards/disasters';
 import {
@@ -6,16 +6,16 @@ import {
   CARD_IDS,
   CARD_LOCALES,
   type CardId,
-  type CardLocale,
-  type CardStepSpec,
   type EmergencyCard,
-  type LocalizedCard,
 } from './schema';
 import { ALLOWED_SOURCE_HOSTS, SOURCES } from './sources';
 
 export * from './schema';
 export * from './numbers';
 export { ALLOWED_SOURCE_HOSTS, SOURCES } from './sources';
+
+/** False: this entry ships the card steps. Developer Preview builds bundle `preview.ts` instead. */
+export const PREVIEW_BUILD: boolean = false;
 
 /** Every bundled card, in the order the Tools tab lists them. */
 export const CARDS: readonly EmergencyCard[] = [
@@ -33,82 +33,10 @@ export const CARDS: readonly EmergencyCard[] = [
   flood,
 ];
 
-const BY_ID = new Map<string, EmergencyCard>(CARDS.map((c) => [c.id, c]));
 const SOURCE_BY_ID = new Map(SOURCES.map((s) => [s.id, s]));
-
-export function cardById(id: string): EmergencyCard | null {
-  return BY_ID.get(id) ?? null;
-}
-
-export function isDraft(card: EmergencyCard): boolean {
-  return card.review.status !== 'reviewed';
-}
-
-export function draftCards(cards: readonly EmergencyCard[] = CARDS): EmergencyCard[] {
-  return cards.filter(isDraft);
-}
-
-function resolveRefs(spec: CardStepSpec): LocalizedCard['whenToCallForHelp']['refs'] {
-  return spec.refs.map((r) => {
-    const s = SOURCE_BY_ID.get(r.source);
-    return { ...r, title: s?.title ?? r.source, url: s?.url ?? '' };
-  });
-}
-
-export function localizeCard(card: EmergencyCard, locale: CardLocale): LocalizedCard {
-  const text = card.locales[locale];
-  return {
-    id: card.id,
-    locale,
-    title: text.title,
-    steps: card.steps.map((spec, i) => ({ text: text.steps[i] ?? '', refs: resolveRefs(spec) })),
-    whenToCallForHelp: { text: text.whenToCallForHelp, refs: resolveRefs(card.whenToCallForHelp) },
-    draft: isDraft(card),
-    review: card.review,
-  };
-}
-
-/** Cards for the emergency intercept topics, in card order. */
-export function cardsForTopics(topics: readonly EmergencyTopic[]): EmergencyCard[] {
-  return CARDS.filter((c) => c.topics.some((t) => topics.includes(t)));
-}
-
-/**
- * Short words match exactly or as an English plural ("fire" must not match "firearm"); longer words
- * also match inflected forms (Greek endings, "-ing") that differ by at most a few letters.
- */
-function tokenMatches(token: string, word: string): boolean {
-  if (word.length < 5) return token === word || token === `${word}s` || token === `${word}es`;
-  if (token.startsWith(word)) return token.length - word.length <= 4;
-  return token.length >= 5 && word.startsWith(token) && word.length - token.length <= 2;
-}
-
-function keywordMatches(tokens: readonly string[], keyword: string): boolean {
-  const parts = tokenize(foldText(keyword));
-  if (parts.length === 0) return false;
-  for (let start = 0; start + parts.length <= tokens.length; start += 1) {
-    const ok = parts.every((p, k) => {
-      const t = tokens[start + k];
-      return t !== undefined && tokenMatches(t, p);
-    });
-    if (ok) return true;
-  }
-  return false;
-}
-
-/** Cards whose keywords (in any language) appear in the text: home search and the Ask intercept. */
-export function findCards(text: string): EmergencyCard[] {
-  const tokens = tokenize(foldText(text));
-  if (tokens.length === 0) return [];
-  return CARDS.filter((c) => CARD_LOCALES.some((l) => c.locales[l].keywords.some((k) => keywordMatches(tokens, k))));
-}
-
-/** Cards to show first for a question: intercept topics, then keyword matches, without duplicates. */
-export function cardsForQuestion(question: string, topics: readonly EmergencyTopic[]): EmergencyCard[] {
-  const out = cardsForTopics(topics);
-  for (const c of findCards(question)) if (!out.includes(c)) out.push(c);
-  return out;
-}
+const api = createCardsApi(CARDS);
+export const { cardById, draftCards, localizeCard, cardsForTopics, findCards, cardsForQuestion } = api;
+export { isDraft } from './api';
 
 export interface CardProblem {
   card: string;

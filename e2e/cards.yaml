@@ -1,6 +1,7 @@
 # Emergency card flow (release build, airplane mode, English UI, country Greece):
-# home Emergency button -> numbers -> a card with its permanent draft banner and read-aloud;
-# an emergency question in Ask shows the number and the card before anything else; home search finds cards.
+# home Emergency button -> numbers -> a card: in a Developer Preview build (SKEPI_PREVIEW=1) "Under
+# professional review" and no steps; otherwise its permanent draft banner, steps and read-aloud.
+# An emergency question in Ask shows the number and the card before anything else; home search finds cards.
 appId: ${APP_ID}
 name: SKEPI emergency cards (offline)
 env:
@@ -32,20 +33,36 @@ onFlowComplete:
     id: card-link-cpr
 - extendedWaitUntil:
     visible:
-      id: card-draft-banner
+      id: "card-(draft-banner|under-review)"
     timeout: 10000
-- assertVisible: "Draft — not reviewed by first-aid professionals"
-- assertVisible:
-    id: card-step-1
 - assertVisible: "Call 112"
-- tapOn:
-    id: card-read-aloud
-- extendedWaitUntil:
-    visible: "Stop reading"
-    timeout: 10000
-- takeScreenshot: e2e/out/cards-02-cpr
-- tapOn:
-    id: card-read-aloud
+- runFlow:
+    when:
+      visible:
+        id: card-under-review
+    commands:
+      - assertVisible: "Under professional review"
+      - assertNotVisible:
+          id: card-step-1
+      - assertNotVisible:
+          id: card-read-aloud
+      - takeScreenshot: e2e/out/cards-02-cpr
+- runFlow:
+    when:
+      visible:
+        id: card-draft-banner
+    commands:
+      - assertVisible: "Draft — not reviewed by first-aid professionals"
+      - assertVisible:
+          id: card-step-1
+      - tapOn:
+          id: card-read-aloud
+      - extendedWaitUntil:
+          visible: "Stop reading"
+          timeout: 10000
+      - takeScreenshot: e2e/out/cards-02-cpr
+      - tapOn:
+          id: card-read-aloud
 - back
 - back
 # Ask: number and card first
@@ -64,7 +81,7 @@ onFlowComplete:
 - assertVisible: "Emergency\\? Call 112"
 - assertVisible:
     id: inline-card-cpr
-- assertVisible: "Draft — not reviewed by first-aid professionals"
+- assertVisible: "(Draft — not reviewed by first-aid professionals|Under professional review)"
 - takeScreenshot: e2e/out/cards-03-ask-card-first
 - extendedWaitUntil:
     visible:

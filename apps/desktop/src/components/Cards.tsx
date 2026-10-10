@@ -48,6 +48,19 @@ export function EmergencyNumbers({ compact = false }: { compact?: boolean }) {
 export function CardView({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const c = localizeCard(card, CARD_DISPLAY_LOCALE);
+  // Developer Preview builds ship cards without steps (packages/emergency-cards/src/preview.ts).
+  if (c.steps.length === 0) {
+    return (
+      <article className="stack" data-testid={`card-${c.id}`}>
+        <h1>{c.title}</h1>
+        <Banner tone="warning" testId="card-under-review" role="alert">
+          <strong>{t.cards.underReview}</strong>
+          <div>{t.cards.underReviewDetail}</div>
+        </Banner>
+        <EmergencyNumbers />
+      </article>
+    );
+  }
   return (
     <article className="stack" data-testid={`card-${c.id}`}>
       <h1>{c.title}</h1>

@@ -14,6 +14,7 @@ import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-nat
 import { cardsForQuestion } from '@skepi/emergency-cards';
 import { EmergencyCardSlot, useEmergencyNumbers } from '../../components/EmergencyCards';
 import { Button, ContentGate, UnverifiedLabel, useStyles } from '../../components/ui';
+import { ProblemReport } from '../../components/ProblemReport';
 import { energyTier, ensureModel, knowledge, llama, ragArchives, ragConfigFor, useActiveProfile } from '../../lib/content';
 import { measureEnergy, useEnergyCost } from '../../lib/energy';
 import { useMessages } from '../../lib/i18n';
@@ -309,6 +310,8 @@ export default function AskScreen() {
         {canSummarise && onDemand && (
           <Button testID="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} cost={aiCost} onPress={summariseOnDemand} />
         )}
+
+        {retrieval && !busy && <ProblemReport key={asked} question={asked} retrieval={retrieval} shown={shownSentences} />}
 
         {retrieval && (
           <Text style={styles.mono} testID="ask-metrics">

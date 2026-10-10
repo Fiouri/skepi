@@ -10,12 +10,17 @@
     "lint": "eslint src test",
     "test": "vitest run",
     "permissions": "tsx src/permissions-cli.ts",
-    "bundle-probe": "tsx src/bundle-probe-cli.ts"
+    "bundle-probe": "tsx src/bundle-probe-cli.ts",
+    "preview-cards": "tsx src/preview-cards-cli.ts"
   },
   "devDependencies": {
     "@types/node": "22.19.1",
     "tsx": "4.23.15",
     "typescript": "~6.0.3",
     "vitest": "5.0.3"
+  },
+  "dependencies": {
+    "@skepi/core": "workspace:*",
+    "@skepi/emergency-cards": "workspace:*"
   }
 }

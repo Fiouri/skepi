@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import { BlackoutControls, PowerTips } from '../../components/Blackout';
 import { CardLinks } from '../../components/EmergencyCards';
+import { PreviewLabel } from '../../components/Preview';
 import { Readiness } from '../../components/Readiness';
 import { Button, useStyles, UnverifiedLabel } from '../../components/ui';
 import { knowledge, ragArchives, useContent } from '../../lib/content';
@@ -103,6 +104,7 @@ export default function SearchScreen() {
 
   const header = (
     <View style={{ gap: 10 }}>
+      <PreviewLabel />
       <Button testID="home-emergency" tone="danger" label={t.home.emergency} hint={t.home.emergencyHint} onPress={() => { router.push('/emergency'); }} />
       <BlackoutControls />
       <TextInput
@@ -192,6 +194,9 @@ export default function SearchScreen() {
         <View style={{ gap: 10, marginTop: 10 }}>
           <Readiness />
           {blackout && <PowerTips />}
+          <Pressable accessibilityRole="link" testID="home-about" onPress={() => { router.push('/about'); }}>
+            <Text style={styles.link}>{t.about.open}</Text>
+          </Pressable>
         </View>
       }
       keyExtractor={(h) => `${h.archiveId}/${h.path}`}

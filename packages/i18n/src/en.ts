@@ -50,6 +50,9 @@ export const en: Messages = {
     stopReading: 'Stop reading',
     open: 'Open card',
     step: (n) => `Step ${n}`,
+    underReview: 'Under professional review',
+    underReviewDetail:
+      'This developer preview does not include the steps of this card: they are added only after review by certified first-aid professionals. In an emergency, call the number above.',
   },
   blackout: {
     title: 'Blackout mode',
@@ -238,7 +241,7 @@ export const en: Messages = {
     medicalNotice: (number) => `Medical question. In an emergency call ${number}. Read the sources first.`,
     noSource: 'No relevant source found',
     noSourceDetail: ({ reason, coverage }) => `Reason: ${reason} · coverage ${coverage} · no generation`,
-    fromSources: 'From the sources',
+    fromSources: 'Source excerpts — not verified advice',
     sourceLabel: ({ id, title, heading }) => `[${id}] ${heading ? `${title} — ${heading}` : title}`,
     showPassage: 'Show whole passage',
     hidePassage: 'Show matching sentences only',
@@ -389,5 +392,57 @@ export const en: Messages = {
       log: 'Recent requests',
       noPacks: 'Select at least one installed pack.',
     },
+  },
+  preview: {
+    label: 'Developer preview — not for emergency use',
+  },
+  about: {
+    title: 'About SKEPI',
+    open: 'About',
+    version: (v) => `Version ${v}`,
+    licenceTitle: 'Licence',
+    licence:
+      'SKEPI is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3 or (at your option) any later version (GPL-3.0-or-later). It comes with no warranty, to the extent permitted by law.',
+    sourceCode: 'Source code: github.com/Fiouri/skepi',
+    contentTitle: 'Content, data and model licences',
+    wikipedia:
+      'Articles: Wikipedia, by Wikipedia contributors, CC BY-SA 4.0, in Kiwix ZIM packs (WikiMed: selection by WikiProject Medicine). Shown as excerpts, unchanged.',
+    maps: 'Maps: © OpenStreetMap contributors, Open Database License (ODbL) 1.0; Protomaps basemap (style BSD-3-Clause, design CC0); Noto Sans glyphs (SIL Open Font License 1.1); map icons from tangrams/icons (MIT).',
+    places: 'Places and emergency points: © OpenStreetMap contributors, ODbL 1.0 (Geofabrik extract).',
+    model: 'AI model: Qwen2.5-1.5B-Instruct (GGUF), Qwen team, Alibaba Cloud, Apache License 2.0.',
+    cardSources: 'Emergency numbers and card sources: public-domain works of the U.S. federal government and official national sources.',
+    noticesTitle: 'Third-party software',
+    notices: ({ components, npm, cargo, maven, native }) =>
+      `${components} components: ${npm} JavaScript, ${cargo} Rust, ${maven} Android, ${native} native libraries and assets, each with its licence and the licence files it ships.`,
+    showNotices: 'Show licences',
+    hideNotices: 'Hide licences',
+    filter: 'Filter components',
+    signingTitle: 'Release signing',
+    signingAndroid: (sha256) =>
+      `Android release builds are signed with the SKEPI release key. Certificate SHA-256: ${sha256}. Check it before installing an APK received from anywhere else.`,
+    signingDesktop:
+      'The Windows installers (MSI, NSIS) are not code-signed in this preview, so Windows SmartScreen warns. Check their SHA-256 against SHA256SUMS.txt of the release.',
+    privacyTitle: 'Privacy',
+    privacy:
+      'SKEPI has no accounts, analytics, ads or telemetry and works offline. It uses the network only when you ask: to download packs listed in the signed catalog, and to share packs on your local network. Questions, answers and problem reports stay on this device.',
+    savedReports: 'Saved problem reports',
+    noSavedReports: 'No saved reports.',
+  },
+  report: {
+    button: 'Report a problem with this answer',
+    title: 'Problem report',
+    hint: 'Nothing is sent. Copy this text or save it, then send it yourself, for example as an issue at github.com/Fiouri/skepi/issues. It contains only the question, the answer, the cited sources and the app version.',
+    copy: 'Copy text',
+    copied: 'Copied',
+    save: 'Save for later',
+    saved: (where) => `Saved: ${where}`,
+    close: 'Close',
+    question: 'Question',
+    layer1: 'Source excerpts shown',
+    ai: 'AI summary shown',
+    noAi: 'No AI summary shown',
+    sources: 'Cited sources',
+    version: 'App version',
+    describe: 'What is wrong (write it here):',
   },
 };

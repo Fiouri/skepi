@@ -61,6 +61,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      # Developer Preview: the desktop UI bundle built with SKEPI_PREVIEW=1 holds no emergency-card step.
+      - name: Preview desktop bundle has no card advice text
+        run: |
+          SKEPI_PREVIEW=1 pnpm --filter @skepi/desktop build
+          node node_modules/tsx/dist/cli.mjs tools/release-guards/src/preview-cards-cli.ts apps/desktop/dist
 
   rag-eval-smoke:
     needs: changes
@@ -197,9 +202,13 @@ jobs:
           fi
           cat gate.log
           grep -q "emergency cards are DRAFT" gate.log
-      - name: Release APK (debug-signed in CI, draft cards allowed for this check only)
+      # Developer Preview mode (what ships): no card steps in the bundle, checked by Gradle right after
+      # the JS bundle is built (skepiCheckPreviewBundle -> tools/release-guards preview-cards).
+      - name: Release APK, Developer Preview (debug-signed in CI)
         working-directory: apps/mobile/android
-        run: ./gradlew assembleRelease -PskepiDebugSign=true -PskepiAllowDraftCards=true --build-cache --console=plain
+        env:
+          SKEPI_PREVIEW: '1'
+        run: ./gradlew assembleRelease -PskepiDebugSign=true -PskepiPreview=true --build-cache --console=plain
       - name: ccache statistics
         if: always()
         run: |
@@ -270,6 +279,8 @@ jobs:
           "VULKAN_SDK=$env:SKEPI_VULKAN_DIR" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - name: Desktop UI build (frontend embedded by the Tauri shell)
         run: pnpm --filter @skepi/desktop build
+      - name: Third-party notices are current (JavaScript + Rust)
+        run: pnpm --filter @skepi/notices check
       - run: cargo fmt --all -- --check
       # Cargo steps run in the MSVC environment with Ninja for CMake (scripts/with-msvc.ps1): with the
       # Visual Studio generator, ggml-vulkan's shader-generator sub-build fails its install step.

@@ -42,6 +42,7 @@ pub const COMMANDS: &[&str] = &[
     "station_start",
     "station_stop",
     "station_status",
+    "report_save",
 ];
 
 fn repo() -> PathBuf {

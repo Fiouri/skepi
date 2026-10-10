@@ -71,9 +71,9 @@ onFlowComplete:
     id: card-link-cpr
 - extendedWaitUntil:
     visible:
-      id: card-draft-banner
+      id: "card-(draft-banner|under-review)"
     timeout: 10000
-- assertVisible: "Πρόχειρο — δεν έχει ελεγχθεί από επαγγελματίες πρώτων βοηθειών"
+- assertVisible: "(Πρόχειρο — δεν έχει ελεγχθεί από επαγγελματίες πρώτων βοηθειών|Υπό επαγγελματικό έλεγχο)"
 # Cards stay English until reviewed (the UI around them is Greek).
 - assertVisible: 'CPR: unresponsive and not breathing \(adult\)'
 - takeScreenshot: e2e/out/el-04-card

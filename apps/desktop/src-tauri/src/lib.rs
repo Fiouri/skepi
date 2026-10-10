@@ -59,6 +59,7 @@ pub fn run() {
             commands::station_start,
             commands::station_stop,
             commands::station_status,
+            commands::report_save,
         ])
         .on_window_event(|window, event| {
             // Closing the main window ends Station mode and the app (the viewer closes with it).

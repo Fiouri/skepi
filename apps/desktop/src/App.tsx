@@ -4,6 +4,8 @@ import { themeVars, useTheme } from './components/ui';
 import { ipc } from './lib/ipc';
 import { useMessages } from './lib/i18n';
 import { useApp } from './lib/store';
+import { PreviewLabel } from './components/Preview';
+import { AboutScreen } from './screens/About';
 import { AskScreen } from './screens/Ask';
 import { CardsScreen } from './screens/Cards';
 import { LibraryScreen } from './screens/Library';
@@ -12,7 +14,7 @@ import { SearchScreen } from './screens/Search';
 import { SettingsScreen } from './screens/Settings';
 import { StationScreen } from './screens/Station';
 
-export type Tab = 'search' | 'ask' | 'map' | 'cards' | 'library' | 'station' | 'settings';
+export type Tab = 'search' | 'ask' | 'map' | 'cards' | 'library' | 'station' | 'settings' | 'about';
 
 interface Nav {
   tab: Tab;
@@ -89,6 +91,7 @@ export function App() {
     { id: 'library', label: t.tabs.library },
     { id: 'station', label: t.desktop.tabs.station },
     { id: 'settings', label: t.desktop.tabs.settings },
+    { id: 'about', label: t.about.open },
   ];
 
   return (
@@ -129,6 +132,7 @@ export function App() {
           </div>
         )}
         <ExternalLinks />
+        {nav.tab === 'search' && <PreviewLabel />}
         {nav.tab === 'search' && <SearchScreen />}
         {nav.tab === 'ask' && <AskScreen />}
         {nav.tab === 'map' && <MapScreen />}
@@ -136,6 +140,7 @@ export function App() {
         {nav.tab === 'library' && <LibraryScreen />}
         {nav.tab === 'station' && <StationScreen />}
         {nav.tab === 'settings' && <SettingsScreen />}
+        {nav.tab === 'about' && <AboutScreen />}
       </main>
     </div>
   );

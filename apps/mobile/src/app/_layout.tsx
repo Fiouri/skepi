@@ -65,6 +65,7 @@ export default function RootLayout() {
         <Stack.Screen name="sos-screen" options={{ headerShown: false }} />
         <Stack.Screen name="share" options={{ title: t.transfer.shareTitle }} />
         <Stack.Screen name="receive" options={{ title: t.transfer.receiveTitle }} />
+        <Stack.Screen name="about" options={{ title: t.about.title }} />
       </Stack>
     </>
   );

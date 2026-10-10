@@ -478,6 +478,28 @@ pub struct ApkChoice {
 }
 
 /// Native picker for the APK offered on the install page (the webview never names a path).
+/// Longest problem report the UI may save (question, shown text, sources: a few KB in practice).
+const MAX_REPORT_BYTES: usize = 256 * 1024;
+
+/// "Report a problem with this answer" -> "Save for later": a native save dialog (the webview never
+/// names a path) writes the prepared text as a .txt file. Nothing is sent anywhere.
+#[tauri::command]
+pub async fn report_save(app: AppHandle, text: String) -> Res<Option<String>> {
+    if text.len() > MAX_REPORT_BYTES {
+        return Err("ERR_REPORT_TOO_LARGE: report text is too large".into());
+    }
+    let Some(file) = app.dialog().file().add_filter("Text", &["txt"]).set_file_name("skepi-problem-report.txt").blocking_save_file() else {
+        return Ok(None);
+    };
+    let mut path = file.into_path().map_err(err)?;
+    if path.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase).as_deref() != Some("txt") {
+        path.set_extension("txt");
+    }
+    let target = path.clone();
+    blocking(move || std::fs::write(&target, text.as_bytes()).map_err(err)).await?;
+    Ok(Some(path.display().to_string()))
+}
+
 #[tauri::command]
 pub async fn station_choose_apk(app: AppHandle, state: State<'_, AppState>) -> Res<Option<ApkChoice>> {
     let Some(file) = app.dialog().file().add_filter("Android app (APK)", &["apk"]).blocking_pick_file() else { return Ok(None) };

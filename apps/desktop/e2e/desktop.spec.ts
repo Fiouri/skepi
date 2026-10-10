@@ -11,12 +11,13 @@ interface Recorded {
   calls: { command: string; args: Record<string, unknown> }[];
   viewer: { archiveId: string; path: string; anchor: string | null }[];
   station: { manifest: string; packIds: string[] } | null;
+  report: string | null;
 }
 
 async function record(page: Page): Promise<Recorded> {
   return page.evaluate(() => {
     const m = (window as unknown as { __skepiMock: Recorded }).__skepiMock;
-    return { calls: m.calls, viewer: m.viewer, station: m.station };
+    return { calls: m.calls, viewer: m.viewer, station: m.station, report: m.report };
   });
 }
 
@@ -51,6 +52,7 @@ test('ask: Layer 1 then the AI summary with a verified citation (T3, automatic)'
   await page.getByTestId('ask-input').fill('What is the capital of Australia?');
   await page.getByTestId('ask-submit').click();
   await expect(page.getByTestId('layer1')).toBeVisible();
+  await expect(page.getByTestId('layer1')).toContainText('Source excerpts — not verified advice');
   await expect(page.getByTestId('layer1-source-S1')).toContainText('Canberra');
   await expect(page.getByTestId('ai-label')).toHaveText('AI summary — check the source');
   await expect(page.getByTestId('answer-sentence-0')).toContainText('Canberra is the capital city of Australia.');
@@ -139,4 +141,42 @@ test('settings: blackout theme and AI power cap off (library only)', async ({ pa
   await page.getByTestId('power-cap-off').check();
   await page.getByTestId('tab-ask').click();
   await expect(page.getByText('No GGUF model found: source search only.')).toBeVisible();
+});
+
+test('report a problem: question, shown answer, sources and version only; copy and save, nothing sent', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByTestId('tab-ask').click();
+  await page.getByTestId('ask-input').fill('What is the capital of Australia?');
+  await page.getByTestId('ask-submit').click();
+  await expect(page.getByTestId('answer-sentence-0')).toBeVisible();
+  await page.getByTestId('ask-report').click();
+  const text = await page.getByTestId('report-text').inputValue();
+  expect(text).toContain('What is the capital of Australia?');
+  expect(text).toContain('Canberra is the capital city of Australia. [S1]');
+  expect(text).toMatch(/App version: SKEPI \d+\.\d+\.\d+(-preview)? \(Windows\)/);
+  expect(text).toContain('Cited sources:');
+  expect(text).not.toMatch(/archive|\d{4}-\d{2}-\d{2}|tier=|gpu/i);
+  await page.getByTestId('report-copy').click();
+  await expect(page.getByTestId('report-status')).toHaveText('Copied');
+  // The Windows clipboard returns CRLF line breaks.
+  expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe(text);
+  await page.getByTestId('report-save').click();
+  await expect(page.getByTestId('report-status')).toContainText('Saved: ');
+  expect((await record(page)).report).toBe(text);
+  const commands = (await record(page)).calls.map((c) => c.command);
+  expect(commands.filter((c) => c.startsWith('content_download') || c.startsWith('content_check_update'))).toEqual([]);
+});
+
+test('about: licence, content licences, signing, privacy and the generated third-party notices', async ({ page }) => {
+  await page.getByTestId('tab-about').click();
+  await expect(page.getByTestId('about-licence')).toContainText('GPL-3.0-or-later');
+  await expect(page.getByTestId('about-content')).toContainText('CC BY-SA 4.0');
+  await expect(page.getByTestId('about-content')).toContainText('ODbL');
+  await expect(page.getByTestId('about-content')).toContainText('Apache License 2.0');
+  await expect(page.getByTestId('about-signing')).toContainText('7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e');
+  await expect(page.getByTestId('about-privacy')).toContainText('no accounts, analytics, ads or telemetry');
+  await expect(page.getByTestId('about-notices')).toContainText(/\d+ components: \d+ JavaScript, \d+ Rust/);
+  await page.getByTestId('about-notices-toggle').click();
+  await page.getByTestId('about-notices-filter').fill('tauri');
+  await expect(page.getByTestId('about-notices-list').locator('li').first()).toContainText('tauri');
 });

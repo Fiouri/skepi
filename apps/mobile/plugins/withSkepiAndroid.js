@@ -18,6 +18,7 @@ const {
 } = require('expo/config-plugins');
 const withContentStore = require('./withContentStore');
 const withEmergencyCards = require('./withEmergencyCards');
+const withThirdPartyNotices = require('./withThirdPartyNotices');
 const withReleaseSigning = require('./withReleaseSigning');
 
 const ABI = 'arm64-v8a';
@@ -235,10 +236,10 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withEmergencyCards(withContentStore(withBundleInputs(withAndroidTestPackaging(withDevVariant(
+  withThirdPartyNotices(withEmergencyCards(withContentStore(withBundleInputs(withAndroidTestPackaging(withDevVariant(
     withReleaseSigning(
       withKeepRules(
         withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
       ),
     ),
-  )))));
+  ))))));

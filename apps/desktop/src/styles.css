@@ -290,3 +290,12 @@ label.check {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* About: third-party notices (Developer Preview) */
+.notices { list-style: none; padding: 0; margin: 0; }
+.notices li { border-bottom: 1px solid var(--border); padding: 6px 0; }
+.notices summary { cursor: pointer; }
+.notice-text { white-space: pre-wrap; max-height: 320px; overflow: auto; font-size: 12px; }
+
+/* Problem report */
+[data-testid='report-panel'] textarea { width: 100%; box-sizing: border-box; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }

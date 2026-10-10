@@ -294,5 +294,7 @@ export const ipc = {
     call<StationInfo>('station_start', { host, packIds, manifest, withApk }),
   stationStop: () => call<null>('station_stop'),
   stationStatus: () => call<{ info: StationInfo | null; status: StationStatus | null }>('station_status'),
+  /** Problem report "Save for later": native save dialog, .txt only; null when cancelled. */
+  reportSave: (text: string) => call<string | null>('report_save', { text }),
   onViewerExternal: async (handler: (url: string) => void) => (await load()).listen('viewer-external', handler),
 };

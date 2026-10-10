@@ -1,0 +1,21 @@
+{
+  "name": "@skepi/notices",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "description": "Generates the third-party notices shown in the apps' About screens (JavaScript, Rust, Android and native components)",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run",
+    "generate": "tsx src/cli.ts generate",
+    "check": "tsx src/cli.ts check"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.3"
+  }
+}

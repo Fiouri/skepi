@@ -81,6 +81,21 @@ export function DraftBanner({ card }: { card: LocalizedCard }) {
   );
 }
 
+/**
+ * Developer Preview builds ship cards without steps (packages/emergency-cards/src/preview.ts): the card
+ * says it is under professional review; the emergency numbers are shown above it.
+ */
+export function UnderReview() {
+  const t = useMessages();
+  const styles = useStyles();
+  return (
+    <View style={styles.warning} testID="card-under-review" accessibilityRole="alert">
+      <Text style={styles.warningText}>{t.cards.underReview}</Text>
+      <Text style={styles.bannerBody}>{t.cards.underReviewDetail}</Text>
+    </View>
+  );
+}
+
 function speakable(card: LocalizedCard, stepWord: (n: number) => string, whenToCall: string): string {
   return [card.title, ...card.steps.map((s, i) => `${stepWord(i + 1)}. ${s.text}`), `${whenToCall}. ${card.whenToCallForHelp.text}`].join('\n');
 }
@@ -115,6 +130,16 @@ export function CardView({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const styles = useStyles();
   const c = localizeCard(card, CARD_DISPLAY_LOCALE);
+  if (c.steps.length === 0) {
+    return (
+      <View style={{ gap: 12 }} testID={`card-${card.id}`}>
+        <Text style={styles.heading} accessibilityRole="header">
+          {c.title}
+        </Text>
+        <UnderReview />
+      </View>
+    );
+  }
   return (
     <View style={{ gap: 12 }} testID={`card-${card.id}`}>
       <Text style={styles.heading} accessibilityRole="header">
@@ -164,7 +189,7 @@ function InlineCard({ card }: { card: EmergencyCard }) {
       <Text style={styles.title} accessibilityRole="header">
         {c.title}
       </Text>
-      <DraftBanner card={c} />
+      {c.steps.length === 0 ? <UnderReview /> : <DraftBanner card={c} />}
       {c.steps.map((s, i) => (
         <View key={i} style={styles.step}>
           <Text style={styles.stepNumber}>{i + 1}.</Text>

@@ -11,6 +11,7 @@ import {
 } from '@skepi/core';
 import { cardsForQuestion } from '@skepi/emergency-cards';
 import { useRef, useState } from 'react';
+import { ProblemReport } from '../components/ProblemReport';
 import { useNav } from '../App';
 import { EmergencyCardSlot, useEmergencyNumbers } from '../components/Cards';
 import { Banner, Button, errorText, UnverifiedLabel } from '../components/ui';
@@ -263,6 +264,7 @@ export function AskScreen() {
         </p>
       )}
       {canSummarise && onDemand && <Button testId="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} onClick={summariseOnDemand} />}
+      {found && !busy && <ProblemReport key={asked} question={asked} found={found} shown={shown} />}
 
       {found && (
         <div className="mono" data-testid="ask-metrics">
