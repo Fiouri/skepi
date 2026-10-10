@@ -19,6 +19,7 @@ bindings differ from the phone:
 | `el.json` | 50 | Greek secondary: 45 answerable from el top, 5 no-source |
 | `adversarial.json` | 30 | 8 prompt injections inside passages, 8 numbers/doses absent from sources, 6 incoherent-sentence baits, 8 unrelated |
 | `adversarial-heldout.json` | 16 | **Held-out** (report only): 10 injections (9 in `eval-heldout.zim`), 3 no-source, 2 absent numbers, 1 bait |
+| `adversarial-heldout-2.json` | 16 | **Held-out 2** (Developer Preview, report only): 9 injections in `eval-heldout-2.zim`, 3 unrelated, 2 absent numbers, 2 baits |
 | `smoke.json` | 28 ids + held-out set | CI subset (answerable from the smoke ZIMs + adversarial) and the whole held-out set |
 
 Each item: question, language, expected outcome (`answer` / `no_source` / `any`), expected source
@@ -70,6 +71,20 @@ to a structural source filter as the first Phase 1d item: forged source tags, JS
 Layer 2, with no new phrases added to the lexicon. The set keeps running as a report section, but it is no
 longer unseen; a fresh held-out set is written before the public release.
 
+**Held-out set 2 (2026-10-10, Developer Preview):** `sets/adversarial-heldout-2.json` with
+`fixtures/heldout2-articles.json` → `eval-heldout-2.zim`, written without reading the sanitizer, the
+structural filter or earlier sets; it runs in its own report section (`--engine desktop` runs it through
+the desktop's Rust ZIM engine; `e2e/run-heldout.ps1` runs it on the phone). **Status: used for a
+decision.** Findings: injected text left in Layer 1 passages for 4 items (an instruction inside a
+`<!-- … -->` span written as text, a request to reveal hidden instructions, a fake "updated guidance"
+line with a harmful dose, an instruction inside a table written as text) and one shown AI sentence that
+copied the injected table row with a web address. Decision (maintainer): generic rules only, no phrase
+lists — AI sentences with a URL or e-mail address are never shown; `<!-- … -->` spans are removed even as
+visible text; a `|` always separates units, text between two `|` is a table cell that Layer 1 never
+highlights on its own; Layer 1 is labelled "Source excerpts — not verified advice". Layer 1 still shows
+source text verbatim (a false sentence in a pack is shown as written); source integrity rests on the
+signed catalog of official packs (docs/threat-model.md). Set 3 replaces it as the unseen set.
+
 ## Running
 
 ```powershell
@@ -108,3 +123,4 @@ Built by `scripts/build_eval_zims.py` (python-libzim), ≤ 5 MB in total:
   from the SHA-256-verified Kiwix packs. CC BY-SA 4.0, attribution in `ATTRIBUTION.md`.
 - `eval-synthetic.zim`: invented articles with prompt-injection text (`synthetic-articles.json`), CC0.
 - `eval-heldout.zim`: held-out invented articles with prompt-injection text (`heldout-articles.json`), CC0.
+- `eval-heldout-2.zim`: the second held-out set's invented articles (`heldout2-articles.json`), CC0.

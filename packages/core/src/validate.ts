@@ -173,7 +173,35 @@ export function numbersVerbatim(sentence: string, sourceText: string): boolean {
   return wanted.every((w) => available.has(w));
 }
 
-export type SentenceRejection = 'unknown_source' | 'irrelevant' | 'number_unit' | 'number' | 'unsupported';
+export type SentenceRejection = 'unknown_source' | 'link' | 'irrelevant' | 'number_unit' | 'number' | 'unsupported';
+
+/**
+ * A URL (with a scheme, `www.`, or a bare host name such as `example.org`) or an e-mail address. The
+ * app is offline: no answer has a legitimate reason to send the reader to an address, and injected
+ * text uses addresses to do exactly that. Generic shapes only, no list of words or hosts.
+ */
+const LINK = new RegExp(
+  [
+    String.raw`(?<![\w])[a-z][a-z0-9+.-]*:\/\/\S+`,
+    String.raw`(?<![\w])www\.\S+`,
+    String.raw`[^\s@<>()]+@[^\s@<>()]+\.[a-z]{2,}`,
+  ].join('|'),
+  'iu',
+);
+/**
+ * A bare host name: lower-case labels, the first starting with a letter, an alphabetic top-level label
+ * of 2–24 letters, followed by a path, a port or the end of the word ("Node.js", "1990.Then", "e.g."
+ * and "3.5" are not hosts).
+ */
+const BARE_HOST = new RegExp(
+  String.raw`(?<![\w@.-])[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,24}(?=[\/:?#]|[.,;!)'"]?(?:\s|$))`,
+  'u',
+);
+
+/** True when the sentence contains a URL or an e-mail address (see LINK, BARE_HOST). */
+export function containsLink(sentence: string): boolean {
+  return LINK.test(sentence) || BARE_HOST.test(sentence);
+}
 
 export interface SentenceCheck {
   kept: boolean;
@@ -197,6 +225,7 @@ export function checkSentence(
   minSupport = MIN_BIGRAM_SUPPORT,
 ): SentenceCheck {
   if (!source) return { kept: false, support: null, reason: 'unknown_source' };
+  if (containsLink(sentence)) return { kept: false, support: null, reason: 'link' };
   // The heading belongs to the title side: it names what the passage is about.
   const scope = { title: `${source.title} ${source.heading}`, text: source.text };
   const sourceText = `${scope.title}. ${source.text}`;

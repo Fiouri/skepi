@@ -1,4 +1,4 @@
-import { contentTerms, questionTerms, splitSentences } from './text';
+import { contentTerms, questionTerms, splitUnits } from './text';
 
 /**
  * Layer 1: the extractive answer. Verbatim source sentences, ranked by overlap with the question's
@@ -18,6 +18,8 @@ export interface ExtractiveSource {
 export interface Layer1Sentence {
   text: string;
   highlighted: boolean;
+  /** A table cell written as text (see splitUnits): shown in its passage, never highlighted on its own. */
+  cell: boolean;
   /** Distinct question terms in the sentence. */
   matched: number;
   score: number;
@@ -92,7 +94,7 @@ export function buildLayer1(
   const questionKeys = [...new Set(questionTerms(question).map(key))];
 
   const scored = sources.map((source, order) => {
-    const sentences = splitSentences(source.text).map((text) => ({ text, ...scoreSentence(text, questionKeys) }));
+    const sentences = splitUnits(source.text).map((u) => ({ text: u.text, cell: u.cell, ...scoreSentence(u.text, questionKeys) }));
     const best = sentences.reduce((max, s) => Math.max(max, s.score), 0);
     return { source, order, sentences, best };
   });
@@ -108,7 +110,7 @@ export function buildLayer1(
       const chosen = new Set(
         p.sentences
           .map((s, i) => ({ s, i }))
-          .filter(({ s }) => s.matched > 0 && s.score >= cutoff)
+          .filter(({ s }) => !s.cell && s.matched > 0 && s.score >= cutoff)
           .sort((a, b) => b.s.score - a.s.score || a.i - b.i)
           .slice(0, opts.maxHighlightsPerPassage)
           .map(({ i }) => i),

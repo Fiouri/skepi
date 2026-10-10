@@ -1,5 +1,5 @@
 import type { ArticleText } from '@skepi/contracts';
-import { splitSentences } from './text';
+import { joinUnits, splitUnits, type TextUnit } from './text';
 import { estimateTokens, type TokenEstimator } from './tokens';
 
 export interface Chunk {
@@ -53,34 +53,37 @@ function splitLong(sentence: string, opts: ChunkOptions): string[] {
   return pieces;
 }
 
+/**
+ * Units (sentences, table cells: see splitUnits) are packed into chunks and joined with joinUnits, so
+ * table cells keep their `|` delimiters inside a chunk. Text without `|` chunks exactly as before.
+ */
 function chunkSectionText(text: string, opts: ChunkOptions): string[] {
-  const units = splitSentences(text).flatMap((s) =>
-    s.length > opts.maxChars ? splitLong(s, opts) : [s],
+  const units: TextUnit[] = splitUnits(text).flatMap((u) =>
+    u.text.length > opts.maxChars
+      ? splitLong(u.text, opts).map((piece, i, all) => ({ ...u, text: piece, pipeBefore: u.pipeBefore && i === 0, pipeAfter: u.pipeAfter && i === all.length - 1 }))
+      : [u],
   );
-  const chunks: string[] = [];
-  let current = '';
+  const chunks: TextUnit[][] = [];
+  let current: TextUnit[] = [];
   for (const unit of units) {
-    const candidate = current.length === 0 ? unit : `${current} ${unit}`;
-    if (current.length > 0 && candidate.length > opts.targetChars) {
+    const candidate = [...current, unit];
+    if (current.length > 0 && joinUnits(candidate).length > opts.targetChars) {
       chunks.push(current);
-      current = unit;
+      current = [unit];
     } else {
       current = candidate;
     }
   }
-  if (current.length === 0) return chunks;
-
-  const last = chunks[chunks.length - 1];
-  if (
-    last !== undefined &&
-    current.length < opts.minTailChars &&
-    last.length + 1 + current.length <= opts.maxChars
-  ) {
-    chunks[chunks.length - 1] = `${last} ${current}`;
-  } else {
-    chunks.push(current);
+  if (current.length > 0) {
+    const last = chunks[chunks.length - 1];
+    const tail = joinUnits(current);
+    if (last !== undefined && tail.length < opts.minTailChars && joinUnits([...last, ...current]).length <= opts.maxChars) {
+      chunks[chunks.length - 1] = [...last, ...current];
+    } else {
+      chunks.push(current);
+    }
   }
-  return chunks;
+  return chunks.map(joinUnits);
 }
 
 /** Cuts every section of an article into ~targetChars chunks, never crossing section boundaries. */

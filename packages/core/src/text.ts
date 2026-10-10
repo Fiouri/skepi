@@ -113,12 +113,54 @@ export function extractKeywords(query: string): string[] {
 // Splitting needs whitespace after the mark, so decimals (170.934, 3.5) stay whole.
 const SENTENCE_SPLIT = /(?<=[.!?;;·])\s+/u;
 
-/** Splits text into trimmed, non-empty sentences. */
-export function splitSentences(text: string): string[] {
+function proseSentences(text: string): string[] {
   return text
     .split(SENTENCE_SPLIT)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
+}
+
+/**
+ * A unit of source text: a prose sentence, or a piece of a table written as text. Every `|` is a hard
+ * boundary (a table cell is never merged with its neighbours into one "sentence"); text between two
+ * `|` is a table cell (`cell`), which Layer 1 never highlights on its own. Text before the first and
+ * after the last `|` is prose.
+ * `pipeBefore` / `pipeAfter` record the delimiters so that joining units keeps the cells apart.
+ */
+export interface TextUnit {
+  text: string;
+  cell: boolean;
+  pipeBefore: boolean;
+  pipeAfter: boolean;
+}
+
+/** Splits text into units (see TextUnit); text without `|` gives exactly its prose sentences. */
+export function splitUnits(text: string): TextUnit[] {
+  const segments = text.split('|');
+  if (segments.length === 1) return proseSentences(text).map((s) => ({ text: s, cell: false, pipeBefore: false, pipeAfter: false }));
+  const units: TextUnit[] = [];
+  let pendingPipe = false;
+  segments.forEach((segment, i) => {
+    if (i > 0) pendingPipe = true;
+    const sentences = proseSentences(segment);
+    sentences.forEach((s, j) => {
+      units.push({ text: s, cell: i > 0 && i < segments.length - 1, pipeBefore: pendingPipe && j === 0, pipeAfter: false });
+      pendingPipe = false;
+    });
+  });
+  const last = units[units.length - 1];
+  if (last && text.trimEnd().endsWith('|')) last.pipeAfter = true;
+  return units;
+}
+
+/** Joins units back into text, keeping a `|` wherever cells were delimited. */
+export function joinUnits(units: readonly TextUnit[]): string {
+  return units.map((u) => `${u.pipeBefore ? '| ' : ''}${u.text}${u.pipeAfter ? ' |' : ''}`).join(' ');
+}
+
+/** Splits text into trimmed, non-empty sentences (table cells are separate sentences, see splitUnits). */
+export function splitSentences(text: string): string[] {
+  return splitUnits(text).map((u) => u.text);
 }
 
 /**

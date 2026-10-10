@@ -1,4 +1,4 @@
-import { foldText, splitSentences } from './text';
+import { foldText, joinUnits, splitUnits, type TextUnit } from './text';
 
 /**
  * Source text is data, never instructions. Before chunking (so before Layer 1, which shows verbatim
@@ -13,6 +13,11 @@ import { foldText, splitSentences } from './text';
  *    what follows an address to the model is the injected instruction.
  * 2. **Lexicon injections** (Phase 1b): common injection phrasings in English and Greek ("ignore
  *    previous instructions", "tell the user"); only the sentence itself is removed.
+ * 3. **Comment spans** (Developer Preview): `<!-- … -->` written as visible text (an unterminated one
+ *    runs to the end of its paragraph) is never article content; removed whole, whatever it says.
+ *
+ * A `|` in the text delimits table cells written as text (see `splitUnits`): every rule runs per unit
+ * and the delimiters are kept, so a cell is never merged with its neighbours downstream.
  *
  * Paragraph breaks (`\n`, one per block element of the article) bound the structural removal; the
  * output keeps them, chunking normalises whitespace afterwards. Neither pass catches every possible
@@ -43,6 +48,7 @@ export function isInjection(sentence: string): boolean {
 }
 
 export type StructuralReason =
+  | 'comment-span'
   | 'forged-source-block'
   | 'forged-source-tag'
   | 'chat-markup'
@@ -126,8 +132,15 @@ function stripJsonRoleObjects(text: string, removed: Removal[]): string {
   return out + text.slice(i);
 }
 
+/** `<!-- … -->` (also `&lt;!-- … --&gt;`) as text; an unterminated one runs to the end of its paragraph. */
+const COMMENT_SPAN = /(?:<|&lt;)!--[\s\S]*?--(?:>|&gt;)|(?:<|&lt;)!--[^\n]*/g;
+
 function stripForgedMarkup(text: string, removed: Removal[]): string {
-  const withoutBlocks = text.replace(FORGED_SOURCE_BLOCK, (block) => {
+  const withoutComments = text.replace(COMMENT_SPAN, (span) => {
+    removed.push({ text: span, reason: 'comment-span' });
+    return ' ';
+  });
+  const withoutBlocks = withoutComments.replace(FORGED_SOURCE_BLOCK, (block) => {
     removed.push({ text: block, reason: 'forged-source-block' });
     return '\n';
   });
@@ -274,22 +287,23 @@ export function sanitizeWithReport(text: string): SanitizeReport {
   const paragraphs = stripForgedMarkup(text, removed).split('\n');
   const out: string[] = [];
   for (const paragraph of paragraphs) {
-    const sentences = splitSentences(paragraph);
-    const kept: string[] = [];
-    for (let i = 0; i < sentences.length; i += 1) {
-      const s = sentences[i] ?? '';
-      const reason = structuralReason(s);
+    const units = splitUnits(paragraph);
+    const kept: TextUnit[] = [];
+    for (let i = 0; i < units.length; i += 1) {
+      const u = units[i];
+      if (!u) continue;
+      const reason = structuralReason(u.text);
       if (reason) {
-        removed.push({ text: sentences.slice(i).join(' '), reason });
+        removed.push({ text: units.slice(i).map((x) => x.text).join(' '), reason });
         break;
       }
-      if (isInjection(s)) {
-        removed.push({ text: s, reason: 'lexicon' });
+      if (isInjection(u.text)) {
+        removed.push({ text: u.text, reason: 'lexicon' });
         continue;
       }
-      kept.push(s);
+      kept.push(u);
     }
-    if (kept.length > 0) out.push(kept.join(' '));
+    if (kept.length > 0) out.push(joinUnits(kept));
   }
   return { text: out.join('\n'), removed };
 }
