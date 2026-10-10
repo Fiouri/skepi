@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testsuites>
-  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="86.849" timestamp="2026-10-10T15:57:43">
-    <testcase id="SKEPI emergency cards (offline)" name="SKEPI emergency cards (offline)" classname="SKEPI emergency cards (offline)" file="e2e\cards.yaml" time="86.808" timestamp="2026-10-10T15:57:43" status="SUCCESS"/>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="87.746" timestamp="2026-10-10T20:38:49">
+    <testcase id="SKEPI emergency cards (offline)" name="SKEPI emergency cards (offline)" classname="SKEPI emergency cards (offline)" file="e2e\cards.yaml" time="87.701" timestamp="2026-10-10T20:38:49" status="SUCCESS"/>
   </testsuite>
 </testsuites>

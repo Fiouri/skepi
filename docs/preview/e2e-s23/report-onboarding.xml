@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testsuites>
-  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="57.554" timestamp="2026-10-10T15:52:25">
-    <testcase id="SKEPI onboarding (offline, packs installed)" name="SKEPI onboarding (offline, packs installed)" classname="SKEPI onboarding (offline, packs installed)" file="e2e\onboarding.yaml" time="57.501" timestamp="2026-10-10T15:52:25" status="SUCCESS"/>
+  <testsuite name="Test Suite" device="RFCW510JNZB" tests="1" failures="0" time="54.921" timestamp="2026-10-10T20:33:15">
+    <testcase id="SKEPI onboarding (offline, packs installed)" name="SKEPI onboarding (offline, packs installed)" classname="SKEPI onboarding (offline, packs installed)" file="e2e\onboarding.yaml" time="54.873" timestamp="2026-10-10T20:33:15" status="SUCCESS"/>
   </testsuite>
 </testsuites>

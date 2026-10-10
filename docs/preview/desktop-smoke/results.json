@@ -25,7 +25,7 @@
     {
       "name": "full-text search from libzim",
       "ok": true,
-      "detail": "fulltext: 30 results · 7 ms (native 4 ms)"
+      "detail": "fulltext: 30 results · 11 ms (native 5 ms)"
     },
     {
       "name": "article opens in the separate viewer on zim://",
@@ -75,12 +75,12 @@
     {
       "name": "AI summary with verified citations",
       "ok": true,
-      "detail": "status=ready lang=en medical=no tier=T3\nlayer1=61ms retrieval=17ms\nbudget=T2/en 2600 chars, sources=4\nmodel=qwen2.5-1.5b-instruct-q4_0.gguf gpu=NVIDIA GeForce RTX 4060 Ti\nttft=94ms tok/s=20.8 prompt=574 cached=92\nsummary=shown kept=1/3"
+      "detail": "status=ready lang=en medical=no tier=T3\nlayer1=162ms retrieval=71ms\nbudget=T2/en 2600 chars, sources=4\nmodel=qwen2.5-1.5b-instruct-q4_0.gguf gpu=NVIDIA GeForce RTX 4060 Ti\nttft=195ms tok/s=4.2 prompt=574 cached=92\nsummary=shown kept=1/3"
     },
     {
       "name": "inference ran on the GPU (Vulkan)",
       "ok": true,
-      "detail": "status=ready lang=en medical=no tier=T3\nlayer1=61ms retrieval=17ms\nbudget=T2/en 2600 chars, sources=4\nmodel=qwen2.5-1.5b-instruct-q4_0.gguf gpu=NVIDIA GeForce RTX 4060 Ti\nttft=94ms tok/s=20.8 prompt=574 cached=92\nsummary=shown kept=1/3"
+      "detail": "status=ready lang=en medical=no tier=T3\nlayer1=162ms retrieval=71ms\nbudget=T2/en 2600 chars, sources=4\nmodel=qwen2.5-1.5b-instruct-q4_0.gguf gpu=NVIDIA GeForce RTX 4060 Ti\nttft=195ms tok/s=4.2 prompt=574 cached=92\nsummary=shown kept=1/3"
     },
     {
       "name": "place search from the places pack",
@@ -90,7 +90,7 @@
     {
       "name": "map renders from the verified PMTiles pack (maps protocol)",
       "ok": true,
-      "detail": "Map ready (440 ms) · offline PMTiles"
+      "detail": "Map ready (1333 ms) · offline PMTiles"
     },
     {
       "name": "emergency POIs from the places pack",
@@ -101,6 +101,11 @@
       "name": "emergency question: country number shown before any Layer 1 excerpt",
       "ok": true,
       "detail": "{\"banner\":\"Emergency? Call 112Topics: earthquake112 is a default: check the local emergency number for your country.\",\"before\":true}"
+    },
+    {
+      "name": "emergency question: no AI summary and no AI button",
+      "ok": true,
+      "detail": ""
     },
     {
       "name": "preview card: \"Under professional review\" + emergency numbers, no steps",
@@ -132,7 +137,7 @@
   "samples": 6,
   "webviewUrls": [
     "http://tauri.localhost/",
-    "http://tauri.localhost/assets/index-CspIjZ45.js",
+    "http://tauri.localhost/assets/index-C9BYeyB_.js",
     "http://tauri.localhost/assets/index-QFifZIIn.css",
     "http://tauri.localhost/assets/core-Djq8_Zg8.js",
     "http://tauri.localhost/favicon.ico",
