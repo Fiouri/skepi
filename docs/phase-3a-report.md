@@ -165,8 +165,38 @@ admin policy, undocumented flag names) is listed in `docs/threat-model.md`, "Web
 
 Warm `desktop-windows` steps: Vulkan clippy 47 s, CPU-only clippy 7 s, tests 50 s, CPU-only build 24 s,
 mirror test 17 s (cold: 16 min, 3.5 min, 17 min, 4 min, 7 min). The whole run is then bounded by
-`android-release-guards` (~38–41 min, mostly llama.rn's native build), which the next CI change caches
-(Gradle build cache + ccache), together with a path filter: docs-only changes run `verify` only.
+`android-release-guards` (~38–41 min, mostly llama.rn's native build).
+
+CI follow-up (same phase):
+
+- **Path filter:** a `changes` job runs `git diff --name-only` between the pushed range's ends (or the
+  PR base); if every file is under `docs/` or ends in `.md`, `rag-eval-smoke`, `android-release-guards`
+  and `desktop-windows` are skipped and only `verify` runs. Pushes to main are no longer cancelled by a
+  later push (it would cancel the code checks and then skip them).
+- **Committed fixtures:** `catalog check-fixtures` (in `verify`, plus a vitest test) checks that the
+  mirror-served packs of the test catalogs are committed with the catalog's size and SHA-256, that test
+  manifests' local sources and literal `fixtures/` paths in sources are committed, and that no
+  uncommitted file sits in a fixtures directory; with the propagation ZIM removed from the index it
+  reports six problems.
+- **Android caching:** Gradle `--build-cache` (setup-gradle caches the Gradle User Home: 352 of 923
+  tasks from cache) and ccache for every NDK build through `CMAKE_<LANG>_COMPILER_LAUNCHER`. Two
+  problems surfaced and were fixed: (1) the Android Gradle plugin installs NDK 27.1 on every run, so
+  ccache's mtime compiler check missed everything across runs (278/2012 hits, all within one build) →
+  `compiler_check=content`; (2) with a warm ccache every compile returns at once and llama.rn's variant
+  libraries link together: the runner was lost three times ("lost communication with the server");
+  a memory monitor showed 5+ `ld.lld` of ~2.4 GB each exhausting 16 GB RAM and a 10 GB swap → a linker
+  launcher (`scripts/ci/link-slot.sh`, `CMAKE_<LANG>_LINKER_LAUNCHER`) allows two links at once (build
+  peak 9.3 GB, no swap).
+
+| Run | verify | rag-eval-smoke | android-release-guards | desktop-windows | Note |
+| --- | --- | --- | --- | --- | --- |
+| 38000209270 #1 | ✅ 1.4 | ✅ 1.7 | ✅ 40.5 | ✅ 5.4 | ccache cold (mtime check) |
+| 38000209270 #2 | ✅ 1.0 | ✅ 1.6 | ✅ 34.7 | ✅ 6.4 | 278/2012 hits: NDK reinstalled every run |
+| 38006773162 #1 | ✅ 1.6 | ✅ 1.4 | ✅ 32.8 | ✅ 5.2 | `compiler_check=content`, ccache cold |
+| 38006773162 #2, #3 | ✅ | ✅ | ❌ 10.2, 9.2 | ✅ 6.5 | runner lost (out of memory) |
+| 38010799932, 38014502353 | ✅ | ✅ | ❌ 54.2, 10.8 | ✅ | runner lost; monitor: parallel `ld.lld`, swap exhausted |
+| 38015394346 | ✅ 1.5 | ✅ 1.6 | ✅ **14.2** | ✅ 5.1 | two link slots; ccache 2012/2012 hits |
+| 38016345994 | ✅ 1.0 | ✅ 1.1 | ✅ **12.9** | ✅ 6.5 | monitor removed; whole run 13.1 min (was ~54 cold, ~38 with only the desktop cache) |
 
 ## Deviations and open items
 
