@@ -72,10 +72,14 @@ asks for firewall access: allow **private networks** only.
   comment-like spans, table cells), but not by wording. The pre-release adversarial test (held-out set
   3, invented articles) still showed injected text in Layer 1 excerpts for 6 of 16 items — a fake
   emergency phone number, harmful fracture and eye-rinse advice, an e-mail address, an instruction
-  quoted as from an authority, and a `SYSTEM:` prefix written with look-alike letters — while no AI
-  sentence carried any of it. In an emergency, call the number shown first, not one in an excerpt.
+  quoted as from an authority, and a `SYSTEM:` prefix written with look-alike letters. In an emergency,
+  call the number shown first, not one in an excerpt.
+- **No AI summary for emergencies.** On the phone (not in the desktop or evaluation runs) the AI summary
+  of the same test copied an injected fracture instruction word for word from its source. Since this
+  build, questions with emergency intent never get an AI summary, on either app: the emergency number,
+  the card and the source excerpts only.
 - AI summaries can be wrong: check the cited excerpt. Sentences with a web or e-mail address are never
-  shown.
+  shown. Medical questions get an AI summary only on tap, labelled "Unverified AI summary".
 - English only (the Greek locale is frozen until v1). Map pack: Greece only.
 - Windows installers are unsigned; no automatic updates (check the release page).
 

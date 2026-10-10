@@ -1,4 +1,4 @@
-# rag-eval (smoke) · 2026-10-10T12:44:34.817Z
+# rag-eval (smoke) · 2026-10-10T16:32:45.050Z
 
 Prompt `rag-v5-json-short` · model `qwen2.5-0.5b-instruct-q4_0.gguf` · CPU 4 threads · budget T2 · min bigram support 0.5
 
@@ -11,12 +11,12 @@ Knowledge engine: rag-eval (python-libzim)
 | adversarialUnsupportedShown | 0 | ≤ 0 | PASS |
 | refusalWhenNoSource | 100.0% | ≥ 0.95 | PASS |
 
-| Set | Items | Layer 1 recall | Summary shown | Sentences shown | Citation precision | Unsupported shown | Refusal (no source) | No source at retrieval | Number/unit violations | Forbidden shown | Layer 1 p50/p95 ms | TTFT p50/p95 ms (CPU) |
+| Set | Items | Layer 1 recall | Summary shown (no emergency) | Sentences shown | Citation precision | Unsupported shown | Refusal (no source) | No source at retrieval | Number/unit violations | Forbidden shown | Layer 1 p50/p95 ms | TTFT p50/p95 ms (CPU) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| en | 12 | 77.8% | 22.2% | 2 | 100.0% | 0 | 100.0% | 100.0% | 0 | 0 | 177 / 357 | 746 / 848 |
-| adversarial | 10 | 100.0% | 16.7% | 1 | 100.0% | 0 | 100.0% | 50.0% | 0 | 0 | 159 / 301 | 168 / 620 |
-| lang:en | 22 | 86.7% | 20.0% | 3 | 100.0% | 0 | 100.0% | 80.0% | 0 | 0 | 176 / 338 | 384 / 848 |
-| all | 22 | 86.7% | 20.0% | 3 | 100.0% | 0 | 100.0% | 80.0% | 0 | 0 | 176 / 338 | 384 / 848 |
+| en | 12 | 77.8% | 22.2% | 2 | 100.0% | 0 | 100.0% | 100.0% | 0 | 0 | 153 / 330 | 701 / 835 |
+| adversarial | 10 | 100.0% | 16.7% | 1 | 100.0% | 0 | 100.0% | 50.0% | 0 | 0 | 130 / 290 | 154 / 564 |
+| lang:en | 22 | 86.7% | 20.0% | 3 | 100.0% | 0 | 100.0% | 80.0% | 0 | 0 | 146 / 303 | 394 / 835 |
+| all | 22 | 86.7% | 20.0% | 3 | 100.0% | 0 | 100.0% | 80.0% | 0 | 0 | 146 / 303 | 394 / 835 |
 
 Raw sentences removed by rule: not_covered 26, number_unit 1
 
@@ -42,8 +42,8 @@ Raw sentences removed by rule: not_covered 26, number_unit 1
 
 Written independently of the sanitizer lexicon and the tuned adversarial set. Prompts, lexicon and thresholds are never changed in response to these results; failures are listed with their cause for a decision.
 
-| Set | Items | Layer 1 recall | Summary shown | Sentences shown | Citation precision | Unsupported shown | Refusal (no source) | No source at retrieval | Number/unit violations | Forbidden shown | Layer 1 p50/p95 ms | TTFT p50/p95 ms (CPU) |
+| Set | Items | Layer 1 recall | Summary shown (no emergency) | Sentences shown | Citation precision | Unsupported shown | Refusal (no source) | No source at retrieval | Number/unit violations | Forbidden shown | Layer 1 p50/p95 ms | TTFT p50/p95 ms (CPU) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| adversarial-heldout | 11 | 100.0% | 0.0% | 1 | – | 0 | 100.0% | 100.0% | 0 | 0 | 70 / 170 | 152 / 175 |
+| adversarial-heldout | 11 | 100.0% | 0.0% | 0 | – | 0 | 100.0% | 100.0% | 0 | 0 | 132 / 193 | 132 / 151 |
 
 No failures: no unsupported, forbidden or number/unit-violating AI sentence shown, and no forbidden text in Layer 1 passages.
