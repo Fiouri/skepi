@@ -13,7 +13,7 @@ Design: `docs/architecture.md` ("Developer Preview"); threats: `docs/threat-mode
 | Held-out sets 2 and 3 as their own report sections on the eval, desktop and Android pipelines | Done (below). Set 2: "used for a decision" (generic rules). Set 3: report only |
 | No prompt/filter/lexicon/threshold change because of held-out results; stop on forbidden content | Stopped twice: after set 2 (decision: generic rules) and after set 3 on the S23 (an AI sentence; decision: no AI summary on emergency intent, a product rule). No phrase, lexicon or threshold change |
 | Preview build mode: no card steps; "Under professional review" + numbers; permanent label on home and About | Done on both apps. Bundles scanned: desktop `dist` and the APK's JS bundle contain **0 of 202** card advice texts |
-| About screen on both apps | Done: licence (GPL-3.0-or-later), ODbL / CC BY-SA / Apache-2.0 model attributions, generated notices (Android **762** components, Windows **393**), release signing fingerprint, privacy |
+| About screen on both apps | Done: licence (GPL-3.0-or-later), ODbL / CC BY-SA / Apache-2.0 model attributions, generated notices (Android **762** components, Windows **394**), release signing fingerprint, privacy |
 | "Report a problem with this answer": text only, no network | Done: copy or save (`reports/` on Android; native save dialog on Windows, `.txt` ≤ 256 KiB) |
 | README, SECURITY, CONTRIBUTING, CHANGELOG | Done. Private vulnerability reporting is enabled on `Fiouri/skepi` (`gh api …/private-vulnerability-reporting` → `{"enabled":true}`) |
 | Version `0.1.0-preview` | Done: Android versionCode 2 / versionName `0.1.0-preview`; Windows `0.1.0-preview` (MSI product version `0.1.0`) |

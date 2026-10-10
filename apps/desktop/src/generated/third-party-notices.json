@@ -3549,6 +3549,16 @@
   },
   {
    "ecosystem": "npm",
+   "name": "@mapbox/unitbezier",
+   "version": "1.0.0",
+   "license": "BSD-2-Clause",
+   "url": "https://github.com/mapbox/unitbezier",
+   "texts": [
+    "59917ce76cfbce5d"
+   ]
+  },
+  {
+   "ecosystem": "npm",
    "name": "@mapbox/vector-tile",
    "version": "2.0.5",
    "license": "BSD-3-Clause",
@@ -3580,7 +3590,7 @@
   {
    "ecosystem": "npm",
    "name": "@maplibre/maplibre-gl-style-spec",
-   "version": "26.4.4",
+   "version": "24.10.0",
    "license": "ISC",
    "url": "https://maplibre.org/maplibre-style-spec/",
    "texts": [
