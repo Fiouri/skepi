@@ -146,6 +146,17 @@ jobs:
       # Gradle User Home: dependencies, wrapper, transforms and the local build cache (enabled below with
       # --build-cache); written on main only.
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      # With a warm ccache every compile returns at once and the native links, the Hermes bundle and
+      # the 4 GB Gradle daemon overlap: the runner was lost three times ("lost communication with the
+      # server ... starves it for CPU/Memory"). A 10 GB swap file on /mnt absorbs the peak.
+      - name: Swap (10 GB)
+        run: |
+          sudo swapoff -a || true
+          sudo fallocate -l 10G /mnt/skepi.swap
+          sudo chmod 600 /mnt/skepi.swap
+          sudo mkswap /mnt/skepi.swap > /dev/null
+          sudo swapon /mnt/skepi.swap
+          free -m
       - name: ccache
         run: |
           sudo apt-get update -q
