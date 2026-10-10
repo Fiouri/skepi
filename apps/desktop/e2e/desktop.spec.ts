@@ -195,4 +195,8 @@ test('emergency question: the country number is shown before any Layer 1 excerpt
   const v = (await order.jsonValue()) as { banner: string | null; before: boolean };
   expect(v.banner).toContain('Call 112');
   expect(v.before).toBe(true);
+  // Emergency intent: no AI summary at all, not even on demand.
+  await expect(page.getByTestId('summary-emergency')).toBeVisible();
+  await expect(page.getByTestId('ask-summarise')).toHaveCount(0);
+  await expect(page.getByTestId('ai-summary')).toHaveCount(0);
 });

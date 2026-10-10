@@ -119,6 +119,17 @@ onFlowComplete:
       id: ask-phase
       text: "done"
     timeout: 120000
+# Emergency intent: no AI summary at all, not even on tap
+- scrollUntilVisible:
+    element:
+      id: summary-emergency
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible:
+    id: ask-summarise
+- assertNotVisible:
+    id: ai-summary
+- takeScreenshot: e2e/out/cards-06-no-ai-summary
 - tapOn:
     id: ask-clear
 # Home search finds cards with no pack involved

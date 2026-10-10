@@ -45,6 +45,17 @@ describe('sameArticle / lexicalCoverage', () => {
   });
 });
 
+describe('summary coverage', () => {
+  it('leaves out emergency-intent questions (no AI summary by rule)', () => {
+    const answered = outcome(item(), [kept('Paris is the capital of France.', 'S1')]);
+    const quake = { ...outcome(item({ id: 'q', question: 'What should I do in an earthquake?' }), []), summary: null };
+    const m = computeSetMetrics([answered, quake]);
+    expect(m.summaryShownRate).toBe(1);
+    expect(m.emergencyAnswerItems).toBe(1);
+    expect(m.answerItems).toBe(2);
+  });
+});
+
 describe('judgeSentence', () => {
   it('accepts a supported sentence citing an expected article', () => {
     expect(judgeSentence(item(), { text: 'Paris is the capital of France.', source: 'S1' }, [PARIS])).toEqual({

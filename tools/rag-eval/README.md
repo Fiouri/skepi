@@ -38,7 +38,8 @@ article exists in the packs (labels are fixed when a title is a redirect, never 
 - **CPU latency** (Layer 1, TTFT, generation), informational; phone numbers come from the bench.
 - **Bigram-support sweep**: precision/recall of the support threshold over all raw model sentences.
 
-- **Summary coverage** per language: answer items of the `en` / `el` set with at least one shown AI
+- **Summary coverage** per language: answer items of the `en` / `el` set without emergency intent (those
+  never get an AI summary: core `summaryAllowed`) with at least one shown AI
   sentence. No-regression floor from the Phase 1b baseline (en ≥ 0.55, el ≥ 0.40), full runs only (the
   smoke model is too small to measure it).
 

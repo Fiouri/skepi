@@ -1,5 +1,6 @@
 import {
   bigramSupport,
+  detectEmergency,
   findNumberUnits,
   foldText,
   isCoherent,
@@ -122,8 +123,13 @@ export interface SetMetrics {
   noSourceItems: number;
   /** Answer items whose expected article was among the retrieved sources (retrieval recall). */
   layer1Recall: number | null;
-  /** Answer items with at least one shown AI sentence. */
+  /**
+   * Answer items with at least one shown AI sentence, out of those that may have one: emergency-intent
+   * questions never get an AI summary (product rule, core `summaryAllowed`) and are left out.
+   */
   summaryShownRate: number | null;
+  /** Answer items with emergency intent: Layer 1 only, by rule. */
+  emergencyAnswerItems: number;
   shownSentences: number;
   citationPrecision: number | null;
   unsupportedShown: number;
@@ -176,13 +182,15 @@ export function computeSetMetrics(outcomes: readonly ItemOutcome[]): SetMetrics 
       if (j.forbidden) forbidden += 1;
     }
   }
+  const summarisable = answer.filter((o) => detectEmergency(o.item.question) === null);
   const recallHits = answer.filter((o) => o.sources.some((s) => o.item.articles.some((a) => sameArticle(a, s.title) || sameArticle(a, s.path))));
   return {
     items: outcomes.length,
     answerItems: answer.length,
     noSourceItems: noSource.length,
     layer1Recall: ratio(recallHits.length, answer.length),
-    summaryShownRate: ratio(answer.filter((o) => shownSentences(o).length > 0).length, answer.length),
+    summaryShownRate: ratio(summarisable.filter((o) => shownSentences(o).length > 0).length, summarisable.length),
+    emergencyAnswerItems: answer.length - summarisable.length,
     shownSentences: shown,
     citationPrecision: ratio(citedOk, citedTotal),
     unsupportedShown: unsupported,

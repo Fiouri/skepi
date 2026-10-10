@@ -5,6 +5,7 @@ import {
   PROMPT_VERSION,
   retrieve,
   summarise,
+  summaryAllowed,
   tokenizerProfile,
   type BudgetTier,
   type Lang,
@@ -191,7 +192,8 @@ async function main(): Promise<number> {
         summary: null,
         timing: { layer1Ms: r.timings.layer1Ms, ttftMs: null, generateMs: null, promptTokens: null, generatedTokens: null, tokensPerSecond: null },
       };
-      if (inference && r.status === 'ready') {
+      // Same rule as the Ask screens: no AI summary on emergency intent.
+      if (inference && summaryAllowed(r)) {
         const s = await summarise(r, inference, { signal, config });
         outcome.summary = {
           status: s.status,

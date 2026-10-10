@@ -9,7 +9,7 @@ import type {
 } from '@skepi/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import type { Chunk } from '../src/chunk';
-import { planQueries, planSuggestions, rankChunks, retrieve, runRag, summarise, type RagEvent } from '../src/rag';
+import { planQueries, planSuggestions, rankChunks, retrieve, runRag, summarise, summaryAllowed, type RagEvent } from '../src/rag';
 import { SYSTEM_PROMPT } from '../src/prompt';
 
 const ARTICLES: Record<string, ArticleText> = {
@@ -55,6 +55,12 @@ const ARTICLES: Record<string, ArticleText> = {
         ].join('\n'),
       },
     ],
+  },
+  Earthquake: {
+    archiveId: 'en',
+    path: 'Earthquake',
+    title: 'Earthquake',
+    sections: [{ heading: 'Safety', level: 2, text: 'During an earthquake, drop to the ground, take cover under a sturdy table and hold on.' }],
   },
   Paracetamol: {
     archiveId: 'en',
@@ -344,6 +350,50 @@ describe('summarise (Layer 2)', () => {
   it('refuses to run without a ready retrieval', async () => {
     const r = await retrieve('What is this?', fakeKnowledge({}), { signal });
     await expect(summarise(r, fakeInference('{}').engine, { signal })).rejects.toThrow();
+  });
+});
+
+describe('no AI summary on emergency intent (first-aid instructions are never generated)', () => {
+  const QUAKE_Q = 'What should I do in an earthquake?';
+  /** Every query finds the Earthquake article. */
+  function quakeKnowledge(): KnowledgeEngine {
+    const knowledge = fakeKnowledge({});
+    knowledge.search = (_q, opts) =>
+      Promise.resolve([{ archiveId: 'en', path: 'Earthquake', title: 'Earthquake', snippet: null, score: null, rank: 0 }].slice(0, opts.limit));
+    return knowledge;
+  }
+  const quakeAnswer = JSON.stringify({ covered: true, sentences: [{ text: 'Drop to the ground, take cover under a sturdy table and hold on.', source: 'S1' }] });
+
+  it('shows Layer 1 but allows no summary', async () => {
+    const r = await retrieve(QUAKE_Q, quakeKnowledge(), { signal });
+    expect(r.emergency?.topics).toContain('earthquake');
+    expect(r.status).toBe('ready');
+    expect(r.layer1?.passages.length).toBeGreaterThan(0);
+    expect(summaryAllowed(r)).toBe(false);
+  });
+
+  it('summarise refuses without calling the model', async () => {
+    const r = await retrieve(QUAKE_Q, quakeKnowledge(), { signal });
+    const inference = fakeInference(quakeAnswer);
+    await expect(summarise(r, inference.engine, { signal })).rejects.toThrow(/emergency intent/);
+    expect(inference.generate).not.toHaveBeenCalled();
+  });
+
+  it('runRag returns Layer 1 only', async () => {
+    const inference = fakeInference(quakeAnswer);
+    const r = await runRag(QUAKE_Q, { knowledge: quakeKnowledge(), inference: inference.engine }, { signal, summary: 'auto' });
+    expect(r.summary).toBeNull();
+    expect(r.layer1?.passages.length).toBeGreaterThan(0);
+    expect(inference.generate).not.toHaveBeenCalled();
+  });
+
+  it('medical intent without an emergency still allows the summary (on demand in the apps)', async () => {
+    const r = await retrieve('What is the usual adult dose of paracetamol?', fakeKnowledge({ 'usual adult dose paracetamol': ['Paracetamol'] }), {
+      signal,
+    });
+    expect(r.medical).not.toBeNull();
+    expect(r.emergency).toBeNull();
+    expect(summaryAllowed(r)).toBe(true);
   });
 });
 

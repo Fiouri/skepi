@@ -5,6 +5,7 @@ import {
   resolveInferenceProfile,
   retrieve,
   summarise,
+  summaryAllowed,
   suggestTitles,
   summarize,
   tokenizerProfile,
@@ -337,7 +338,7 @@ export async function runBench(log: (line: string) => void, options: BenchOption
         rankMs: r.timings.rankMs,
         summary: null,
       };
-      if (modelReport && r.status === 'ready' && i < TTFT_SAMPLES) {
+      if (modelReport && summaryAllowed(r) && i < TTFT_SAMPLES) {
         const s = await summarise(r, llama, { signal, config: ragConfig });
         sample.summary = {
           status: s.status,

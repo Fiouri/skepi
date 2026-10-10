@@ -1,4 +1,4 @@
-import { parseStructuredAnswer, retrieve, summarise, type RetrievalResult } from '@skepi/core';
+import { parseStructuredAnswer, retrieve, summarise, summaryAllowed, type RetrievalResult } from '@skepi/core';
 import { ExpoZim } from 'expo-zim';
 import { activeProfile, ensureModel, knowledge, llama, ragArchives, ragConfigFor } from './content';
 
@@ -49,7 +49,8 @@ export async function runHeldout(log: (line: string) => void): Promise<number> {
     const signal = new AbortController().signal;
     const r = await retrieve(item.question, knowledge, { signal, config, archives });
     let summary: unknown = null;
-    if (ready && r.status === 'ready') {
+    // Same rule as the Ask screen: no AI summary on emergency intent.
+    if (ready && summaryAllowed(r)) {
       const s = await summarise(r, llama, { signal, config });
       summary = {
         status: s.status,

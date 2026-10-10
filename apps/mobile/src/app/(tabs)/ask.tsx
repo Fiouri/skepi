@@ -1,6 +1,7 @@
 import {
   retrieve,
   summarise,
+  summaryAllowed,
   type EmergencyMatch,
   type Layer1Passage,
   type MedicalIntent,
@@ -141,13 +142,14 @@ export default function AskScreen() {
       });
       setRetrieved(r);
       // T2+: the AI summary follows Layer 1 automatically, except on medical intent and in blackout
-      // mode (tap only, with the measured cost).
-      if (r.status === 'ready' && model && profile.summaryMode === 'auto' && !r.medical && !blackout) await runSummary(r, abort);
+      // mode (tap only, with the measured cost). On emergency intent there is no AI summary at all
+      // (summaryAllowed).
+      if (summaryAllowed(r) && model && profile.summaryMode === 'auto' && !r.medical && !blackout) await runSummary(r, abort);
     });
   };
 
   const summariseOnDemand = (): void => {
-    if (busy || retrieval?.status !== 'ready') return;
+    if (busy || !retrieval || !summaryAllowed(retrieval)) return;
     const r = retrieval;
     void withController((abort) => runSummary(r, abort));
   };
@@ -167,7 +169,7 @@ export default function AskScreen() {
 
   const shownSentences = summary?.status === 'shown' ? (summary.validation?.kept ?? []) : streamed;
   const unverified = (summary?.label ?? (medical ? 'unverified-ai-summary' : 'ai-summary')) === 'unverified-ai-summary';
-  const canSummarise = retrieval?.status === 'ready' && model !== null && summary === null && !busy;
+  const canSummarise = retrieval !== null && summaryAllowed(retrieval) && model !== null && summary === null && !busy;
   const hasCards = asked.length > 0 && cardsForQuestion(asked, emergency?.topics ?? []).length > 0;
   const onDemand = profile.summaryMode === 'on-demand' || medical !== null || blackout;
 
@@ -304,6 +306,12 @@ export default function AskScreen() {
         {summary && summary.status !== 'shown' && (
           <Text style={styles.muted} testID="summary-hidden">
             {summary.hiddenReason === 'not_covered' ? t.ask.summaryNotCovered : t.ask.summaryHidden}
+          </Text>
+        )}
+
+        {retrieval?.status === 'ready' && !summaryAllowed(retrieval) && (
+          <Text style={styles.muted} testID="summary-emergency">
+            {t.ask.noSummaryEmergency}
           </Text>
         )}
 

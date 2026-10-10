@@ -1,6 +1,7 @@
 import {
   retrieve,
   summarise,
+  summaryAllowed,
   SYSTEM_PROMPT,
   type EmergencyMatch,
   type Layer1Passage,
@@ -121,13 +122,14 @@ export function AskScreen() {
         },
       });
       setFound(r);
-      // T2+/T3: the AI summary follows Layer 1, except on medical intent and in blackout mode.
-      if (r.status === 'ready' && model && profile.summaryMode === 'auto' && !r.medical && !blackout) await runSummary(r, abort);
+      // T2+/T3: the AI summary follows Layer 1, except on medical intent and in blackout mode. On
+      // emergency intent there is no AI summary at all (summaryAllowed).
+      if (summaryAllowed(r) && model && profile.summaryMode === 'auto' && !r.medical && !blackout) await runSummary(r, abort);
     });
   };
 
   const summariseOnDemand = (): void => {
-    if (busy || found?.status !== 'ready') return;
+    if (busy || !found || !summaryAllowed(found)) return;
     const r = found;
     void withController((abort) => runSummary(r, abort));
   };
@@ -146,7 +148,7 @@ export function AskScreen() {
 
   const shown = summary?.status === 'shown' ? (summary.validation?.kept ?? []) : streamed;
   const unverified = (summary?.label ?? (medical ? 'unverified-ai-summary' : 'ai-summary')) === 'unverified-ai-summary';
-  const canSummarise = found?.status === 'ready' && model !== null && summary === null && !busy;
+  const canSummarise = found !== null && summaryAllowed(found) && model !== null && summary === null && !busy;
   const hasCards = asked.length > 0 && cardsForQuestion(asked, emergency?.topics ?? []).length > 0;
   const onDemand = profile.summaryMode === 'on-demand' || medical !== null || blackout;
 
@@ -261,6 +263,11 @@ export function AskScreen() {
       {summary && summary.status !== 'shown' && (
         <p className="muted" data-testid="summary-hidden">
           {summary.hiddenReason === 'not_covered' ? t.ask.summaryNotCovered : t.ask.summaryHidden}
+        </p>
+      )}
+      {found?.status === 'ready' && !summaryAllowed(found) && (
+        <p className="muted" data-testid="summary-emergency">
+          {t.ask.noSummaryEmergency}
         </p>
       )}
       {canSummarise && onDemand && <Button testId="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} onClick={summariseOnDemand} />}

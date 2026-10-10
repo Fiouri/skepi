@@ -230,6 +230,8 @@ export interface Messages {
     unverifiedAiLabel: string;
     summaryHidden: string;
     summaryNotCovered: string;
+    /** Emergency intent: no AI summary is offered at all. */
+    noSummaryEmergency: string;
     sources: string;
     simulationActive: string;
   };

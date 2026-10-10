@@ -35,7 +35,7 @@ const HEADER = [
   'Set',
   'Items',
   'Layer 1 recall',
-  'Summary shown',
+  'Summary shown (no emergency)',
   'Sentences shown',
   'Citation precision',
   'Unsupported shown',

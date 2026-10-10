@@ -40,6 +40,7 @@ export {
   retrieve,
   runRag,
   summarise,
+  summaryAllowed,
   TITLE_BOOST,
   toSources,
   type ArchiveRef,

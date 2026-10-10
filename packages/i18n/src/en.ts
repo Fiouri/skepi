@@ -252,6 +252,7 @@ export const en: Messages = {
     unverifiedAiLabel: 'Unverified AI summary — check the source',
     summaryHidden: 'No AI summary: none of its sentences was supported by the sources.',
     summaryNotCovered: 'No AI summary: the AI found no answer in these sources.',
+    noSummaryEmergency: 'No AI summary in an emergency: call the number above and use the sources below.',
     sources: 'Sources',
     simulationActive: 'T1 simulation is on',
   },

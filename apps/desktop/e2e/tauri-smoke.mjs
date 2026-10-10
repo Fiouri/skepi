@@ -287,6 +287,11 @@ try {
     'Layer 1 for the emergency question',
   );
   check('emergency question: country number shown before any Layer 1 excerpt', order.before === true && /Call 112/.test(order.banner ?? ''), JSON.stringify(order));
+  await waitFor(() => visible('summary-emergency'), 60_000, 'no-AI notice for the emergency question');
+  check(
+    'emergency question: no AI summary and no AI button',
+    !(await visible('ask-summarise')) && (await findAll('[data-testid="ai-summary"]')).length === 0,
+  );
   await click(tid('ask-clear'));
 
   await click(tid('emergency-button'));
