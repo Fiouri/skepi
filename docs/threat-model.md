@@ -37,7 +37,9 @@ a parser or a network path. Architecture context: `docs/architecture.md` ("Secur
 | Threat | Mitigation | Verified by |
 | --- | --- | --- |
 | Injected instructions inside an article reach the model or Layer 1 | Before chunking, `sanitizeSourceText` removes **structural** injections — forged `<source>` blocks and tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines (`SYSTEM:`, `[assistant]`), sentences addressed to the model/assistant/AI/summariser (vocatives, "note for …", persona assignments, answer-format orders, "this line supersedes …"); a structural hit also drops the rest of its paragraph — and the Phase 1b lexicon phrases. Paragraph breaks come from the extraction (one line per block element). | `packages/core/test/sanitize.test.ts`, `rag.test.ts` (Layer 1 and the prompt); rag-eval adversarial set (gated) and held-out section (reported) |
-| An injection the filter misses | The model has no tools; every AI sentence must be supported by the cited source (bigram + number/unit checks); emergency cards never pass through the LLM. Accepted residual risk: a fact-shaped injected sentence can still appear verbatim in Layer 1, which always shows its source. | rag-eval |
+| Comment-like spans and tables written as text (Developer Preview, held-out set 2) | `<!-- … -->` written as visible text (also `&lt;!-- … --&gt;`, or unterminated to the end of its paragraph) is removed whole, whatever it says. A `|` is always a unit boundary: text between two `|` is a table cell, never merged with its neighbours into one "sentence" (so each cell meets the structural filter alone), and Layer 1 never highlights a cell on its own. Generic rules only: no phrase lists. | `packages/core/test/preview-rules.test.ts`; rag-eval held-out set 2 |
+| An AI sentence sends the reader to an address | An AI sentence containing a URL (scheme, `www.`, or a bare lower-case host name) or an e-mail address is never shown (rejection `link`), even when copied verbatim from a passage: the app is offline and no answer has a legitimate use for one. | `preview-rules.test.ts` (fresh examples, false-positive checks) |
+| An injection the filter misses | The model has no tools; every AI sentence must be supported by the cited source (bigram + number/unit checks); emergency cards never pass through the LLM. **Accepted residual risk (decision 2026-10-10, Developer Preview):** Layer 1 shows source text **verbatim** — a fact-shaped or instruction-shaped sentence in a pack ("updated guidance: …", "developer mode enabled: …") is shown as written, labelled "Source excerpts — not verified advice". No phrase-based detection is added for such wording (it would be tuned to known examples and give false confidence). Source integrity rests on the **signed catalog of official packs** (Kiwix ZIMs of Wikipedia, OpenStreetMap extracts, pinned by SHA-256 and verified chunk by chunk); files outside the catalog are labelled unverified and need consent. | rag-eval held-out sets 1 and 2 (report only) |
 
 ## Emergency cards and numbers
 
@@ -45,6 +47,7 @@ a parser or a network path. Architecture context: `docs/architecture.md` ("Secur
 | --- | --- | --- |
 | Wrong first-aid instruction | Static cards from public-domain US federal sources with a source and locator per step; never generated; every card ships as **draft** with a permanent banner until two first-aid instructors review it; CODEOWNERS on the folder. | `packages/emergency-cards` tests (schema, sources, translation numbers) |
 | Draft cards in a public release | `skepiCheckEmergencyCards` fails the release build; `-PskepiAllowDraftCards=true` for internal builds only, with a loud warning. | Gradle task; CI step "Release build must fail with draft emergency cards" |
+| Unreviewed card steps in the Developer Preview | Preview builds (`SKEPI_PREVIEW=1`; Android `-PskepiPreview=true`) bundle `@skepi/emergency-cards/preview`: titles, topics and keywords only, **no step or "when to call" text**; each card shows "Under professional review" and the emergency numbers. The built bundles are scanned for every advice text of the full cards (UTF-8 and UTF-16LE): the Android build fails right after the JS bundle (`skepiCheckPreviewBundle`), the desktop bundle is checked in CI. | `tools/release-guards` `preview-cards` (positive control: a full bundle fails with 202 texts); `packages/emergency-cards/test/preview.test.ts` |
 | Wrong emergency number | Bundled per-country dataset with a documented official source per country; unknown country → 112 labelled "check the local number"; the country is chosen by the user, never from the network. Calls only open the dialler. | `numbers.test.ts` |
 
 ## Device sensors, permissions and intents
@@ -84,6 +87,13 @@ signing-certificate SHA-256 to compare with the published fingerprint; Android r
 signed with another key. Residual risk: a LAN attacker can replace the cleartext page for a phone that
 does not have the app yet; the fingerprint check is the defence. No `REQUEST_INSTALL_PACKAGES`. Split
 (store) installs cannot be shared as one APK and are refused.
+
+## Problem reports (Developer Preview)
+
+| Threat | Mitigation | Verified by |
+| --- | --- | --- |
+| A report leaks more than the user expects | "Report a problem with this answer" builds text from the question, the shown Layer 1 excerpts and AI sentences, the cited sources (title, heading, article path) and the app version only (`@skepi/core` `problemReportText`): no time, device, location, settings, archive ids or other questions. The text is shown in full before any action. | `packages/core/test/report.test.ts`; Playwright "report a problem" |
+| A report reaches the network | The app sends nothing: copy to the clipboard, or save (Android: `reports/` in the app folder; Windows: a native save dialog, `.txt` only, ≤ 256 KiB, command `report_save`). The user sends it. | Playwright (no network command); desktop egress check |
 
 ## Map and places packs (Phase 2a)
 
