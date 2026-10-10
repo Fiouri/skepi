@@ -174,7 +174,14 @@ jobs:
           grep -q "emergency cards are DRAFT" gate.log
       - name: Release APK (debug-signed in CI, draft cards allowed for this check only)
         working-directory: apps/mobile/android
-        run: ./gradlew assembleRelease -PskepiDebugSign=true -PskepiAllowDraftCards=true --build-cache --console=plain
+        run: |
+          # Memory/disk monitor: with a warm ccache the runner was lost mid-build ("The operation was
+          # canceled", no build error); this shows whether memory or disk runs out.
+          ( while true; do
+              echo "[mon $(date +%T)] $(free -m | awk 'NR==2{print "mem used " $3 "/" $2 " MB, available " $7}'); $(free -m | awk 'NR==3{print "swap " $3 "/" $2}'); disk $(df -h / | awk 'NR==2{print $4}') free; top: $(ps -eo rss,comm --sort=-rss | awk 'NR>1 && NR<7{printf "%s %dMB, ", $2, $1/1024}')"
+              sleep 15
+            done ) &
+          ./gradlew assembleRelease -PskepiDebugSign=true -PskepiAllowDraftCards=true --build-cache --console=plain
       - name: ccache statistics
         if: always()
         run: |
