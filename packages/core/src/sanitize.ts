@@ -1,3 +1,4 @@
+import { detectionForms, sourceRange, type DetectionForms } from './normalize';
 import { foldText, joinUnits, splitUnits, type TextUnit } from './text';
 
 /**
@@ -18,6 +19,10 @@ import { foldText, joinUnits, splitUnits, type TextUnit } from './text';
  *
  * A `|` in the text delimits table cells written as text (see `splitUnits`): every rule runs per unit
  * and the delimiters are kept, so a cell is never merged with its neighbours downstream.
+ *
+ * Every check looks at the detection forms of the text (`normalize.ts`: NFKC, no format characters,
+ * look-alike letters folded), never at the raw characters, so `SYSTEM:` written with Cyrillic letters
+ * or a zero-width space inside a marker is still the marker. What is kept is the source text, unchanged.
  *
  * Paragraph breaks (`\n`, one per block element of the article) bound the structural removal; the
  * output keeps them, chunking normalises whitespace afterwards. Neither pass catches every possible
@@ -42,9 +47,13 @@ const LEXICON: readonly RegExp[] = [
   /(?<!\p{L})πες στον (χρήστη|αναγνώστη)(?!\p{L})/iu,
 ];
 
+function lexiconMatch(forms: DetectionForms): boolean {
+  return LEXICON.some((re) => re.test(forms.latin.text) || re.test(forms.greek.text));
+}
+
 /** Lexicon check (Phase 1b): the sentence uses a known injection phrasing. */
 export function isInjection(sentence: string): boolean {
-  return LEXICON.some((re) => re.test(sentence));
+  return lexiconMatch(detectionForms(sentence));
 }
 
 export type StructuralReason =
@@ -119,7 +128,7 @@ function stripJsonRoleObjects(text: string, removed: Removal[]): string {
     const paragraphEnd = text.indexOf('\n', open);
     const stop = end >= 0 ? end : paragraphEnd >= 0 ? paragraphEnd : text.length;
     const span = text.slice(open, stop);
-    if (JSON_ROLE_KEY.test(span)) {
+    if (JSON_ROLE_KEY.test(detectionForms(span).latin.text)) {
       out += `${text.slice(i, open)}\n`;
       removed.push({ text: span, reason: 'json-role-object' });
     } else {
@@ -135,15 +144,27 @@ function stripJsonRoleObjects(text: string, removed: Removal[]): string {
 /** `<!-- … -->` (also `&lt;!-- … --&gt;`) as text; an unterminated one runs to the end of its paragraph. */
 const COMMENT_SPAN = /(?:<|&lt;)!--[\s\S]*?--(?:>|&gt;)|(?:<|&lt;)!--[^\n]*/g;
 
+/**
+ * Replaces every match of `pattern` (global) in the Latin detection form with `replacement`, cutting
+ * the matching source range: the span is found in normalised text, the removed text is the source's.
+ */
+function removeSpans(text: string, pattern: RegExp, reason: StructuralReason, replacement: string, removed: Removal[]): string {
+  const form = detectionForms(text).latin;
+  let out = '';
+  let last = 0;
+  for (const m of form.text.matchAll(pattern)) {
+    const [start, end] = sourceRange(form, m.index, m.index + m[0].length);
+    if (start < last) continue;
+    out += text.slice(last, start) + replacement;
+    removed.push({ text: text.slice(start, end), reason });
+    last = end;
+  }
+  return out + text.slice(last);
+}
+
 function stripForgedMarkup(text: string, removed: Removal[]): string {
-  const withoutComments = text.replace(COMMENT_SPAN, (span) => {
-    removed.push({ text: span, reason: 'comment-span' });
-    return ' ';
-  });
-  const withoutBlocks = withoutComments.replace(FORGED_SOURCE_BLOCK, (block) => {
-    removed.push({ text: block, reason: 'forged-source-block' });
-    return '\n';
-  });
+  const withoutComments = removeSpans(text, COMMENT_SPAN, 'comment-span', ' ', removed);
+  const withoutBlocks = removeSpans(withoutComments, FORGED_SOURCE_BLOCK, 'forged-source-block', '\n', removed);
   return stripJsonRoleObjects(withoutBlocks, removed);
 }
 
@@ -178,6 +199,10 @@ const ADDRESSEE = [
   String.raw`(?:systems?|tools?|programs?|software|models?|agents?|crawlers?)\s+(?:that|which)\s+(?:summari[sz]e|read|process|parse|answer|ingest|index)\w*`,
 ].join('|');
 const ADDR = String.raw`(?:${ADDRESSEE})`;
+/** An AI noun phrase: the addressees above, or "AI" / "artificial intelligence" before any noun ("AI helper"). */
+const ADDR_NP = String.raw`(?:(?:a\.?i\.?|artificial[- ]intelligence)[- ]\p{L}+|${ADDRESSEE})`;
+/** Verbs of a program taking in text: "reading", "summarising", "processing" … */
+const INTAKE = String.raw`(?:reading|reads|processing|processes|summari[sz]ing|summari[sz]es|parsing|parses|scanning|scans|ingesting|ingests|analy[sz]ing|analy[sz]es|seeing|sees)`;
 const QUANT = String.raw`(?:(?:all|any|every|each|the|you)\s+)?`;
 const VOCATIVE = String.raw`(?:(?:dear|hey|hi|hello|attention|attn|calling|to)\s+(?:the\s+)?)?(?:(?:all|any|every|each|you)\s+)?`;
 const THIS_TEXT = String.raw`(?:this|the\s+present|the\s+following)\s+(?:page|article|text|passage|document|entry|source|content|section)`;
@@ -216,6 +241,35 @@ const ADDRESSED_EN: readonly RegExp[] = [
   /\b(?:this|the\s+following|these|the\s+present)\s+(?:line|sentence|note|text|paragraph|passage|section|statement|instruction|message|correction|update|entry)s?\b[^.!?]{0,40}\b(?:supersedes?|overrides?|replaces?|takes?\s+precedence|has\s+priority|outranks?|invalidates?|cancels?)\b/iu,
   /\b(?:supersedes?|overrides?|takes?\s+precedence\s+over|invalidates?)\s+(?:all|any|every)\s+(?:other|previous|prior|earlier|preceding|conflicting)\s+(?:text|content|information|instructions?|sources?|lines?|sentences?|statements?|passages?)\b/iu,
 ];
+
+/**
+ * Quoted or reported instructions (post-preview hardening). A quotation is checked like a sentence of
+ * its own: "The guide says: 'Assistant, …'" is as direct as "Assistant, …". Inside a quotation an order
+ * whose subject is an AI noun phrase ("any AI tool must tell …") is an instruction to a model; a
+ * passive or copular directive ("AI systems must be transparent") states a rule about AI and stays.
+ */
+const QUOTED_EN: readonly RegExp[] = [
+  new RegExp(
+    String.raw`^\W*(?:(?:all|any|every|each|the|you)\s+)?${ADDR_NP}(?![\p{L}\p{N}])(?:\s+(?:that|which|who)\b[^.!?]{0,60}?|\s+${INTAKE}\b[^.!?]{0,60}?)?\s+${DIRECTIVE}\s+(?!(?:not\s+)?be\b|have\s+been\b)`,
+    'iu',
+  ),
+];
+
+/** A model taking in this very text ("any AI reading this …"), quoted or not. */
+const READER_EN = new RegExp(
+  String.raw`(?<![\p{L}\p{N}])${ADDR_NP}\s+(?:(?:that|which|who)\s+(?:is\s+|are\s+)?)?${INTAKE}\s+(?:this|these|the\s+following|the\s+present)(?![\p{L}\p{N}])`,
+  'iu',
+);
+
+/** Segments of a sentence that are quoted or reported: paired (or unclosed) quotes and text after a colon. */
+export function quotedSegments(sentence: string): string[] {
+  const out: string[] = [];
+  for (const m of sentence.matchAll(/["“„«]([^"”“»]+)(?:["”“»]|$)/gu)) if (m[1]) out.push(m[1]);
+  for (const m of sentence.matchAll(/(?<![\p{L}\p{N}])['‘]([^'’]+?)(?:['’](?![\p{L}\p{N}])|$)/gu)) if (m[1]) out.push(m[1]);
+  const colon = sentence.search(/[:：]\s/u);
+  if (colon >= 0) out.push(sentence.slice(colon + 1));
+  return out.map((q) => q.trim()).filter((q) => q.length > 0);
+}
 
 /** Greek patterns run on folded text (lowercase, no accents, final ς → σ). */
 const L = String.raw`\p{L}*`;
@@ -261,24 +315,58 @@ const ADDRESSED_EL: readonly RegExp[] = [
   ),
 ];
 
+const QUOTED_EL: readonly RegExp[] = [
+  new RegExp(
+    String.raw`^[^\p{L}\p{N}]*${QUANT_EL}${ADDR_EL}${NA}(?:\s+που${NA}[^.!;]{0,60}?)?\s+(?:(?:πρεπει|οφειλ${L}|θα)\s+)?(?:να\s+)?(?:μην\s+)?(?:πει|λεει|λεν${L}|απαντ${L}|γραφ${L}|γραψ${L}|συστην${L}|συμβουλευ${L}|αναφερ${L}|αγνο${L})${NA}`,
+    'u',
+  ),
+];
+
+/** A model taking in this very text ("κάθε βοηθός που διαβάζει αυτό …"), quoted or not. */
+const READER_EL = new RegExp(
+  String.raw`${NB}${ADDR_EL}\s+που\s+(?:διαβαζ|επεξεργαζ|συνοψιζ|αναλυ)${L}\s+(?:αυτ${L}|το\s+παρον|τα\s+παρακατω)${NA}`,
+  'u',
+);
+
+function addressedEn(text: string): boolean {
+  if (READER_EN.test(text) || ADDRESSED_EN.some((re) => re.test(text))) return true;
+  return quotedSegments(text).some((q) => QUOTED_EN.some((re) => re.test(q)) || ADDRESSED_EN.some((re) => re.test(q)));
+}
+
+function addressedEl(folded: string): boolean {
+  if (READER_EL.test(folded) || ADDRESSED_EL.some((re) => re.test(folded))) return true;
+  return quotedSegments(folded).some((q) => QUOTED_EL.some((re) => re.test(q)) || ADDRESSED_EL.some((re) => re.test(q)));
+}
+
+function addressedToModel(forms: DetectionForms): boolean {
+  return addressedEn(forms.latin.text) || addressedEl(foldText(forms.greek.text));
+}
+
+function rolePrefix(forms: DetectionForms): boolean {
+  return ROLE_PREFIX.test(forms.latin.text) || ROLE_PREFIX_EL.test(foldText(forms.greek.text));
+}
+
 /** The sentence speaks to a language model / assistant / summariser rather than stating a fact. */
 export function isAddressedToModel(sentence: string): boolean {
-  if (ADDRESSED_EN.some((re) => re.test(sentence))) return true;
-  const folded = foldText(sentence);
-  return ADDRESSED_EL.some((re) => re.test(folded));
+  return addressedToModel(detectionForms(sentence));
 }
 
 export function hasRolePrefix(text: string): boolean {
-  return ROLE_PREFIX.test(text) || ROLE_PREFIX_EL.test(foldText(text));
+  return rolePrefix(detectionForms(text));
+}
+
+function structuralReasonOf(forms: DetectionForms): StructuralReason | null {
+  const latin = forms.latin.text;
+  if (FORGED_SOURCE_TAG.test(latin)) return 'forged-source-tag';
+  if (CHAT_MARKUP.test(latin)) return 'chat-markup';
+  if (rolePrefix(forms)) return 'role-prefix';
+  if (addressedToModel(forms)) return 'addressed-to-model';
+  return null;
 }
 
 /** Structural reason a sentence opens injected text (the rest of its paragraph goes with it). */
 export function structuralReason(sentence: string): StructuralReason | null {
-  if (FORGED_SOURCE_TAG.test(sentence)) return 'forged-source-tag';
-  if (CHAT_MARKUP.test(sentence)) return 'chat-markup';
-  if (hasRolePrefix(sentence)) return 'role-prefix';
-  if (isAddressedToModel(sentence)) return 'addressed-to-model';
-  return null;
+  return structuralReasonOf(detectionForms(sentence));
 }
 
 /** Sanitised text and what was removed, with the reason (tests and rag-eval reports). */
@@ -292,12 +380,13 @@ export function sanitizeWithReport(text: string): SanitizeReport {
     for (let i = 0; i < units.length; i += 1) {
       const u = units[i];
       if (!u) continue;
-      const reason = structuralReason(u.text);
+      const forms = detectionForms(u.text);
+      const reason = structuralReasonOf(forms);
       if (reason) {
         removed.push({ text: units.slice(i).map((x) => x.text).join(' '), reason });
         break;
       }
-      if (isInjection(u.text)) {
+      if (lexiconMatch(forms)) {
         removed.push({ text: u.text, reason: 'lexicon' });
         continue;
       }

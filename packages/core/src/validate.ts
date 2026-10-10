@@ -1,3 +1,4 @@
+import { detectionForms, sourceRange } from './normalize';
 import { contentTerms, foldText, questionTerms, splitSentences } from './text';
 
 /**
@@ -200,7 +201,44 @@ const BARE_HOST = new RegExp(
 
 /** True when the sentence contains a URL or an e-mail address (see LINK, BARE_HOST). */
 export function containsLink(sentence: string): boolean {
-  return LINK.test(sentence) || BARE_HOST.test(sentence);
+  const text = detectionForms(sentence).latin.text;
+  return LINK.test(text) || BARE_HOST.test(text);
+}
+
+/** What Layer 1 shows in place of a URL or an e-mail address. */
+export const LINK_REMOVED = '[link removed]';
+
+const LINK_ALL = new RegExp(LINK.source, 'giu');
+/** A bare host name with its path, port or query ("example.org/form"). */
+const BARE_HOST_ALL = new RegExp(String.raw`${BARE_HOST.source}(?:[\/:?#]\S*)?`, 'gu');
+/** Sentence punctuation after an address belongs to the sentence, not to the address. */
+const TRAILING = /[.,;:!?)\]'"”’»]+$/u;
+
+/**
+ * Source text with every URL and e-mail address replaced by `LINK_REMOVED`: the same rule as for AI
+ * sentences (`containsLink`), applied to the excerpts Layer 1 shows. Addresses are found in the
+ * detection form (`normalize.ts`), so full-width or zero-width tricks do not hide them.
+ */
+export function redactLinks(text: string): string {
+  const form = detectionForms(text).latin;
+  const spans: [number, number][] = [];
+  for (const re of [LINK_ALL, BARE_HOST_ALL]) {
+    for (const m of form.text.matchAll(re)) {
+      const kept = m[0].replace(TRAILING, '');
+      if (kept.length === 0) continue;
+      spans.push(sourceRange(form, m.index, m.index + kept.length));
+    }
+  }
+  if (spans.length === 0) return text;
+  spans.sort((a, b) => a[0] - b[0]);
+  let out = '';
+  let last = 0;
+  for (const [start, end] of spans) {
+    if (end <= last) continue;
+    out += start >= last ? text.slice(last, start) + LINK_REMOVED : '';
+    last = end;
+  }
+  return out + text.slice(last);
 }
 
 export interface SentenceCheck {

@@ -1,9 +1,15 @@
+import { findPhoneNumbers } from './phone';
 import { contentTerms, questionTerms, splitUnits } from './text';
+import { redactLinks } from './validate';
 
 /**
  * Layer 1: the extractive answer. Verbatim source sentences, ranked by overlap with the question's
  * content terms, shown before any model work starts. Always correct in the sense that every word is
  * the source's own; it needs no LLM and runs in a few milliseconds.
+ *
+ * Two exceptions to "verbatim" (post-preview hardening): URLs and e-mail addresses are replaced by
+ * "[link removed]" (the rule AI sentences follow), and on emergency intent a sentence with a phone
+ * number is flagged, because the number to call is the bundled one shown above the excerpts.
  */
 
 export interface ExtractiveSource {
@@ -22,6 +28,11 @@ export interface Layer1Sentence {
   cell: boolean;
   /** Distinct question terms in the sentence. */
   matched: number;
+  /**
+   * Emergency intent only: phone numbers in the sentence (findPhoneNumbers). The apps flag the sentence
+   * when one of them is not a bundled number of the user's country (unbundledNumbers).
+   */
+  phoneNumbers: string[];
   score: number;
 }
 
@@ -48,12 +59,15 @@ export interface Layer1Options {
   maxHighlightsPerPassage: number;
   /** A sentence is highlighted only if its score reaches this fraction of the best sentence score. */
   relativeCutoff: number;
+  /** Emergency intent: record the phone numbers of every sentence (`phoneNumbers`). */
+  findPhones: boolean;
 }
 
 export const DEFAULT_LAYER1_OPTIONS: Layer1Options = {
   maxPassages: 3,
   maxHighlightsPerPassage: 2,
   relativeCutoff: 0.5,
+  findPhones: false,
 };
 
 /** Wikipedia (mwoffliner) section ids are the heading text with spaces replaced by underscores. */
@@ -94,7 +108,11 @@ export function buildLayer1(
   const questionKeys = [...new Set(questionTerms(question).map(key))];
 
   const scored = sources.map((source, order) => {
-    const sentences = splitUnits(source.text).map((u) => ({ text: u.text, cell: u.cell, ...scoreSentence(u.text, questionKeys) }));
+    const sentences = splitUnits(source.text).map((u) => {
+      const text = redactLinks(u.text);
+      const phoneNumbers = opts.findPhones ? findPhoneNumbers(text) : [];
+      return { text, cell: u.cell, phoneNumbers, ...scoreSentence(text, questionKeys) };
+    });
     const best = sentences.reduce((max, s) => Math.max(max, s.score), 0);
     return { source, order, sentences, best };
   });

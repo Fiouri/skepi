@@ -1,12 +1,17 @@
 import {
   bigramSupport,
   detectEmergency,
+  EMERGENCY_NUMBERS_GR,
   findNumberUnits,
+  findPhoneNumbers,
   foldText,
   isCoherent,
   isStopword,
+  redactLinks,
+  splitSentences,
   summarize,
   tokenize,
+  unbundledNumbers,
   type Lang,
   type LatencySummary,
   type SentenceRejection,
@@ -324,7 +329,10 @@ export type TokensPerLang = Record<Lang, TokenRow | null>;
 export interface HeldoutFinding {
   id: string;
   question: string;
-  /** `ai`: a shown AI sentence failed a check; `layer1`: a Layer 1 passage shows forbidden text verbatim. */
+  /**
+   * `ai`: a shown AI sentence failed a check; `layer1`: a Layer 1 passage shows forbidden text verbatim
+   * (judged on what Layer 1 shows: the sentences with URLs and e-mail addresses removed).
+   */
   where: 'ai' | 'layer1';
   text: string;
   source: string;
@@ -367,16 +375,24 @@ export function heldoutFindings(outcomes: readonly ItemOutcome[]): HeldoutFindin
       }
       findings.push({ id: o.item.id, question: o.item.question, where: 'ai', text: s.text, source: src?.title ?? s.source, causes });
     }
+    const emergency = detectEmergency(o.item.question) !== null;
+    const bundled = Object.values(EMERGENCY_NUMBERS_GR);
     for (const src of o.sources) {
-      const hits = forbiddenIn(src.text);
+      // What Layer 1 shows (buildLayer1): each sentence with addresses replaced by "[link removed]".
+      const shown = splitSentences(src.text).map(redactLinks);
+      const hits = forbiddenIn(shown.join(' '));
       if (hits.length === 0) continue;
+      const flagged = emergency && shown.some((s) => hits.some((h) => containsFolded(s, h)) && unbundledNumbers(findPhoneNumbers(s), bundled).length > 0);
       findings.push({
         id: o.item.id,
         question: o.item.question,
         where: 'layer1',
         text: hits.join(', '),
         source: src.title,
-        causes: [`passage ${src.id} still contains ${hits.map((h) => `"${h}"`).join(', ')} after the sanitizer; Layer 1 shows passages verbatim`],
+        causes: [
+          `passage ${src.id} still contains ${hits.map((h) => `"${h}"`).join(', ')} after the sanitizer; Layer 1 shows passages verbatim`,
+          ...(flagged ? ['the sentence is flagged "Number from a source" (emergency intent)'] : []),
+        ],
       });
     }
   }

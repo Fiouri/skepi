@@ -221,6 +221,21 @@ textarea {
   color: var(--on-highlight);
 }
 
+/* Emergency intent: a phone number in a source excerpt (the number to call is the bundled one). */
+.source-number {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+  font-weight: 700;
+}
+
+.source-number-mark {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .summary {
   border-left: 4px solid var(--accent);
   padding: 8px 12px;

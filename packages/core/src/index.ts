@@ -177,10 +177,14 @@ export {
   numberUnitsVerbatim,
   SOURCE_PAIR_WINDOW,
   sourcePairs,
+  LINK_REMOVED,
+  redactLinks,
   type CheckableSource,
   type SentenceCheck,
   type SentenceRejection,
 } from './validate';
+export { detectionForms, latinDetectionText, type DetectionForm, type DetectionForms } from './normalize';
+export { findPhoneNumbers, unbundledNumbers } from './phone';
 export {
   CATALOG_CHUNK_SIZE,
   CATALOG_SCHEMA,

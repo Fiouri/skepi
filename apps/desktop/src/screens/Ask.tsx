@@ -3,6 +3,7 @@ import {
   summarise,
   summaryAllowed,
   SYSTEM_PROMPT,
+  unbundledNumbers,
   type EmergencyMatch,
   type Layer1Passage,
   type MedicalIntent,
@@ -46,6 +47,7 @@ export function AskScreen() {
   const blackout = useApp((s) => s.blackout);
   const archives = useApp((s) => s.archives);
   const numbers = useEmergencyNumbers();
+  const bundledNumbers = [numbers.general, ...Object.values(numbers.services)];
   const [question, setQuestion] = useState('');
   const [asked, setAsked] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -230,6 +232,7 @@ export function AskScreen() {
               key={p.sourceId}
               passage={p}
               index={i}
+              bundled={bundledNumbers}
               onOpen={() => {
                 open(p);
               }}
@@ -294,11 +297,25 @@ export function AskScreen() {
   );
 }
 
-function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; index: number; onOpen: () => void; label: string }) {
+function Passage({
+  passage,
+  index,
+  bundled,
+  onOpen,
+  label,
+}: {
+  passage: Layer1Passage;
+  index: number;
+  /** The emergency numbers of the user's country: a source sentence with any other number is flagged. */
+  bundled: readonly string[];
+  onOpen: () => void;
+  label: string;
+}) {
   const t = useMessages();
   const [expanded, setExpanded] = useState(false);
   const highlighted = passage.sentences.flatMap((s, i) => (s.highlighted ? [i] : []));
   const shown = expanded || highlighted.length === 0 ? passage.sentences.map((_, i) => i) : highlighted;
+  const flagged = (i: number): boolean => unbundledNumbers(passage.sentences[i]?.phoneNumbers ?? [], bundled).length > 0;
   return (
     <div className="card stack" data-testid={`layer1-passage-${String(index)}`}>
       <div>
@@ -315,11 +332,17 @@ function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; in
           return (
             <span key={i} className={s.highlighted ? 'highlight' : undefined}>
               {k > 0 ? (gap ? ' … ' : ' ') : i > 0 ? '… ' : ''}
+              {flagged(i) && <span className="source-number-mark">⚠ </span>}
               {s.text}
             </span>
           );
         })}
       </p>
+      {shown.some(flagged) && (
+        <p className="source-number" role="note" data-testid={`layer1-number-flag-${String(index)}`}>
+          ⚠ {t.ask.sourceNumberFlag}
+        </p>
+      )}
       {(shown.length < passage.sentences.length || expanded) && (
         <div>
           <button

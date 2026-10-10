@@ -200,3 +200,26 @@ test('emergency question: the country number is shown before any Layer 1 excerpt
   await expect(page.getByTestId('ask-summarise')).toHaveCount(0);
   await expect(page.getByTestId('ai-summary')).toHaveCount(0);
 });
+
+test('emergency question: a phone number in a source excerpt is flagged, addresses are removed', async ({ page }) => {
+  await page.getByTestId('tab-ask').click();
+  await page.getByTestId('ask-input').fill('Earthquake shaking: what is an earthquake?');
+  await page.getByTestId('ask-submit').click();
+  const passage = page.getByTestId('layer1-passage-0');
+  await expect(passage).toContainText('555-0177');
+  await expect(passage).toContainText('[link removed]');
+  await expect(passage).not.toContainText('quakes@desk.example');
+  await expect(page.getByTestId('layer1-number-flag-0')).toHaveText('⚠ Number from a source — use the emergency number shown above');
+});
+
+test('no emergency intent: the same number is not flagged, the address is still removed', async ({ page }) => {
+  await page.getByTestId('tab-ask').click();
+  await page.getByTestId('ask-input').fill('Who takes reports about the shaking surface of the Earth?');
+  await page.getByTestId('ask-submit').click();
+  await page.getByTestId('layer1-toggle-0').click();
+  const passage = page.getByTestId('layer1-passage-0');
+  await expect(passage).toContainText('555-0177');
+  await expect(passage).toContainText('[link removed]');
+  await expect(page.getByTestId('emergency-banner')).toHaveCount(0);
+  await expect(page.getByTestId('layer1-number-flag-0')).toHaveCount(0);
+});

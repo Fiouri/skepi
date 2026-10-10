@@ -34,7 +34,16 @@ const ARTICLES: Article[] = [
   {
     path: 'Earthquake',
     title: 'Earthquake',
-    sections: [{ heading: '', level: 1, text: 'An earthquake is the shaking of the surface of the Earth caused by a sudden release of energy in the lithosphere.' }],
+    sections: [
+      {
+        heading: '',
+        level: 1,
+        text:
+          'An earthquake is the shaking of the surface of the Earth caused by a sudden release of energy in the lithosphere. ' +
+          // A source phone number and address (Layer 1 flags the number and removes the address).
+          'Earthquake shaking reports go to the quake desk on 555-0177 or quakes@desk.example.',
+      },
+    ],
   },
 ];
 

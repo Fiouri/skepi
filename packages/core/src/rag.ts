@@ -371,7 +371,7 @@ export async function retrieve(question: string, knowledge: KnowledgeEngine, opt
   const sources = toSources(selectWithinBudget(candidates, { budgetChars: budget.chars, maxSources: budget.maxSources }));
   emit({ type: 'context', sources, ms: now() - started });
 
-  const layer1 = buildLayer1(question, sources);
+  const layer1 = buildLayer1(question, sources, { findPhones: emergency !== null });
   timings.layer1Ms = now() - started;
   emit({ type: 'layer1', answer: layer1, ms: timings.layer1Ms });
   return { ...base, status: 'ready', hits, best, budget, sources, layer1 };

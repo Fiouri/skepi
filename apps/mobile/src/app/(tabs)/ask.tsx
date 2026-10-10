@@ -2,6 +2,7 @@ import {
   retrieve,
   summarise,
   summaryAllowed,
+  unbundledNumbers,
   type EmergencyMatch,
   type Layer1Passage,
   type MedicalIntent,
@@ -41,6 +42,7 @@ export default function AskScreen() {
   const { profile, model } = active;
   const blackout = usePrefs((s) => s.blackout);
   const numbers = useEmergencyNumbers();
+  const bundledNumbers = [numbers.general, ...Object.values(numbers.services)];
   const aiCost = useEnergyCost('ai-summary', energyTier(profile));
   const [question, setQuestion] = useState('');
   /** The question as asked (the cards follow it, not the text being edited). */
@@ -265,6 +267,7 @@ export default function AskScreen() {
                 key={p.sourceId}
                 passage={p}
                 index={i}
+                bundled={bundledNumbers}
                 label={t.ask.sourceLabel({ id: p.sourceId, title: p.title, heading: p.heading })}
                 onOpen={() => {
                   open(p);
@@ -355,12 +358,26 @@ export default function AskScreen() {
  * One Layer 1 passage: the matching sentences (with "…" where the passage skips text), and the whole
  * passage on request. Showing every passage in full pushed the AI summary off the first screen.
  */
-function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; index: number; onOpen: () => void; label: string }) {
+function Passage({
+  passage,
+  index,
+  bundled,
+  onOpen,
+  label,
+}: {
+  passage: Layer1Passage;
+  index: number;
+  /** The emergency numbers of the user's country: a source sentence with any other number is flagged. */
+  bundled: readonly string[];
+  onOpen: () => void;
+  label: string;
+}) {
   const t = useMessages();
   const styles = useStyles();
   const [expanded, setExpanded] = useState(false);
   const highlighted = passage.sentences.flatMap((s, i) => (s.highlighted ? [i] : []));
   const shown = expanded || highlighted.length === 0 ? passage.sentences.map((_, i) => i) : highlighted;
+  const flagged = (i: number): boolean => unbundledNumbers(passage.sentences[i]?.phoneNumbers ?? [], bundled).length > 0;
   const canExpand = shown.length < passage.sentences.length || expanded;
   return (
     <View style={styles.passage} testID={`layer1-passage-${index}`}>
@@ -376,11 +393,17 @@ function Passage({ passage, index, onOpen, label }: { passage: Layer1Passage; in
           return (
             <Text key={i} style={s.highlighted ? styles.highlight : undefined}>
               {k > 0 ? (gap ? ' … ' : ' ') : i > 0 ? '… ' : ''}
+              {flagged(i) && <Text style={styles.unverified}>⚠ </Text>}
               {s.text}
             </Text>
           );
         })}
       </Text>
+      {shown.some(flagged) && (
+        <View style={styles.warning} testID={`layer1-number-flag-${index}`} accessibilityRole="alert">
+          <Text style={styles.warningText}>⚠ {t.ask.sourceNumberFlag}</Text>
+        </View>
+      )}
       {canExpand && (
         <Pressable
           testID={`layer1-toggle-${index}`}

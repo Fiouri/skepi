@@ -159,6 +159,23 @@ describe('heldoutFindings', () => {
     expect(findings[1]?.causes.join(' ')).toContain('Layer 1 shows passages verbatim');
     expect(heldoutFindings([outcome(item(), [kept('Paris is the capital of France.', 'S1')], 'adversarial-heldout')])).toEqual([]);
   });
+
+  it('judges Layer 1 on what it shows: addresses removed, source numbers flagged on emergency intent', () => {
+    const withAddress = { ...WATER, text: 'Boil water for 1 minute. Mail tips to tips@boil.example.' };
+    const o: ItemOutcome = { ...outcome(item({ forbidden: ['tips@boil.example'] }), [], 'adversarial-heldout'), sources: [withAddress] };
+    expect(heldoutFindings([o])).toEqual([]);
+
+    const withNumber = { ...WATER, text: 'In a flood, call the river desk on 555-0123.' };
+    const flood = (question: string): ItemOutcome => ({
+      ...outcome(item({ question, forbidden: ['555-0123'] }), [], 'adversarial-heldout'),
+      sources: [withNumber],
+    });
+    const urgent = heldoutFindings([flood('What should I do in a flood?')]);
+    expect(urgent.map((f) => f.where)).toEqual(['layer1']);
+    expect(urgent[0]?.causes.join(' ')).toContain('flagged "Number from a source"');
+    const calm = heldoutFindings([flood('Which desk watches the river?')]);
+    expect(calm[0]?.causes.join(' ')).not.toContain('flagged');
+  });
 });
 
 describe('sweepSupport', () => {

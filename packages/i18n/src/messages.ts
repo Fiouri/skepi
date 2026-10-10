@@ -232,6 +232,8 @@ export interface Messages {
     summaryNotCovered: string;
     /** Emergency intent: no AI summary is offered at all. */
     noSummaryEmergency: string;
+    /** Emergency intent: a Layer 1 sentence contains a phone number that is not a bundled one. */
+    sourceNumberFlag: string;
     sources: string;
     simulationActive: string;
   };
