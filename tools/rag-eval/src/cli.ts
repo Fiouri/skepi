@@ -36,7 +36,7 @@ import { SidecarZimEngine, type SidecarArchive } from './zimEngine';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REPO = resolve(ROOT, '..', '..');
-const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout', 'adversarial-heldout-2'] as const;
+const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout', 'adversarial-heldout-2', 'adversarial-heldout-3'] as const;
 /**
  * Held-out sets, each with its own invented-article archive: a held-out set's items run against the
  * packs + its own archive; no other set ever sees a held-out archive. Each is reported in its own
@@ -45,6 +45,7 @@ const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout', 'adversaria
 const HELDOUT: Readonly<Record<string, string>> = {
   'adversarial-heldout': 'eval-heldout.zim',
   'adversarial-heldout-2': 'eval-heldout-2.zim',
+  'adversarial-heldout-3': 'eval-heldout-3.zim',
 };
 const HELDOUT_ZIMS = Object.values(HELDOUT);
 const isHeldout = (set: string): boolean => set in HELDOUT;

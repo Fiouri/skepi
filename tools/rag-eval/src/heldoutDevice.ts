@@ -19,6 +19,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const ARCHIVES: Readonly<Record<string, string>> = {
   'adversarial-heldout': 'eval-heldout.zim',
   'adversarial-heldout-2': 'eval-heldout-2.zim',
+  'adversarial-heldout-3': 'eval-heldout-3.zim',
 };
 
 interface DeviceOutcome {

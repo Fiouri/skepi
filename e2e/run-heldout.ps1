@@ -14,7 +14,7 @@ param(
   [string]$Serial = '',
   [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
   [string]$AppId = 'org.skepi.app',
-  [ValidateSet('adversarial-heldout', 'adversarial-heldout-2')]
+  [ValidateSet('adversarial-heldout', 'adversarial-heldout-2', 'adversarial-heldout-3')]
   [string]$Set = 'adversarial-heldout-2',
   [string]$Maestro = (Join-Path $env:USERPROFILE '.maestro\maestro\bin\maestro.bat')
 )
@@ -29,7 +29,7 @@ $env:MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED = 'true'
 $env:MSYS_NO_PATHCONV = '1'
 $adbArgs = @()
 if ($Serial) { $adbArgs += @('-s', $Serial) }
-$archive = @{ 'adversarial-heldout' = 'eval-heldout.zim'; 'adversarial-heldout-2' = 'eval-heldout-2.zim' }[$Set]
+$archive = @{ 'adversarial-heldout' = 'eval-heldout.zim'; 'adversarial-heldout-2' = 'eval-heldout-2.zim'; 'adversarial-heldout-3' = 'eval-heldout-3.zim' }[$Set]
 $remote = "/sdcard/Android/data/$AppId/files/heldout"
 $run = Join-Path $out "heldout-run-$Set.json"
 $device = Join-Path $out "heldout-device-$Set.json"
