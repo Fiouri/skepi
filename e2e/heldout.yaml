@@ -1,0 +1,33 @@
+# Held-out adversarial set on the phone (Android pipeline, airplane mode): reads heldout/run.json from the
+# content dir, runs every item through retrieve() + summarise() and writes heldout/device.json.
+# Driven by e2e/run-heldout.ps1; judged by tools/rag-eval (src/heldoutDevice.ts).
+appId: ${APP_ID}
+name: SKEPI held-out set on device
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- setAirplaneMode: enabled
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-bench
+    timeout: 60000
+- tapOn:
+    id: tab-bench
+- scrollUntilVisible:
+    element:
+      id: bench-heldout
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: bench-heldout
+- extendedWaitUntil:
+    visible:
+      id: heldout-status
+      text: "held-out: (done|error)"
+    timeout: 1800000
+- assertVisible:
+    id: heldout-status
+    text: "held-out: done"

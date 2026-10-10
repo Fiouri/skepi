@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { Button, ContentGate, useStyles } from '../../components/ui';
 import { runBench, type BenchReport } from '../../lib/bench';
 import { exportEnergySamples, resetEnergySamples } from '../../lib/energy';
+import { runHeldout } from '../../lib/heldout';
 import { runParity } from '../../lib/parity';
 import { useActiveProfile, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
@@ -28,6 +29,7 @@ export default function BenchScreen() {
   const [report, setReport] = useState<BenchReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [parity, setParity] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [heldout, setHeldout] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [energyExport, setEnergyExport] = useState<string | null>(null);
 
   // Render probe for "sources visible": the bench shows the sources here, like the Ask screen does,
@@ -69,6 +71,24 @@ export default function BenchScreen() {
       setReport(r);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const startHeldout = async (): Promise<void> => {
+    setRunning(true);
+    setHeldout('running');
+    setLines([]);
+    setError(null);
+    try {
+      await runHeldout((line) => {
+        setLines((prev) => [...prev, line]);
+      });
+      setHeldout('done');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setHeldout('error');
     } finally {
       setRunning(false);
     }
@@ -160,6 +180,10 @@ export default function BenchScreen() {
           <Button testID="bench-parity" label={t.bench.parity} onPress={() => void startParity()} disabled={running} />
           <Text style={styles.muted} testID="parity-status">
             {`parity: ${parity}`}
+          </Text>
+          <Button testID="bench-heldout" label="Run held-out set" onPress={() => void startHeldout()} disabled={running} />
+          <Text style={styles.muted} testID="heldout-status">
+            {`held-out: ${heldout}`}
           </Text>
         </View>
         <View style={styles.row}>
