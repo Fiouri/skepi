@@ -1,8 +1,8 @@
 import { pinnedKeys, trustedFromPinned, type PinnedKeyInput } from '@skepi/core';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { buildCatalog, sequenceOf, signKeyList, verifyCatalogDir, verifyKeyListDir, writeSigned } from './build';
+import { buildCatalog, prepareCatalog, sequenceOf, sha256Hex, signKeyList, signPreparedCatalog, verifyCatalogDir, verifyKeyListDir, writeSigned } from './build';
 import { keygen, readPinnedKeys, readSecretKey, REPO_ROOT, type PinnedKeysFile } from './keys';
 import { checkFixtures } from './fixtures';
 import { mergeManifests, readManifest } from './manifest';
@@ -18,7 +18,7 @@ import { defaultCacheDir, legacySkepiDir, migrateDir, resolveCacheDir, skepiHome
  *   verify  --dir <dir> --pinned catalog/keys/<purpose>.json [--release]
  *   migrate-cache [--cache <dir>]   moves %TEMP%\skepi\{cache,keys} to %LOCALAPPDATA%\skepi (SHA-256 checked)
  */
-const USAGE = 'usage: catalog <keygen|pin|build|keylist|verify|migrate-cache|check-fixtures> [options] (see src/cli.ts)';
+const USAGE = 'usage: catalog <keygen|pin|build|prepare|sign|keylist|verify|migrate-cache|check-fixtures> [options] (see src/cli.ts)';
 
 const [command, ...rest] = process.argv.slice(2).filter((a, i) => !(i === 0 && a === '--'));
 const { values: args } = parseArgs({
@@ -38,6 +38,7 @@ const { values: args } = parseArgs({
     pinned: { type: 'string' },
     dir: { type: 'string' },
     release: { type: 'boolean', default: false },
+    'expect-sha256': { type: 'string' },
   },
 });
 
@@ -112,6 +113,44 @@ async function main(): Promise<number> {
       );
       await writeSigned(resolve(need('out', args.out)), 'keys.json', signed);
       console.log(`key list signed by ${signer.keyId}: active ${next.active.keyId}, backup ${next.backup.keyId}`);
+      return 0;
+    }
+    case 'prepare': {
+      // Measures the packs and writes the exact catalog.json bytes for --key-id to sign later on the
+      // offline machine (`sign`); no key is read. --previous is required: the sequence must increase.
+      const out = resolve(need('out', args.out));
+      const previous = resolve(need('previous', args.previous));
+      const prepared = await prepareCatalog({
+        manifest: mergeManifests((args.manifest ?? []).map(readManifest)),
+        cacheDir: cacheDir(),
+        keyId: need('key-id', args['key-id']),
+        previousSequence: sequenceOf(previous),
+        ...(args.sequence ? { sequence: Number(args.sequence) } : {}),
+        ...(args['issued-at'] ? { issuedAt: args['issued-at'] } : {}),
+        log: (line) => {
+          console.log(line);
+        },
+      });
+      mkdirSync(out, { recursive: true });
+      writeFileSync(join(out, 'catalog.json'), prepared.bytes);
+      rmSync(join(out, 'catalog.json.sig'), { force: true });
+      console.log(
+        `prepared catalog sequence ${String(prepared.catalog.sequence)} (${String(prepared.catalog.packs.length)} packs) for ${prepared.catalog.keyId} -> ${join(out, 'catalog.json')}`,
+      );
+      console.log(`SHA-256 of the bytes to sign: ${sha256Hex(prepared.bytes)}`);
+      return 0;
+    }
+    case 'sign': {
+      // Signs <dir>/catalog.json exactly as prepared (writes <dir>/catalog.json.sig); refuses other keys,
+      // a non-increasing sequence, non-canonical bytes and, with --expect-sha256, any other bytes.
+      const dir = resolve(need('dir', args.dir));
+      const key = readSecretKey(need('key', args.key));
+      const signed = signPreparedCatalog(new Uint8Array(readFileSync(join(dir, 'catalog.json'))), key, {
+        previousSequence: sequenceOf(resolve(need('previous', args.previous))),
+        ...(args['expect-sha256'] ? { expectSha256: args['expect-sha256'] } : {}),
+      });
+      writeFileSync(join(dir, 'catalog.json.sig'), `${signed.signature}\n`, 'utf8');
+      console.log(`signed catalog sequence ${String(signed.catalog.sequence)} (SHA-256 ${signed.sha256}) with ${key.keyId} -> ${join(dir, 'catalog.json.sig')}`);
       return 0;
     }
     case 'check-fixtures': {

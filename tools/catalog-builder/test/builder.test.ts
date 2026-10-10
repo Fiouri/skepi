@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { NO_SEQUENCE, pinnedKeys, trustedFromPinned, verifyCatalog, verifyKeyList } from '@skepi/core';
 import { describe, expect, it } from 'vitest';
-import { buildCatalog, nextSequence, sequenceOf, signKeyList, verifyCatalogDir, writeSigned } from '../src/build';
+import { buildCatalog, nextSequence, prepareCatalog, sequenceOf, sha256Hex, signKeyList, signPreparedCatalog, verifyCatalogDir, writeSigned } from '../src/build';
 import { digestFile } from '../src/hash';
 import { assertOutsideRepo, keygen, readSecretKey, REPO_ROOT } from '../src/keys';
 import { parseManifest, type Manifest } from '../src/manifest';
@@ -88,6 +88,27 @@ describe('buildCatalog', () => {
     expect(sequenceOf(join(out, 'catalog.json'))).toBe(1);
     const next = await buildCatalog({ manifest, cacheDir: dir, key: backup, previousSequence: 1 });
     expect(verifyCatalog(next.bytes, next.signature, trusted, { sequence: 1, sha256: null })).toMatchObject({ ok: true, sequence: 2 });
+  });
+
+  it('prepare + sign (offline) give the same bytes and signature as build, and the app accepts them', async () => {
+    const issuedAt = '2026-10-10T00:00:00Z';
+    const prepared = await prepareCatalog({ manifest, cacheDir: dir, keyId: active.keyId, previousSequence: 2, issuedAt });
+    const built = await buildCatalog({ manifest, cacheDir: dir, key: active, previousSequence: 2, issuedAt });
+    expect(Buffer.from(prepared.bytes).equals(Buffer.from(built.bytes))).toBe(true);
+    const signed = signPreparedCatalog(prepared.bytes, active, { previousSequence: 2, expectSha256: sha256Hex(prepared.bytes) });
+    expect(signed.signature).toBe(built.signature);
+    expect(signed.catalog.sequence).toBe(3);
+    expect(verifyCatalog(signed.bytes, signed.signature, trusted, { sequence: 2, sha256: null })).toMatchObject({ ok: true, sequence: 3 });
+  });
+
+  it('sign refuses other bytes, another key, a non-increasing sequence and non-canonical JSON', async () => {
+    const prepared = await prepareCatalog({ manifest, cacheDir: dir, keyId: active.keyId, previousSequence: 2 });
+    const hash = sha256Hex(prepared.bytes);
+    expect(() => signPreparedCatalog(prepared.bytes, active, { previousSequence: 2, expectSha256: '00'.repeat(32) })).toThrow(/not the reviewed/);
+    expect(() => signPreparedCatalog(prepared.bytes, backup, { previousSequence: 2 })).toThrow(/names key cat-unit-a, not cat-unit-b/);
+    expect(() => signPreparedCatalog(prepared.bytes, active, { previousSequence: 3, expectSha256: hash })).toThrow(/always increase/);
+    const reformatted = new TextEncoder().encode(JSON.stringify(JSON.parse(new TextDecoder().decode(prepared.bytes))));
+    expect(() => signPreparedCatalog(reformatted, active, { previousSequence: 2 })).toThrow(/canonical form/);
   });
 
   it('sequence must always increase', () => {

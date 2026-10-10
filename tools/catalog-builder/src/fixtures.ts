@@ -122,8 +122,12 @@ function checkLiteralReferences(root: string, tracked: Set<string>, problems: Fi
   }
 }
 
-/** Every file inside a `fixtures` directory of the working tree is committed. */
+/**
+ * No file inside a `fixtures` directory of the working tree is silently ignored by git (the Phase 3a
+ * failure: `*.zim`). Untracked files that git would show as new are work in progress, not reported.
+ */
 function checkFixtureDirectories(root: string, tracked: Set<string>, problems: FixtureProblem[]): void {
+  const untracked: string[] = [];
   const walk = (rel: string, inFixtures: boolean): void => {
     for (const entry of readdirSync(join(root, rel), { withFileTypes: true })) {
       const path = rel ? `${rel}/${entry.name}` : entry.name;
@@ -131,11 +135,22 @@ function checkFixtureDirectories(root: string, tracked: Set<string>, problems: F
         if (SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) continue;
         walk(path, inFixtures || entry.name === 'fixtures');
       } else if (inFixtures && !tracked.has(path) && !entry.name.endsWith('.pyc')) {
-        problems.push({ file: path, from: 'working tree', problem: 'file in a fixtures directory is not committed' });
+        untracked.push(path);
       }
     }
   };
   walk('', false);
+  if (untracked.length === 0) return;
+  let ignored = '';
+  try {
+    ignored = execFileSync('git', ['check-ignore', '--no-index', '--stdin', '-z'], { cwd: root, input: `${untracked.join('\0')}\0`, encoding: 'utf8' });
+  } catch (e) {
+    // Exit status 1: none of the paths is ignored.
+    if ((e as { status?: number }).status !== 1) throw e;
+  }
+  for (const path of ignored.split('\0').filter(Boolean)) {
+    problems.push({ file: path, from: 'working tree', problem: 'file in a fixtures directory is ignored by git, so it can never be committed' });
+  }
 }
 
 export function checkFixtures(root: string): FixtureProblem[] {

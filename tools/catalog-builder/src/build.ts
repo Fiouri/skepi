@@ -35,20 +35,27 @@ export interface Signed {
   signature: string;
 }
 
-export interface BuildOptions {
+/** What measuring the packs needs (no key). */
+export interface MeasureOptions {
   manifest: Manifest;
   /** Where downloads are cached (and where already downloaded files are found). */
   cacheDir: string;
+  /** Root for `local` sources (default: the repository). */
+  localRoot?: string;
+  log?: (line: string) => void;
+}
+
+export interface BuildOptions extends MeasureOptions {
   key: SigningKey;
   /** Sequence of the catalog this one replaces; the new one must be higher. */
   previousSequence: number | null;
   /** Explicit sequence; default previous + 1. */
   sequence?: number;
   issuedAt?: string;
-  /** Root for `local` sources (default: the repository). */
-  localRoot?: string;
-  log?: (line: string) => void;
 }
+
+/** `prepare`: the same as a build, but the key is only named; nothing is signed. */
+export type PrepareOptions = Omit<BuildOptions, 'key'> & { keyId: string };
 
 /** Sequence of an existing catalog file, or null when there is none. */
 export function sequenceOf(path: string): number | null {
@@ -65,7 +72,7 @@ export function nextSequence(previous: number | null, requested: number | undefi
   return sequence;
 }
 
-async function packFile(pack: ManifestPack, opts: BuildOptions): Promise<{ path: string; upstream: string | null }> {
+async function packFile(pack: ManifestPack, opts: MeasureOptions): Promise<{ path: string; upstream: string | null }> {
   const log = opts.log ?? (() => undefined);
   const source = pack.source;
   if (source.kind === 'local') {
@@ -104,7 +111,7 @@ async function md5File(path: string): Promise<string> {
 }
 
 /** Measures every pack (SHA-256, 64 MB chunk hashes) and checks it against the publisher's checksum. */
-export async function measurePacks(opts: BuildOptions): Promise<CatalogPack[]> {
+export async function measurePacks(opts: MeasureOptions): Promise<CatalogPack[]> {
   const log = opts.log ?? (() => undefined);
   const packs: CatalogPack[] = [];
   for (const p of opts.manifest.packs) {
@@ -135,25 +142,66 @@ export async function measurePacks(opts: BuildOptions): Promise<CatalogPack[]> {
   return packs;
 }
 
-/** Serialises a catalog (stable key order, 2-space JSON, trailing newline) and signs the exact bytes. */
-export function signCatalog(catalog: Catalog, key: SigningKey): Signed {
-  const ordered: Catalog = { schema: CATALOG_SCHEMA, sequence: catalog.sequence, issuedAt: catalog.issuedAt, keyId: key.keyId, packs: catalog.packs };
+/** The canonical bytes of a catalog (stable key order, 2-space JSON, trailing newline): what is signed. */
+export function serializeCatalog(catalog: Catalog): Uint8Array {
+  const ordered: Catalog = { schema: CATALOG_SCHEMA, sequence: catalog.sequence, issuedAt: catalog.issuedAt, keyId: catalog.keyId, packs: catalog.packs };
   parseCatalog(ordered);
-  const bytes = utf8(`${JSON.stringify(ordered, null, 2)}\n`);
+  return utf8(`${JSON.stringify(ordered, null, 2)}\n`);
+}
+
+/** Serialises a catalog and signs the exact bytes. */
+export function signCatalog(catalog: Catalog, key: SigningKey): Signed {
+  const bytes = serializeCatalog({ ...catalog, keyId: key.keyId });
   return { bytes, signature: signBytes(bytes, key.secretKey) };
 }
 
-export async function buildCatalog(opts: BuildOptions): Promise<Signed & { catalog: Catalog }> {
+export function sha256Hex(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+/**
+ * Measures the packs and returns the exact catalog bytes to be signed later by `keyId`, without any
+ * key: the maintainer reviews these bytes (and their SHA-256) and signs them on the offline machine.
+ */
+export async function prepareCatalog(opts: PrepareOptions): Promise<{ bytes: Uint8Array; catalog: Catalog }> {
   const sequence = nextSequence(opts.previousSequence, opts.sequence);
   const packs = await measurePacks(opts);
   const catalog: Catalog = {
     schema: CATALOG_SCHEMA,
     sequence,
     issuedAt: opts.issuedAt ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-    keyId: opts.key.keyId,
+    keyId: opts.keyId,
     packs,
   };
-  return { ...signCatalog(catalog, opts.key), catalog };
+  return { bytes: serializeCatalog(catalog), catalog };
+}
+
+export async function buildCatalog(opts: BuildOptions): Promise<Signed & { catalog: Catalog }> {
+  const { bytes, catalog } = await prepareCatalog({ ...opts, keyId: opts.key.keyId });
+  return { bytes, signature: signBytes(bytes, opts.key.secretKey), catalog };
+}
+
+export interface SignPreparedOptions {
+  /** Sequence of the catalog this one replaces (e.g. the embedded release catalog). */
+  previousSequence: number | null;
+  /** SHA-256 the maintainer reviewed: signing is refused when the bytes differ. */
+  expectSha256?: string;
+}
+
+/**
+ * Signs prepared catalog bytes exactly as they are. Refuses bytes that are not a valid catalog in the
+ * canonical form, name another key, do not increase the sequence, or differ from the reviewed hash.
+ */
+export function signPreparedCatalog(bytes: Uint8Array, key: SigningKey, opts: SignPreparedOptions): Signed & { catalog: Catalog; sha256: string } {
+  const sha256 = sha256Hex(bytes);
+  if (opts.expectSha256 !== undefined && opts.expectSha256.toLowerCase() !== sha256) {
+    throw new Error(`catalog bytes have SHA-256 ${sha256}, not the reviewed ${opts.expectSha256}`);
+  }
+  const catalog = parseCatalog(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown);
+  if (catalog.keyId !== key.keyId) throw new Error(`the catalog names key ${catalog.keyId}, not ${key.keyId}`);
+  if (sha256Hex(serializeCatalog(catalog)) !== sha256) throw new Error('the catalog bytes are not in the canonical form written by prepare');
+  nextSequence(opts.previousSequence, catalog.sequence);
+  return { bytes, signature: signBytes(bytes, key.secretKey), catalog, sha256 };
 }
 
 /**

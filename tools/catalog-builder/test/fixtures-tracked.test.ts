@@ -29,8 +29,11 @@ function sandbox(content: Buffer) {
   };
   writeFileSync(join(root, 'e2e', 'mirror', 'catalogs', 'good', 'catalog.json'), JSON.stringify(catalog));
   writeFileSync(join(root, 'e2e', 'fixtures', 'pack.zim'), content);
+  // As in the repository: ZIMs are ignored unless excepted.
+  writeFileSync(join(root, '.gitignore'), '*.zim\n');
+  writeFileSync(join(root, 'e2e', 'fixtures', 'work-in-progress.json'), '{}');
   writeFileSync(join(root, 'tests', 'pack.rs'), 'let p = repo("e2e/fixtures/pack.zim");\nlet bad = fixtures().join("../fixtures/../x.json");\n');
-  git(root, 'add', 'e2e/mirror', 'tests');
+  git(root, 'add', '.gitignore', 'e2e/mirror', 'tests');
   return root;
 }
 
@@ -45,13 +48,13 @@ describe('test fixtures are committed', () => {
     expect(problems.map((p) => `${p.from}: ${p.problem}`)).toEqual([
       'e2e/mirror/catalogs/good/catalog.json: pack test-pack: not committed in e2e/fixtures or tools/rag-eval/fixtures',
       'tests/pack.rs: referenced but not committed',
-      'working tree: file in a fixtures directory is not committed',
+      'working tree: file in a fixtures directory is ignored by git, so it can never be committed',
     ]);
   });
 
   it('passes once committed, and catches bytes that no longer match the signed catalog', () => {
     const root = sandbox(Buffer.from('fixture bytes'));
-    git(root, 'add', 'e2e/fixtures/pack.zim');
+    git(root, 'add', '--force', 'e2e/fixtures/pack.zim');
     expect(checkFixtures(root)).toEqual([]);
     writeFileSync(join(root, 'e2e', 'fixtures', 'pack.zim'), Buffer.from('fixture BYTES'));
     expect(checkFixtures(root).map((p) => p.problem)).toEqual(['pack test-pack: SHA-256 differs from the catalog']);

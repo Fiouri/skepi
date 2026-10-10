@@ -94,6 +94,29 @@ node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts verify --rel
 The new release catalog gets sequence 2 (previous + 1). Then upload the two files of the `packs-2026-10`
 mirror (`map-gr-20261005.pmtiles`, `places-gr-20261004.sqlite`) as GitHub release assets.
 
+### Prepare here, sign offline (from sequence 3)
+
+`build` measures the packs and signs in one step, so the signing machine needs every pack. `prepare`
+measures them on any machine and writes the exact `catalog.json` bytes naming the key that will sign them
+(no key read); `sign` signs those bytes as they are, on the machine with the key, and refuses another key,
+a sequence that does not increase, bytes not in the canonical form, or (with `--expect-sha256`) bytes
+other than the reviewed ones:
+
+```powershell
+# Any machine with the packs in the cache: catalog/pending/release/catalog.json (committed for review).
+node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts prepare --manifest catalog/manifest.json `
+  --key-id cat-2026a --previous catalog/embedded/release/catalog.json --out catalog/pending/release
+# Offline machine: sign the reviewed bytes, check, then move both files into the embedded release catalog.
+node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts sign --dir catalog/pending/release `
+  --key D:\offline\skepi\cat-2026a.key.json --previous catalog/embedded/release/catalog.json --expect-sha256 <reviewed hash>
+node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts verify --release `
+  --dir catalog/pending/release --pinned catalog/keys/release.json
+```
+
+Sequence 3 (2026-10-10) has the same eight packs as sequence 2 (all still the newest upstream versions,
+every URL answering with the catalog's size); it exists to prove release-catalog propagation from the
+desktop Station to a release phone.
+
 ## Release builds
 
 `apps/mobile/plugins/withContentStore.js` copies `catalog/embedded/release` and `catalog/keys/release.json`

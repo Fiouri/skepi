@@ -1,0 +1,25 @@
+# The catalog this app trusts after a fresh start (Library, catalog-info): e2e/run-station-release.ps1
+# checks it before and after the Station session (persisted, not only shown during the session).
+#   APP_ID        application id
+#   CATALOG_INFO  expected text (regex), e.g. 'Signed catalog 3 · release keys · 8 packs'
+appId: ${APP_ID}
+name: SKEPI catalog info
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "(tab-search|onboarding)"
+    timeout: 600000
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-library
+- scrollUntilVisible:
+    element:
+      id: catalog-info
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: catalog-info
+    text: ${CATALOG_INFO}
+- takeScreenshot: e2e/out/catalog-info-${APP_ID}
