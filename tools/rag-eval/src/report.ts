@@ -15,7 +15,17 @@ export interface ReportInput {
   perLang: Partial<Record<string, SetMetrics>>;
   tokens: TokensPerLang;
   sweep: SweepRow[];
-  heldout: { metrics: SetMetrics; findings: HeldoutFinding[]; items: number; status: string | null } | null;
+  /** Knowledge engine (python-libzim or the desktop's Rust engine). */
+  engine?: string;
+  heldouts: HeldoutReport[];
+}
+
+export interface HeldoutReport {
+  set: string;
+  metrics: SetMetrics;
+  findings: HeldoutFinding[];
+  items: number;
+  status: string | null;
 }
 
 const pct = (v: number | null): string => (v === null ? '–' : `${(v * 100).toFixed(1)}%`);
@@ -61,6 +71,7 @@ export function renderMarkdown(r: ReportInput): string {
   lines.push('');
   lines.push(`Prompt \`${r.promptVersion}\` · model \`${r.model ?? 'none (Layer 1 only)'}\` · CPU ${r.threads} threads · budget ${r.tier} · min bigram support ${r.minBigramSupport}`);
   lines.push('');
+  if (r.engine) lines.push(`Knowledge engine: ${r.engine}`, '');
   if (r.checks.length > 0) {
     lines.push('| Threshold | Value | Required | Result |');
     lines.push('| --- | --- | --- | --- |');
@@ -89,33 +100,37 @@ export function renderMarkdown(r: ReportInput): string {
   lines.push('| --- | --- | --- | --- | --- |');
   for (const s of r.sweep) lines.push(`| ${s.minSupport} | ${s.kept} | ${s.correctKept} | ${pct(s.precision)} | ${pct(s.recall)} |`);
   lines.push('');
-  if (r.heldout) {
-    const h = r.heldout;
-    const used = h.status?.startsWith('used for a decision') ?? false;
-    lines.push(`## Held-out adversarial set (report only, not gated)${used ? ' — set already used for a decision' : ''}`);
-    lines.push('');
-    if (h.status) {
-      lines.push(`**Status:** ${h.status}`);
-      lines.push('');
-    }
-    lines.push(
-      'Written independently of the sanitizer lexicon and the tuned adversarial set. Prompts, lexicon and thresholds are never ' +
-        'changed in response to these results; failures are listed with their cause for a decision.',
-    );
-    lines.push('');
-    lines.push(`| ${HEADER.join(' | ')} |`);
-    lines.push(`| ${HEADER.map(() => '---').join(' | ')} |`);
-    lines.push(`| ${row('adversarial-heldout', h.metrics)} |`);
-    lines.push('');
-    if (h.findings.length === 0) {
-      lines.push('No failures: no unsupported, forbidden or number/unit-violating AI sentence shown, and no forbidden text in Layer 1 passages.');
-    } else {
-      const esc = (t: string): string => t.replace(/[|]/g, '/');
-      lines.push('| Item | Where | Text | Source | Cause |');
-      lines.push('| --- | --- | --- | --- | --- |');
-      for (const f of h.findings) lines.push(`| ${f.id} | ${f.where} | ${esc(f.text)} | ${esc(f.source)} | ${esc(f.causes.join('; '))} |`);
-    }
+  for (const h of r.heldouts) lines.push(...renderHeldout(h));
+  return lines.join('\n');
+}
+
+/** One held-out set's section (also used for the on-device run, src/heldoutDevice.ts). */
+export function renderHeldout(h: HeldoutReport, pipeline?: string): string[] {
+  const lines: string[] = [];
+  const used = h.status?.startsWith('used for a decision') ?? false;
+  lines.push(`## Held-out adversarial set \`${h.set}\` (report only, not gated)${pipeline ? ` · ${pipeline}` : ''}${used ? ' — set already used for a decision' : ''}`);
+  lines.push('');
+  if (h.status) {
+    lines.push(`**Status:** ${h.status}`);
     lines.push('');
   }
-  return lines.join('\n');
+  lines.push(
+    'Written independently of the sanitizer lexicon and the tuned adversarial set. Prompts, lexicon and thresholds are never ' +
+      'changed in response to these results; failures are listed with their cause for a decision.',
+  );
+  lines.push('');
+  lines.push(`| ${HEADER.join(' | ')} |`);
+  lines.push(`| ${HEADER.map(() => '---').join(' | ')} |`);
+  lines.push(`| ${row(h.set, h.metrics)} |`);
+  lines.push('');
+  if (h.findings.length === 0) {
+    lines.push('No failures: no unsupported, forbidden or number/unit-violating AI sentence shown, and no forbidden text in Layer 1 passages.');
+  } else {
+    const esc = (t: string): string => t.replace(/[|]/g, '/');
+    lines.push('| Item | Where | Text | Source | Cause |');
+    lines.push('| --- | --- | --- | --- | --- |');
+    for (const f of h.findings) lines.push(`| ${f.id} | ${f.where} | ${esc(f.text)} | ${esc(f.source)} | ${esc(f.causes.join('; '))} |`);
+  }
+  lines.push('');
+  return lines;
 }

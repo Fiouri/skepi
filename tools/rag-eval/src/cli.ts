@@ -36,10 +36,18 @@ import { SidecarZimEngine, type SidecarArchive } from './zimEngine';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REPO = resolve(ROOT, '..', '..');
-const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout'] as const;
-/** Held-out items run against the packs + eval-heldout.zim; every other set never sees that archive. */
-const HELDOUT_SET = 'adversarial-heldout';
-const HELDOUT_ZIM = 'eval-heldout.zim';
+const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout', 'adversarial-heldout-2'] as const;
+/**
+ * Held-out sets, each with its own invented-article archive: a held-out set's items run against the
+ * packs + its own archive; no other set ever sees a held-out archive. Each is reported in its own
+ * section and never gated.
+ */
+const HELDOUT: Readonly<Record<string, string>> = {
+  'adversarial-heldout': 'eval-heldout.zim',
+  'adversarial-heldout-2': 'eval-heldout-2.zim',
+};
+const HELDOUT_ZIMS = Object.values(HELDOUT);
+const isHeldout = (set: string): boolean => set in HELDOUT;
 
 interface Lock {
   zim: Record<string, { file: string; lang: string }>;
@@ -69,6 +77,9 @@ const { values: args } = parseArgs({
     'min-coverage': { type: 'string' },
     // English-only until v1: Greek items and packs run only on request, reported and never gated.
     greek: { type: 'boolean', default: false },
+    // Knowledge engine: python-libzim (default) or the desktop app's Rust engine (zim-sidecar).
+    engine: { type: 'string', default: 'python' },
+    sidecar: { type: 'string' },
   },
 });
 
@@ -91,7 +102,7 @@ async function main(): Promise<number> {
   const zims =
     args.zim ??
     (args.smoke
-      ? ['eval-smoke-en.zim', ...(args.greek ? ['eval-smoke-el.zim'] : []), 'eval-synthetic.zim', HELDOUT_ZIM].map((f) =>
+      ? ['eval-smoke-en.zim', ...(args.greek ? ['eval-smoke-el.zim'] : []), 'eval-synthetic.zim', ...HELDOUT_ZIMS].map((f) =>
           requireFile(join(fixtures, f), 'run scripts/build_eval_zims.py'),
         )
       : [
@@ -99,7 +110,7 @@ async function main(): Promise<number> {
             requireFile(join(cacheDir(), lock.zim[id]?.file ?? id), 'run scripts/provision.ps1 -DownloadOnly'),
           ),
           requireFile(join(fixtures, 'eval-synthetic.zim'), 'run scripts/build_eval_zims.py'),
-          requireFile(join(fixtures, HELDOUT_ZIM), 'run scripts/build_eval_zims.py'),
+          ...HELDOUT_ZIMS.map((f) => requireFile(join(fixtures, f), 'run scripts/build_eval_zims.py')),
         ]);
   const modelPath = args['no-model']
     ? null
@@ -128,16 +139,22 @@ async function main(): Promise<number> {
   const inScope = items.filter(({ item }) => args.greek || GATED_LANGUAGES.has(item.lang));
   const limited = args.limit ? inScope.slice(0, Number(args.limit)) : inScope;
 
-  const knowledge = new SidecarZimEngine(args.python ?? process.env.SKEPI_PYTHON ?? 'python');
+  const desktop = args.engine === 'desktop';
+  if (!desktop && args.engine !== 'python') throw new Error('--engine must be python or desktop');
+  const sidecar = resolve(args.sidecar ?? join(REPO, 'target', 'release', 'zim-sidecar.exe'));
+  if (desktop) requireFile(sidecar, 'cargo build --release -p desktop-core --bin zim-sidecar');
+  const knowledge = new SidecarZimEngine(desktop ? { command: sidecar } : (args.python ?? process.env.SKEPI_PYTHON ?? 'python'));
+  const engineName = desktop ? 'desktop (Rust libzim 9.7.0 + text.rs)' : 'rag-eval (python-libzim)';
   try {
     const archives: (SidecarArchive & { file: string })[] = [];
     for (const z of zims) archives.push({ ...(await knowledge.open(z)), file: basename(z) });
     console.log(`archives: ${archives.map((a) => `${a.file} (${a.language}, ${a.articleCount})`).join(', ')}`);
     const refs = archives.map((a) => ({ archiveId: a.archiveId, language: a.language }));
-    // Held-out items see the packs + eval-heldout.zim; the other sets never see that archive, so adding
-    // the held-out set changes nothing in their results.
-    const withoutFile = (file: string): string[] => archives.filter((a) => a.file !== file).map((a) => a.archiveId);
-    const scope = (set: string): string[] => (set === HELDOUT_SET ? withoutFile('eval-synthetic.zim') : withoutFile(HELDOUT_ZIM));
+    // A held-out set sees the packs + its own archive; the other sets never see a held-out archive, so
+    // adding a held-out set changes nothing in their results.
+    const without = (files: readonly string[]): string[] => archives.filter((a) => !files.includes(a.file)).map((a) => a.archiveId);
+    const scope = (set: string): string[] =>
+      isHeldout(set) ? without(['eval-synthetic.zim', ...HELDOUT_ZIMS.filter((f) => f !== HELDOUT[set])]) : without(HELDOUT_ZIMS);
 
     if (args['check-sets']) return await checkSets(knowledge, archives.map((a) => a.archiveId), limited);
 
@@ -217,25 +234,25 @@ async function main(): Promise<number> {
     // Pooled metrics, per-set rows and the sweep cover the gated (English) items only; the held-out set
     // is reported in its own section and never gated; Greek (--greek) is a per-language row only.
     const gated = gatedOutcomes(outcomes);
-    const heldout = outcomes.filter((o) => o.set === HELDOUT_SET);
     const perSet: Record<string, SetMetrics> = {};
     for (const name of new Set(gated.map((o) => o.set))) perSet[name] = computeSetMetrics(gated.filter((o) => o.set === name));
     const perLang: Partial<Record<Lang, SetMetrics>> = {};
     for (const lang of ['en', 'el'] as const) {
-      const subset = outcomes.filter((o) => o.set !== HELDOUT_SET && o.item.lang === lang);
+      const subset = outcomes.filter((o) => !isHeldout(o.set) && o.item.lang === lang);
       if (subset.length > 0) perLang[lang] = computeSetMetrics(subset);
     }
     const checks = inference ? checkThresholds(outcomes, thresholds) : [];
     const sweep = sweepSupport(gated, [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
-    const heldoutReport =
-      heldout.length > 0
-        ? {
-            metrics: computeSetMetrics(heldout),
-            findings: heldoutFindings(heldout),
-            items: heldout.length,
-            status: sets.find((s) => s.name === HELDOUT_SET)?.status ?? null,
-          }
-        : null;
+    const heldouts = Object.keys(HELDOUT)
+      .map((name) => ({ name, outcomes: outcomes.filter((o) => o.set === name) }))
+      .filter((h) => h.outcomes.length > 0)
+      .map((h) => ({
+        set: h.name,
+        metrics: computeSetMetrics(h.outcomes),
+        findings: heldoutFindings(h.outcomes),
+        items: h.outcomes.length,
+        status: sets.find((s) => s.name === h.name)?.status ?? null,
+      }));
     const report = {
       schema: 1,
       createdAt: new Date().toISOString(),
@@ -249,8 +266,9 @@ async function main(): Promise<number> {
       archives,
       thresholds,
       checks,
+      engine: engineName,
       all: computeSetMetrics(gated),
-      heldout: heldoutReport,
+      heldouts,
       perSet,
       perLang,
       tokens,
