@@ -4,7 +4,7 @@
     { "dir": "catalog/embedded/debug", "keys": "catalog/keys/test.json", "state": { "sequence": null, "sha256": null },
       "expect": { "ok": true, "sequence": 3, "sha256": "bccd647f33fcd7344498615dae0688c0b0ea3dbfc14f5ef3046e99c4d7633f4b" } },
     { "dir": "catalog/embedded/release", "keys": "catalog/keys/release.json", "state": { "sequence": null, "sha256": null },
-      "expect": { "ok": true, "sequence": 2, "sha256": "447e62980ec2392183d628789f768f1087737fba6feea662ef84eae374c00cc6" } },
+      "expect": { "ok": true, "sequence": 3, "sha256": "92103b2c44662152c7b3a44f5f61052eb601f3ef6dd07203e9039f60ff993777" } },
     { "dir": "catalog/embedded/release", "keys": "catalog/keys/test.json", "state": { "sequence": null, "sha256": null },
       "expect": { "ok": false, "reason": "unknown_key" } },
     { "dir": "catalog/embedded/debug", "keys": "catalog/keys/release.json", "state": { "sequence": null, "sha256": null },
