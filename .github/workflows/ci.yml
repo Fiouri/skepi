@@ -338,8 +338,8 @@ jobs:
       SKEPI_CACHE_DIR: ${{ github.workspace }}/.cache/skepi
       SKEPI_COREKIWIX_DIR: ${{ github.workspace }}/.cache/corekiwix
       SKEPI_PREVIEW: '1'
-      # React Native's post_install wires ccache into the C/C++ builds (llama.cpp, React Native, SQLCipher).
-      USE_CCACHE: '1'
+      # ccache for the C/C++/Objective-C builds (llama.cpp, SQLCipher, React Native modules) through Xcode's own
+      # compiler launcher: with explicit modules (Xcode 26) React Native's CC wrapper (USE_CCACHE) is not used.
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_NOHASHDIR: 'true'
@@ -376,10 +376,10 @@ jobs:
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .ccache
-          key: ccache-ios-v1-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ccache-ios-v2-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ccache-ios-v1-${{ hashFiles('pnpm-lock.yaml') }}-
-            ccache-ios-v1-
+            ccache-ios-v2-${{ hashFiles('pnpm-lock.yaml') }}-
+            ccache-ios-v2-
       - run: ccache --zero-stats
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -413,9 +413,11 @@ jobs:
           set -o pipefail
           # Report every compile error of a run, not only the first target's.
           defaults write com.apple.dt.Xcode IDEBuildingContinueBuildingAfterErrors -bool YES
+          echo "XCODE_CCACHE=C_COMPILER_LAUNCHER=$(command -v ccache) CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER=YES" >> "$GITHUB_ENV"
+          export XCODE_CCACHE="C_COMPILER_LAUNCHER=$(command -v ccache) CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER=YES"
           xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SKEPI -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED_DATA" \
-            ARCHS=arm64 CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-release.log"
+            ARCHS=arm64 CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO $XCODE_CCACHE -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-release.log"
       - name: ccache statistics
         if: always()
         run: |
@@ -425,7 +427,7 @@ jobs:
         if: always()
         with:
           path: .ccache
-          key: ccache-ios-v1-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ccache-ios-v2-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: App binary links no libcurl or libmicrohttpd (unused parts of CoreKiwix)
         run: |
           app="$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app"
@@ -439,11 +441,9 @@ jobs:
           set -o pipefail
           udid=$(e2e/ios/simulator.sh create skepi-tests)
           rc=0
-          # React Native's post_install points CC at $(REACT_NATIVE_PATH)/scripts/xcode/ccache-clang.sh in every
-          # Pods target; the CocoaPods test host does not define REACT_NATIVE_PATH, so it is passed here.
           xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$udid" \
             -derivedDataPath "$DERIVED_DATA" -resultBundlePath "$RUNNER_TEMP/SkepiZimTests.xcresult" \
-            REACT_NATIVE_PATH="$GITHUB_WORKSPACE/node_modules/react-native" CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
+            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
           grep -E "Test (Case|Suite)|error:|Executed" "$RUNNER_TEMP/xcodebuild-tests.log" || tail -n 200 "$RUNNER_TEMP/xcodebuild-tests.log"
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/SkepiZimTests.xcresult" | tee "$RUNNER_TEMP/swift-tests-summary.json" || true
           xcrun simctl delete "$udid" || true
@@ -466,7 +466,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/unsigned"
           rm -rf "$RUNNER_TEMP/unsigned/SKEPI.app"
           cp -R "$products/SKEPI.app" "$RUNNER_TEMP/unsigned/"
-          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SKEPI -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED_DATA" ARCHS=arm64 COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/e2e/ios/simulator-ci.entitlements" -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-adhoc.log"
+          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SKEPI -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED_DATA" ARCHS=arm64 COMPILER_INDEX_STORE_ENABLE=NO $XCODE_CCACHE CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/e2e/ios/simulator-ci.entitlements" -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-adhoc.log"
           codesign -dv "$products/SKEPI.app" 2>&1 | grep -E "Signature|TeamIdentifier|Identifier"
           if codesign -dv "$products/SKEPI.app" 2>&1 | grep -q "TeamIdentifier=[A-Z0-9]\{10\}"; then echo "::error::the Simulator copy carries a team identity"; exit 1; fi
       - name: Maestro (pinned, SHA-256 checked)
@@ -520,7 +520,8 @@ jobs:
           xcodebuild -version
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          key: llama-cpp-sys-2-0.1.159-metal-${{ hashFiles('native/kiwix/corekiwix.lock.json') }}
+          # v2: the v1 cache was saved by a run that stopped at clippy, and a full key hit is never re-saved.
+          key: llama-cpp-sys-2-0.1.159-metal-v2-${{ hashFiles('native/kiwix/corekiwix.lock.json') }}
           cache-on-failure: 'true'
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
