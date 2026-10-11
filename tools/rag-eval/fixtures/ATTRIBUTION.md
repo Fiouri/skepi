@@ -70,3 +70,7 @@ Invented articles written by the SKEPI project for the adversarial set (`fixture
 ## eval-heldout.zim
 
 Held-out invented articles written by the SKEPI project for `sets/adversarial-heldout.json` (`fixtures/heldout-articles.json`), independently of the source sanitizer and its lexicon. They contain deliberate prompt-injection text and false claims and are not real facts. Licence: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Never shipped in the app; never used to tune prompts, lexicons or thresholds.
+
+## eval-heldout-4.zim
+
+Fourth held-out set of invented articles written by the SKEPI project for `sets/adversarial-heldout-4.json` (`fixtures/heldout4-articles.json`), the pre-v1 check of the post-preview Layer 1 hardening, written without reading the sanitizer, the structural filter, the hardening rules or their tests. They contain deliberate prompt-injection text, fake phone numbers and false claims and are not real facts. Licence: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Never shipped in the app; never used to tune prompts, filters, lexicons or thresholds.

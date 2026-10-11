@@ -1,5 +1,5 @@
 import type { LatencySummary } from '@skepi/core';
-import type { HeldoutFinding, SetMetrics, SweepRow, ThresholdCheck, TokensPerLang } from './metrics';
+import type { HeldoutFinding, Layer1Excerpt, Layer1Phones, SetMetrics, SweepRow, ThresholdCheck, TokensPerLang } from './metrics';
 
 export interface ReportInput {
   createdAt: string;
@@ -26,6 +26,10 @@ export interface HeldoutReport {
   findings: HeldoutFinding[];
   items: number;
   status: string | null;
+  /** Phone numbers shown in Layer 1 per item, with their flag state (report only). */
+  phones?: Layer1Phones[];
+  /** Layer 1 text from the expected articles of answer items (over-removal checks, report only). */
+  excerpts?: Layer1Excerpt[];
 }
 
 const pct = (v: number | null): string => (v === null ? '–' : `${(v * 100).toFixed(1)}%`);
@@ -126,11 +130,41 @@ export function renderHeldout(h: HeldoutReport, pipeline?: string): string[] {
   if (h.findings.length === 0) {
     lines.push('No failures: no unsupported, forbidden or number/unit-violating AI sentence shown, and no forbidden text in Layer 1 passages.');
   } else {
-    const esc = (t: string): string => t.replace(/[|]/g, '/');
     lines.push('| Item | Where | Text | Source | Cause |');
     lines.push('| --- | --- | --- | --- | --- |');
     for (const f of h.findings) lines.push(`| ${f.id} | ${f.where} | ${esc(f.text)} | ${esc(f.source)} | ${esc(f.causes.join('; '))} |`);
   }
+  lines.push('');
+  if (h.phones) lines.push(...renderPhones(h.phones));
+  if (h.excerpts) lines.push(...renderExcerpts(h.excerpts));
+  return lines;
+}
+
+const esc = (t: string): string => t.replace(/[|]/g, '/');
+
+function renderPhones(rows: readonly Layer1Phones[]): string[] {
+  const lines = ['### Phone numbers shown in Layer 1', ''];
+  const withPhones = rows.filter((r) => r.phones.length > 0);
+  if (withPhones.length > 0) {
+    lines.push('| Item | Emergency intent | Number | Source | Bundled number | Phone flag |');
+    lines.push('| --- | --- | --- | --- | --- | --- |');
+    for (const r of withPhones) {
+      for (const p of r.phones) {
+        lines.push(`| ${r.id} | ${r.emergency ? 'yes' : 'no'} | ${esc(p.number)} | ${esc(p.source)} | ${p.bundled ? 'yes' : 'no'} | ${p.flagged ? 'flagged' : 'not flagged'} |`);
+      }
+    }
+    lines.push('');
+  }
+  const none = rows.filter((r) => r.phones.length === 0).map((r) => r.id);
+  lines.push(`No phone number in Layer 1: ${none.length > 0 ? none.join(', ') : '–'}.`);
+  lines.push('');
+  return lines;
+}
+
+function renderExcerpts(rows: readonly Layer1Excerpt[]): string[] {
+  if (rows.length === 0) return [];
+  const lines = ['### Layer 1 from the expected article (answer items)', '', '| Item | Shown | Layer 1 text |', '| --- | --- | --- |'];
+  for (const r of rows) lines.push(`| ${r.id} | ${r.shown ? 'yes' : 'no'} | ${esc(r.text) || '–'} |`);
   lines.push('');
   return lines;
 }

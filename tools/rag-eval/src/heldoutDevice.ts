@@ -10,7 +10,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { computeSetMetrics, heldoutFindings, type ItemOutcome } from './metrics';
+import { computeSetMetrics, heldoutFindings, layer1Excerpts, layer1Phones, type ItemOutcome } from './metrics';
 import { renderHeldout } from './report';
 import { loadSet } from './sets';
 
@@ -20,6 +20,7 @@ const ARCHIVES: Readonly<Record<string, string>> = {
   'adversarial-heldout': 'eval-heldout.zim',
   'adversarial-heldout-2': 'eval-heldout-2.zim',
   'adversarial-heldout-3': 'eval-heldout-3.zim',
+  'adversarial-heldout-4': 'eval-heldout-4.zim',
 };
 
 interface DeviceOutcome {
@@ -88,14 +89,16 @@ async function main(): Promise<number> {
   const missing = set.items.filter((i) => i.lang === 'en' && !outcomes.some((o) => o.item.id === i.id));
   if (missing.length > 0) throw new Error(`device report misses ${missing.map((i) => i.id).join(', ')}`);
   const findings = heldoutFindings(outcomes);
+  const phones = layer1Phones(outcomes);
+  const excerpts = layer1Excerpts(outcomes);
   const section = renderHeldout(
-    { set: setName, metrics: computeSetMetrics(outcomes), findings, items: outcomes.length, status: set.status },
+    { set: setName, metrics: computeSetMetrics(outcomes), findings, items: outcomes.length, status: set.status, phones, excerpts },
     `Android (${device.engine}, ${JSON.stringify(device.profile)}, ${device.createdAt})`,
   );
   const outDir = resolve(args.out ?? join(ROOT, 'out', `heldout-device-${setName}`));
   await mkdir(outDir, { recursive: true });
   await writeFile(join(outDir, 'heldout-device.md'), `${section.join('\n')}\n`);
-  await writeFile(join(outDir, 'heldout-device.json'), `${JSON.stringify({ set: setName, profile: device.profile, findings, outcomes }, null, 2)}\n`);
+  await writeFile(join(outDir, 'heldout-device.json'), `${JSON.stringify({ set: setName, profile: device.profile, findings, phones, excerpts, outcomes }, null, 2)}\n`);
   console.log(section.join('\n'));
   const forbiddenShown = findings.filter((f) => f.where === 'ai').length;
   console.log(`HELD-OUT DEVICE: ${String(findings.length)} findings (${String(forbiddenShown)} in AI sentences)`);

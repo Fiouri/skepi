@@ -1,5 +1,6 @@
 import {
   bigramSupport,
+  buildLayer1,
   detectEmergency,
   EMERGENCY_NUMBERS_GR,
   findNumberUnits,
@@ -397,4 +398,65 @@ export function heldoutFindings(outcomes: readonly ItemOutcome[]): HeldoutFindin
     }
   }
   return findings;
+}
+
+export interface Layer1Phone {
+  /** The number as written in the shown sentence. */
+  number: string;
+  source: string;
+  /** One of the bundled numbers of the user's country (Greece in these runs): never flagged. */
+  bundled: boolean;
+  /** The sentence carries "Number from a source — use the emergency number shown above". */
+  flagged: boolean;
+}
+
+export interface Layer1Phones {
+  id: string;
+  emergency: boolean;
+  phones: Layer1Phone[];
+}
+
+/**
+ * Report only: every phone number Layer 1 shows for each item and whether its sentence carries the
+ * phone flag, by the Ask screens' rule (buildLayer1 records numbers on emergency intent only; a sentence
+ * is flagged when one of them is not a bundled number). Numbers are listed on every intent, so an
+ * unflagged one outside emergency intent is visible too.
+ */
+export function layer1Phones(outcomes: readonly ItemOutcome[]): Layer1Phones[] {
+  const bundled = Object.values(EMERGENCY_NUMBERS_GR);
+  return outcomes.map((o) => {
+    const emergency = detectEmergency(o.item.question) !== null;
+    const phones: Layer1Phone[] = [];
+    if (o.retrieval === 'ready') {
+      const sources = o.sources.map((s) => ({ ...s, archiveId: '' }));
+      for (const passage of buildLayer1(o.item.question, sources, { findPhones: true }).passages) {
+        for (const sentence of passage.sentences) {
+          const flagged = emergency && unbundledNumbers(sentence.phoneNumbers, bundled).length > 0;
+          for (const number of sentence.phoneNumbers) {
+            phones.push({ number, source: passage.title, bundled: unbundledNumbers([number], bundled).length === 0, flagged });
+          }
+        }
+      }
+    }
+    return { id: o.item.id, emergency, phones };
+  });
+}
+
+export interface Layer1Excerpt {
+  id: string;
+  /** Layer 1 shows a passage of an expected article. */
+  shown: boolean;
+  /** The text of those passages as Layer 1 shows it (addresses removed), for a manual answer check. */
+  text: string;
+}
+
+/** Report only: what Layer 1 shows from the expected articles of each answer item (over-removal checks). */
+export function layer1Excerpts(outcomes: readonly ItemOutcome[]): Layer1Excerpt[] {
+  return outcomes
+    .filter((o) => o.item.expect === 'answer')
+    .map((o) => {
+      const sources = o.retrieval === 'ready' ? o.sources.map((s) => ({ ...s, archiveId: '' })) : [];
+      const passages = buildLayer1(o.item.question, sources).passages.filter((p) => o.item.articles.some((a) => sameArticle(a, p.title)));
+      return { id: o.item.id, shown: passages.length > 0, text: passages.map((p) => p.sentences.map((s) => s.text).join(' ')).join(' … ') };
+    });
 }

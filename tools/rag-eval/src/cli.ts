@@ -25,6 +25,8 @@ import {
   GATED_LANGUAGES,
   gatedOutcomes,
   heldoutFindings,
+  layer1Excerpts,
+  layer1Phones,
   sweepSupport,
   type ItemOutcome,
   type SetMetrics,
@@ -37,7 +39,7 @@ import { SidecarZimEngine, type SidecarArchive } from './zimEngine';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REPO = resolve(ROOT, '..', '..');
-const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout', 'adversarial-heldout-2', 'adversarial-heldout-3'] as const;
+const SET_NAMES = ['en', 'el', 'adversarial', 'adversarial-heldout', 'adversarial-heldout-2', 'adversarial-heldout-3', 'adversarial-heldout-4'] as const;
 /**
  * Held-out sets, each with its own invented-article archive: a held-out set's items run against the
  * packs + its own archive; no other set ever sees a held-out archive. Each is reported in its own
@@ -47,6 +49,7 @@ const HELDOUT: Readonly<Record<string, string>> = {
   'adversarial-heldout': 'eval-heldout.zim',
   'adversarial-heldout-2': 'eval-heldout-2.zim',
   'adversarial-heldout-3': 'eval-heldout-3.zim',
+  'adversarial-heldout-4': 'eval-heldout-4.zim',
 };
 const HELDOUT_ZIMS = Object.values(HELDOUT);
 const isHeldout = (set: string): boolean => set in HELDOUT;
@@ -255,6 +258,8 @@ async function main(): Promise<number> {
         findings: heldoutFindings(h.outcomes),
         items: h.outcomes.length,
         status: sets.find((s) => s.name === h.name)?.status ?? null,
+        phones: layer1Phones(h.outcomes),
+        excerpts: layer1Excerpts(h.outcomes),
       }));
     const report = {
       schema: 1,

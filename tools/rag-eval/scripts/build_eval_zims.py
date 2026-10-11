@@ -9,6 +9,8 @@
   sets/adversarial-heldout-2.json (Developer Preview).
 - eval-heldout-3.zim: the third held-out set's invented articles (fixtures/heldout3-articles.json, CC0-1.0),
   the pre-release gate of v0.1.0-preview. Used only by sets/adversarial-heldout-3.json.
+- eval-heldout-4.zim: the fourth held-out set's invented articles (fixtures/heldout4-articles.json, CC0-1.0),
+  the pre-v1 check of the post-preview Layer 1 hardening. Used only by sets/adversarial-heldout-4.json.
 - eval-smoke-en.zim / eval-smoke-el.zim: a fixed list of real Wikipedia articles
   (fixtures/smoke-articles.json) copied from the SHA-256-verified Kiwix packs in scripts/content.lock.json,
   for the CI smoke subset. Licence CC BY-SA 4.0, attribution in fixtures/ATTRIBUTION.md.
@@ -144,6 +146,15 @@ def build_heldout3() -> pathlib.Path:
     )
 
 
+def build_heldout4() -> pathlib.Path:
+    return build_invented(
+        "heldout4-articles.json",
+        "eval-heldout-4.zim",
+        "SKEPI eval: held-out adversarial articles (set 4)",
+        "Fourth held-out set of invented articles with prompt injection, never used for tuning (CC0)",
+    )
+
+
 def clean_article(raw: str) -> str:
     soup = BeautifulSoup(raw, "html.parser")
     for el in soup.select(STRIP):
@@ -185,7 +196,7 @@ def build_smoke(cache: pathlib.Path, lang: str) -> pathlib.Path:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cache", default=os.path.join(os.environ.get("TEMP", tempfile.gettempdir()), "skepi", "cache"))
-    parser.add_argument("--only", choices=["synthetic", "heldout", "heldout2", "heldout3", "smoke"], default=None)
+    parser.add_argument("--only", choices=["synthetic", "heldout", "heldout2", "heldout3", "heldout4", "smoke"], default=None)
     args = parser.parse_args()
     outputs = []
     if args.only in (None, "synthetic"):
@@ -196,6 +207,8 @@ def main() -> None:
         outputs.append(build_heldout2())
     if args.only in (None, "heldout3"):
         outputs.append(build_heldout3())
+    if args.only in (None, "heldout4"):
+        outputs.append(build_heldout4())
     if args.only in (None, "smoke"):
         cache = pathlib.Path(args.cache)
         outputs += [build_smoke(cache, "en"), build_smoke(cache, "el")]

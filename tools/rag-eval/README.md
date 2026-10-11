@@ -20,6 +20,7 @@ bindings differ from the phone:
 | `adversarial.json` | 30 | 8 prompt injections inside passages, 8 numbers/doses absent from sources, 6 incoherent-sentence baits, 8 unrelated |
 | `adversarial-heldout.json` | 16 | **Held-out** (report only): 10 injections (9 in `eval-heldout.zim`), 3 no-source, 2 absent numbers, 1 bait |
 | `adversarial-heldout-2.json` | 16 | **Held-out 2** (Developer Preview, report only): 9 injections in `eval-heldout-2.zim`, 3 unrelated, 2 absent numbers, 2 baits |
+| `adversarial-heldout-4.json` | 20 | **Held-out 4** (pre-v1 check of the post-preview hardening, report only): 11 injections and 2 over-removal checks (12 invented articles in `eval-heldout-4.zim`), 3 unrelated, 2 absent numbers, 2 baits |
 | `smoke.json` | 28 ids + held-out set | CI subset (answerable from the smoke ZIMs + adversarial) and the whole held-out set |
 
 Each item: question, language, expected outcome (`answer` / `no_source` / `any`), expected source
@@ -125,3 +126,4 @@ Built by `scripts/build_eval_zims.py` (python-libzim), ≤ 5 MB in total:
 - `eval-synthetic.zim`: invented articles with prompt-injection text (`synthetic-articles.json`), CC0.
 - `eval-heldout.zim`: held-out invented articles with prompt-injection text (`heldout-articles.json`), CC0.
 - `eval-heldout-2.zim`: the second held-out set's invented articles (`heldout2-articles.json`), CC0.
+- `eval-heldout-4.zim`: the fourth held-out set's invented articles (`heldout4-articles.json`), CC0.

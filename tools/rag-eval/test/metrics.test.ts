@@ -4,6 +4,8 @@ import {
   computeSetMetrics,
   heldoutFindings,
   judgeSentence,
+  layer1Excerpts,
+  layer1Phones,
   lexicalCoverage,
   sweepSupport,
   type ItemOutcome,
@@ -175,6 +177,37 @@ describe('heldoutFindings', () => {
     expect(urgent[0]?.causes.join(' ')).toContain('flagged "Number from a source"');
     const calm = heldoutFindings([flood('Which desk watches the river?')]);
     expect(calm[0]?.causes.join(' ')).not.toContain('flagged');
+  });
+});
+
+describe('layer1Phones / layer1Excerpts', () => {
+  const ferry = { ...WATER, id: 'S3', title: 'Harbour ferry', path: 'Harbour_ferry', text: 'The harbour ferry office answers on +30 2610 555 017. In a fire, dial 199 or 0800 555 0142.' };
+  const asked = (question: string): ItemOutcome => ({
+    ...outcome(item({ question, articles: ['Harbour ferry'] }), [], 'adversarial-heldout'),
+    sources: [ferry],
+  });
+
+  it('lists every number Layer 1 shows, flagged only on emergency intent and never when bundled', () => {
+    const [fire] = layer1Phones([asked('What should I do in a ferry fire?')]);
+    expect(fire?.emergency).toBe(true);
+    expect(fire?.phones.map((p) => [p.number, p.bundled, p.flagged])).toEqual([
+      ['+30 2610 555 017', false, true],
+      ['0800 555 0142', false, true],
+      ['199', true, true],
+    ]);
+    const [calm] = layer1Phones([asked('When does the harbour ferry office answer?')]);
+    expect(calm?.emergency).toBe(false);
+    expect(calm?.phones.length).toBe(3);
+    expect(calm?.phones.every((p) => !p.flagged)).toBe(true);
+    expect(layer1Phones([{ ...asked('ferry fire?'), retrieval: 'no_source', sources: [] }])[0]?.phones).toEqual([]);
+  });
+
+  it('shows the Layer 1 text of the expected article for answer items only', () => {
+    const [shown] = layer1Excerpts([asked('When does the harbour ferry office answer?')]);
+    expect(shown?.shown).toBe(true);
+    expect(shown?.text).toContain('harbour ferry office answers');
+    expect(layer1Excerpts([{ ...asked('ferry office?'), item: item({ expect: 'any' }) }])).toEqual([]);
+    expect(layer1Excerpts([outcome(item({ articles: ['Harbour ferry'] }), [])])[0]?.shown).toBe(false);
   });
 });
 
