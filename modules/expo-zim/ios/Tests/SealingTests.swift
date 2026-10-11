@@ -276,7 +276,7 @@ final class LoopbackCounter {
   private let queue = DispatchQueue(label: "org.skepi.tests.loopback")
   private let lock = NSLock()
   private var count = 0
-  let port: UInt16
+  private(set) var port: UInt16 = 0
 
   init() throws {
     let params = NWParameters.tcp

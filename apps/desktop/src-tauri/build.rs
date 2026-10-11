@@ -116,6 +116,18 @@ fn copy_libzim() {
     }
 }
 
+/// macOS: ggml-metal's Objective-C `@available` checks call `__isPlatformVersionAtLeast`, which lives in
+/// clang's compiler runtime; the release link for an explicit `--target` did not pull it in (Phase 3b-0
+/// CI), so the archive is named here. Only the members that resolve undefined symbols are linked.
+fn link_compiler_rt() {
+    let out = std::process::Command::new("xcrun").args(["clang", "--print-resource-dir"]).output().expect("xcrun clang");
+    assert!(out.status.success(), "clang --print-resource-dir failed");
+    let dir = PathBuf::from(String::from_utf8(out.stdout).expect("utf-8").trim()).join("lib").join("darwin");
+    assert!(dir.join("libclang_rt.osx.a").is_file(), "libclang_rt.osx.a not found in {}", dir.display());
+    println!("cargo:rustc-link-search=native={}", dir.display());
+    println!("cargo:rustc-link-lib=static=clang_rt.osx");
+}
+
 fn main() {
     let profile = std::env::var("PROFILE").unwrap_or_default();
     if profile == "release" {
@@ -125,8 +137,10 @@ fn main() {
     for p in ["catalog/embedded", "catalog/keys", "catalog/sources", "native/kiwix/libzim-windows.lock.json"] {
         println!("cargo:rerun-if-changed={}", repo().join(p).display());
     }
-    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
-        copy_libzim();
+    match std::env::var("CARGO_CFG_TARGET_OS").as_deref() {
+        Ok("windows") => copy_libzim(),
+        Ok("macos") => link_compiler_rt(),
+        _ => {}
     }
     tauri_build::try_build(
         tauri_build::Attributes::new()
