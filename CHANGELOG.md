@@ -16,6 +16,17 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 - Emergency questions: a phone number inside a source excerpt is flagged "Number from a source — use the
   emergency number shown above"; the bundled country numbers stay first.
 
+### Fixed
+- Phones: if the device's secure storage refuses the database key, the app shows "Secure storage
+  unavailable" with the error code and Retry instead of a blank screen; it never opens the database with
+  another key or without encryption.
+
+### Added
+- iOS and macOS builds in CI (Phase 3b-0, `docs/phase-3b0-report.md`): the iOS app for the Simulator
+  (Swift binding over the official CoreKiwix build, sealed WKWebView viewer, Swift tests, Maestro flows)
+  and the macOS desktop app (Metal, Keychain, unsigned app and dmg, egress check). Not released yet: no
+  signing, no TestFlight.
+
 ### Changed
 - rag-eval held-out findings judge Layer 1 on what it shows (addresses removed) and note flagged numbers.
 
