@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  CI only (ios-simulator job): the entitlements of the ad-hoc ("Sign to Run Locally", CODE_SIGN_IDENTITY=-)
+  Simulator copy that Maestro installs, so the Keychain accepts expo-secure-store (the app.db key). No team,
+  certificate or provisioning profile; such a build does not install on a device. The Release build that
+  CI checks stays CODE_SIGNING_ALLOWED=NO. docs/architecture.md, "Apple builds (Phase 3b-0)".
+-->
+<plist version="1.0">
+<dict>
+  <key>application-identifier</key>
+  <string>$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>keychain-access-groups</key>
+  <array>
+    <string>$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  </array>
+</dict>
+</plist>

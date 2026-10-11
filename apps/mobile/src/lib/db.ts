@@ -1,5 +1,5 @@
 import { open, type DB } from '@op-engineering/op-sqlite';
-import { migrate, type Row, type SqlDatabase, type SqlExecutor, type SqlValue } from '@skepi/db';
+import { loadOrCreateDatabaseKey, migrate, SecureStorageError, type Row, type SqlDatabase, type SqlExecutor, type SqlValue } from '@skepi/db';
 import { getRandomBytes } from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
@@ -7,23 +7,24 @@ import * as SecureStore from 'expo-secure-store';
  * app.db: SQLite encrypted with SQLCipher (op-sqlite, `"op-sqlite": { "sqlcipher": true }` in
  * package.json). The 256-bit key is random per install and kept by expo-secure-store, which encrypts
  * it with an AES key held in the Android Keystore; the key never leaves the device and is excluded
- * from backups (allowBackup=false).
+ * from backups (allowBackup=false). On iOS it is a Keychain item (this device only, when unlocked).
+ * If the secure storage fails, app.db stays closed and the app shows "Secure storage unavailable" with
+ * Retry (app/_layout.tsx): there is never a fallback key or an unencrypted database.
  */
 const DB_NAME = 'app.db';
-const KEY_NAME = 'skepi.appdb.key.v1';
-
-function toHex(bytes: Uint8Array): string {
-  let out = '';
-  for (const b of bytes) out += b.toString(16).padStart(2, '0');
-  return out;
-}
+const secureStore = {
+  get: (name: string) => SecureStore.getItemAsync(name),
+  set: (name: string, value: string) => SecureStore.setItemAsync(name, value, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY }),
+};
 
 async function databaseKey(): Promise<string> {
-  const existing = await SecureStore.getItemAsync(KEY_NAME);
-  if (existing && /^[0-9a-f]{64}$/.test(existing)) return existing;
-  const key = toHex(getRandomBytes(32));
-  await SecureStore.setItemAsync(KEY_NAME, key, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
-  return key;
+  try {
+    return await loadOrCreateDatabaseKey(secureStore, getRandomBytes);
+  } catch (e) {
+    // Logged with the native code (never the key); the startup screen shows the same code.
+    if (e instanceof SecureStorageError) console.error(`[skepi] ${e.displayCode}: ${e.native.message}`);
+    throw e;
+  }
 }
 
 function adapt(db: Pick<DB, 'execute'>): SqlExecutor {
@@ -37,7 +38,7 @@ function adapt(db: Pick<DB, 'execute'>): SqlExecutor {
 
 let opened: Promise<SqlDatabase> | null = null;
 
-/** Opens (once) and migrates the encrypted app database. */
+/** Opens (once) and migrates the encrypted app database. A failed open is not cached, so Retry works. */
 export function appDb(): Promise<SqlDatabase> {
   opened ??= (async () => {
     const key = await databaseKey();
@@ -59,5 +60,9 @@ export function appDb(): Promise<SqlDatabase> {
     await migrate(db);
     return db;
   })();
-  return opened;
+  const attempt = opened;
+  attempt.catch(() => {
+    if (opened === attempt) opened = null;
+  });
+  return attempt;
 }

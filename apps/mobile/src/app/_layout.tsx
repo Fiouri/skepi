@@ -1,7 +1,8 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { AppState, View } from 'react-native';
+import { StartupError } from '../components/StartupError';
 import { llama, useContent } from '../lib/content';
 import { useMessages } from '../lib/i18n';
 import { usePrefs } from '../lib/prefs';
@@ -11,6 +12,7 @@ export default function RootLayout() {
   const bootstrap = useContent((s) => s.bootstrap);
   const loadPrefs = usePrefs((s) => s.load);
   const prefsLoaded = usePrefs((s) => s.loaded);
+  const startupError = usePrefs((s) => s.startupError);
   const onboarded = usePrefs((s) => s.onboardingCompletedAt !== null);
   const blackout = usePrefs((s) => s.blackout);
   const theme = useTheme();
@@ -18,10 +20,14 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
-  useEffect(() => {
+  const start = useCallback(() => {
     void loadPrefs();
     void bootstrap();
   }, [bootstrap, loadPrefs]);
+
+  useEffect(() => {
+    start();
+  }, [start]);
 
   // First start (or "Get prepared" again): onboarding before anything else.
   const inOnboarding = segments[0] === 'onboarding';
@@ -44,6 +50,8 @@ export default function RootLayout() {
     };
   }, []);
 
+  // app.db could not be opened (e.g. secure storage unavailable): say so, with Retry; never a blank screen.
+  if (startupError) return <StartupError error={startupError} onRetry={start} />;
   if (!prefsLoaded) return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
 
   const header = {

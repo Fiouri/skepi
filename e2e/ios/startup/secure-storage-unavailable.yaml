@@ -1,0 +1,29 @@
+# iOS Simulator, the fully unsigned build (CODE_SIGNING_ALLOWED=NO: no entitlements, so the Keychain refuses
+# every call with errSecMissingEntitlement): the app must stop on "Secure storage unavailable" with the error
+# code and Retry, never on a blank screen, and must not open app.db without its key.
+appId: org.skepi.app
+name: SKEPI iOS secure storage unavailable (unsigned build)
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: startup-error
+    timeout: 60000
+- assertVisible: "Secure storage unavailable"
+- assertVisible:
+    id: startup-error-code
+    text: "Error code: ERR_SECURE_STORAGE_READ.*"
+- assertNotVisible:
+    id: tab-search
+- assertNotVisible:
+    id: onboarding
+- takeScreenshot: e2e/out/ios/00-secure-storage-unavailable
+- tapOn:
+    id: startup-retry
+# Still refused (nothing changed): the same screen again, not a blank one.
+- extendedWaitUntil:
+    visible:
+      id: startup-retry
+    timeout: 30000
+- assertVisible: "Secure storage unavailable"

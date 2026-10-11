@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Maestro E2E on the iOS Simulator (Phase 3b-0, CI job ios-simulator; also runs on a local Mac).
 #
-#   e2e/ios/run-ios-e2e.sh <path/to/SKEPI.app>
+#   e2e/ios/run-ios-e2e.sh <SKEPI.app, ad-hoc signed for the Simulator> [<SKEPI.app, unsigned>]
 #
-# 1. Boots a fresh Simulator and installs the app (Simulator build, unsigned).
+# 0. With the unsigned build (no entitlements: the Keychain refuses expo-secure-store): the app must stop on
+#    "Secure storage unavailable" with the code and Retry (e2e/ios/startup), never on a blank screen.
+# 1. Boots a fresh Simulator and installs the app: the CI-only ad-hoc ("Sign to Run Locally") Simulator copy,
+#    whose entitlements (e2e/ios/simulator-ci.entitlements) let the Keychain keep the app.db key.
 # 2. Provisions the same English packs as the Android E2E (scripts/provision.ps1): Wikipedia top + medicine
 #    (mini), the map-gr PMTiles and places-gr packs. URLs and SHA-256 come from the signed release catalog
 #    the app embeds (catalog/embedded/release); every file is verified before it is copied, and the app
@@ -11,7 +14,9 @@
 # 3. Runs the flows in e2e/ios in order and writes JUnit reports and the list of skipped flows.
 set -euo pipefail
 
-app="$(cd "$(dirname "${1:?usage: run-ios-e2e.sh <SKEPI.app>}")" && pwd)/$(basename "$1")"
+abs() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
+app="$(abs "${1:?usage: run-ios-e2e.sh <signed SKEPI.app> [<unsigned SKEPI.app>]}")"
+unsigned="${2:+$(abs "$2")}"
 bundle_id=org.skepi.app
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
@@ -29,6 +34,28 @@ cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; xcrun simctl 
 trap cleanup EXIT
 xcrun simctl boot "$udid"
 xcrun simctl bootstatus "$udid" -b
+cd "$repo" # takeScreenshot paths in the flows are relative to the repository root
+failed=0
+passed=0
+run_flow() {
+  local flow="$1" name
+  name="$(basename "$flow" .yaml)"
+  echo "=== $name"
+  if "$maestro" --device "$udid" test --format junit --output "$out/$name.junit.xml" --test-output-dir "$out/$name" "$flow"; then
+    passed=$((passed + 1))
+  else
+    failed=$((failed + 1))
+    xcrun simctl io "$udid" screenshot "$out/$name-failure.png" || true
+  fi
+}
+
+# --- 0. Unsigned build: the secure-storage failure path ---------------------------------------
+if [ -n "$unsigned" ]; then
+  xcrun simctl install "$udid" "$unsigned"
+  run_flow "$here/startup/secure-storage-unavailable.yaml"
+  xcrun simctl uninstall "$udid" "$bundle_id"
+fi
+
 xcrun simctl install "$udid" "$app"
 
 # --- Packs (verified against the embedded release catalog) -------------------------------------
@@ -66,19 +93,9 @@ cat > "$out/skipped.md" <<'EOF'
 | airplane mode in every flow | Maestro cannot toggle it on iOS; this build has no network code path (downloads unsupported, no P2P) |
 EOF
 
-cd "$repo" # takeScreenshot paths in the flows are relative to the repository root
-failed=0
-passed=0
 for flow in "$here"/0*.yaml; do
-  name="$(basename "$flow" .yaml)"
-  echo "=== $name"
-  if "$maestro" --device "$udid" test --format junit --output "$out/$name.junit.xml" --test-output-dir "$out/$name" "$flow"; then
-    passed=$((passed + 1))
-  else
-    failed=$((failed + 1))
-    xcrun simctl io "$udid" screenshot "$out/$name-failure.png" || true
-  fi
+  run_flow "$flow"
 done
 echo "iOS flows: $passed passed, $failed failed (skipped with reasons: $out/skipped.md)"
-xcrun simctl spawn "$udid" log show --last 15m --predicate 'subsystem CONTAINS "skepi" OR eventMessage CONTAINS "[ExpoZim]"' > "$out/app.log" 2>/dev/null || true
+xcrun simctl spawn "$udid" log show --last 15m --predicate 'process == "SKEPI" AND (eventMessage CONTAINS "[skepi]" OR eventMessage CONTAINS "[ExpoZim]" OR subsystem == "com.facebook.react.log")' > "$out/app.log" 2>/dev/null || true
 [ "$failed" -eq 0 ]
