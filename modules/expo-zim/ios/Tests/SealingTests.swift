@@ -69,21 +69,25 @@ final class SealingTests: XCTestCase {
   // MARK: - Non-zim requests
 
   func testContentBlockerStopsEveryNonZimLoad() throws {
-    let server = try LoopbackCounter()
-    let page = """
-      <html><body><img src="https://127.0.0.1:\(server.port)/a.png"><img src="http://127.0.0.1:\(server.port)/b.png">
-      <link rel="stylesheet" href="https://127.0.0.1:\(server.port)/c.css"><iframe src="https://127.0.0.1:\(server.port)/d"></iframe>
-      <video src="https://127.0.0.1:\(server.port)/e.mp4"></video></body></html>
+    func page(_ port: UInt16) -> String {
       """
-    // Control: a default web view does reach the listener, so the listener works.
-    let control = WKWebView(frame: CGRect(x: 0, y: 0, width: 320, height: 480), configuration: WKWebViewConfiguration())
-    attach(control)
-    control.loadHTMLString(page, baseURL: nil)
-    XCTAssertTrue(server.waitForConnections(atLeast: 1, timeout: 20), "control web view never connected")
-    control.removeFromSuperview()
+      <html><body><img src="https://127.0.0.1:\(port)/a.png"><img src="http://127.0.0.1:\(port)/b.png">
+      <link rel="stylesheet" href="https://127.0.0.1:\(port)/c.css"><iframe src="https://127.0.0.1:\(port)/d"></iframe>
+      <video src="https://127.0.0.1:\(port)/e.mp4"></video></body></html>
+      """
+    }
+    // Control: a default web view does reach its own listener, so the probe works.
+    let controlServer = try LoopbackCounter()
+    var control: WKWebView? = WKWebView(frame: CGRect(x: 0, y: 0, width: 320, height: 480), configuration: WKWebViewConfiguration())
+    attach(control!)
+    control?.loadHTMLString(page(controlServer.port), baseURL: nil)
+    XCTAssertTrue(controlServer.waitForConnections(atLeast: 1, timeout: 20), "control web view never connected")
+    control?.stopLoading()
+    control?.removeFromSuperview()
+    control = nil
 
-    // Sealed configuration + content rule list: nothing reaches it.
-    server.reset()
+    // Sealed configuration + content rule list, against a separate listener: nothing reaches it.
+    let sealedServer = try LoopbackCounter()
     let ruleList = expectation(description: "rule list")
     var compiled: WKContentRuleList?
     SealedWebView.withRuleList { compiled = $0; ruleList.fulfill() }
@@ -94,10 +98,10 @@ final class SealingTests: XCTestCase {
     attach(sealed)
     let finished = NavigationWaiter()
     sealed.navigationDelegate = finished
-    sealed.loadHTMLString(page, baseURL: URL(string: "zim://\(Self.archiveId)/"))
+    sealed.loadHTMLString(page(sealedServer.port), baseURL: URL(string: "zim://\(Self.archiveId)/"))
     wait(for: [finished.done], timeout: 30)
     spin(3)
-    XCTAssertEqual(server.connections, 0, "the sealed configuration let a request out")
+    XCTAssertEqual(sealedServer.connections, 0, "the sealed configuration let a request out")
     sealed.removeFromSuperview()
   }
 

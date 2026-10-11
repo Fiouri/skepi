@@ -408,6 +408,7 @@ jobs:
           if [ "$rc" -eq 0 ]; then echo "::error::the draft-cards gate let a release build through"; exit 1; fi
           grep -q "emergency cards are DRAFT" gate.log
       - name: xcodebuild Release for the Simulator (unsigned, Developer Preview)
+        id: build
         run: |
           set -o pipefail
           # Report every compile error of a run, not only the first target's.
@@ -448,10 +449,12 @@ jobs:
           xcrun simctl delete "$udid" || true
           exit "$rc"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         with:
           path: .cache/skepi
           key: ios-e2e-packs-${{ hashFiles('catalog/embedded/release/catalog.json') }}
       - name: Maestro (pinned, SHA-256 checked)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           MAESTRO_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip
           MAESTRO_SHA256: 5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a
@@ -461,6 +464,7 @@ jobs:
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME/.maestro-dist"
           echo "MAESTRO=$HOME/.maestro-dist/maestro/bin/maestro" >> "$GITHUB_ENV"
       - name: Maestro flows on the Simulator (provisioned packs, no AI on the Simulator)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: e2e/ios/run-ios-e2e.sh "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
