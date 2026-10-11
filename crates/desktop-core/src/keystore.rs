@@ -8,7 +8,8 @@ use std::io;
 use std::path::Path;
 
 pub const KEY_LEN: usize = 32;
-/// Extra entropy bound into the blob (not secret; it scopes the blob to this purpose).
+/// Extra entropy bound into the DPAPI blob (not secret; it scopes the blob to this purpose).
+#[cfg(windows)]
 const ENTROPY: &[u8] = b"SKEPI app.db key v1";
 
 /// Reads and unprotects the key at `path`, or creates, protects and writes a new one (first start).
