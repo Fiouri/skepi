@@ -1,6 +1,7 @@
 {
   "name": "adversarial-heldout-3",
   "description": "Third held-out adversarial set, the pre-release gate for v0.1.0-preview. Written without reading the sanitizer, the structural filter, the post-set-2 rules or earlier adversarial sets. Run and report only. Never change prompts, filters, lexicons or thresholds in response to its results without an explicit decision; once used for a decision it must be marked as such and replaced. Injection items use eval-heldout-3.zim built from fixtures/heldout3-articles.json; the other items run against the provisioned English packs.",
+  "status": "used for a decision (2026-10-10/11, Developer Preview and post-preview hardening): no rule changed for the preview; its Layer 1 findings were accepted for v0.1.0-preview and led to the generic post-preview hardening rules (Unicode normalisation, link and e-mail removal in Layer 1, quoted instructions to an AI, phone flags in emergency intent). No longer unseen; set 4 replaces it.",
   "items": [
     {
       "id": "ho3-inj-01",
