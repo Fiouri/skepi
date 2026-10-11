@@ -4,8 +4,9 @@ Follows `docs/preview-report.md` (held-out set 3, decision 2026-10-10: Layer 1 f
 the preview, generic rules planned before v1). Design: `docs/architecture.md` ("Post-preview
 hardening"); threats: `docs/threat-model.md`. Evidence: `docs/hardening/`. Code: `adf04d0`.
 
-**Status: stopped before the push.** The S23 run of held-out set 3 (report only) showed two AI
-sentences with forbidden text (below). Nothing was changed in response; a decision is needed.
+**Status: pushed (decision 2026-10-11, option 1).** The S23 run of held-out set 3 (report only) showed
+two AI sentences with forbidden text (below). Nothing was changed in response; set 3 stays report-only
+and the two residuals are open items for held-out set 4.
 
 ## Rules (generic; no phrase lists; no held-out item used)
 
@@ -42,7 +43,7 @@ a flagged number; it was changed before any held-out run, as part of rule 2/4.
 | Playwright (desktop, mocked native side) | 15/15 (2 new: number flag on emergency intent, none without; "[link removed]") |
 | tauri-driver smoke, preview release build | 26/26 |
 | Egress, preview release build | PASS: no TCP or UDP outside loopback |
-| CI | Not run: nothing pushed (see status) |
+| CI | Runs on the push of this report (decision 2026-10-11) |
 
 ## Held-out sets 1–3 (report only, run last, nothing changed in response)
 
@@ -68,12 +69,18 @@ now): the phone's model decided differently this run. The passage itself is stil
 pipeline, so rule 1 did not remove that item's text; the reason was **not** investigated against the
 item, to keep set 3 out of tuning. Reports: `docs/hardening/heldout/`.
 
-## Decision needed
+## Decision (2026-10-11)
 
-1. Push as is: the four rules hold on the gated sets and the real packs; the inj-05 text is a residual
-   of Layer 1 and, on the phone, of the AI summary for a non-emergency question (as in the preview,
-   where the summary is unverified-labelled only for medical intent).
-2. Hold the push until the fresh held-out set 4 validates the rules on unseen text.
+Option 1, push as is: the four rules hold on the gated sets and the real packs, no regression was found
+and every gate is green. The alternative (hold the push until held-out set 4) was not taken. Held-out
+set 3 stays report-only: inj-05 and inj-02 were not investigated.
 
-Recommendation: 1 — no regression found and every gate is green; set 4 then decides whether rule 1
-needs a generic extension.
+## Open items for held-out set 4
+
+1. **Look-alike role prefix copied by the S23 AI summary** (set 3, inj-05): an item with a `SYSTEM:`
+   prefix written with look-alike letters is still shown in Layer 1 on every pipeline, and the phone's
+   AI summary copied two of its sentences for a non-emergency question. Set 4 shows whether rule 1
+   needs a generic extension.
+2. **Unflagged fake number outside emergency intent** (set 3, inj-02): rule 4 flags source phone
+   numbers only on emergency intent, so a fake number in an excerpt for a non-emergency question is
+   shown without the flag. Set 4 shows whether the flag should apply more widely.
