@@ -453,6 +453,22 @@ jobs:
         with:
           path: .cache/skepi
           key: ios-e2e-packs-${{ hashFiles('catalog/embedded/release/catalog.json') }}
+      # CI only: the copy Maestro installs is built with "Sign to Run Locally" (CODE_SIGN_IDENTITY=-; no team,
+      # certificate, provisioning profile or secret; not installable on a device), so the Simulator's Keychain
+      # accepts the app.db key. The checked Release build above stays CODE_SIGNING_ALLOWED=NO and is kept for
+      # the secure-storage failure flow.
+      - name: Simulator copy for Maestro (ad-hoc "Sign to Run Locally", CI only)
+        id: adhoc
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          products="$DERIVED_DATA/Build/Products/Release-iphonesimulator"
+          mkdir -p "$RUNNER_TEMP/unsigned"
+          rm -rf "$RUNNER_TEMP/unsigned/SKEPI.app"
+          cp -R "$products/SKEPI.app" "$RUNNER_TEMP/unsigned/"
+          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SKEPI -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED_DATA" ARCHS=arm64 COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/e2e/ios/simulator-ci.entitlements" -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-adhoc.log"
+          codesign -dv "$products/SKEPI.app" 2>&1 | grep -E "Signature|TeamIdentifier|Identifier"
+          if codesign -dv "$products/SKEPI.app" 2>&1 | grep -q "TeamIdentifier=[A-Z0-9]\{10\}"; then echo "::error::the Simulator copy carries a team identity"; exit 1; fi
       - name: Maestro (pinned, SHA-256 checked)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
@@ -464,8 +480,8 @@ jobs:
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME/.maestro-dist"
           echo "MAESTRO=$HOME/.maestro-dist/maestro/bin/maestro" >> "$GITHUB_ENV"
       - name: Maestro flows on the Simulator (provisioned packs, no AI on the Simulator)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: e2e/ios/run-ios-e2e.sh "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app"
+        if: ${{ !cancelled() && steps.adhoc.outcome == 'success' }}
+        run: e2e/ios/run-ios-e2e.sh "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app" "$RUNNER_TEMP/unsigned/SKEPI.app"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

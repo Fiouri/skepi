@@ -7,6 +7,13 @@ export interface Messages {
     loading: string;
     error: (message: string) => string;
   };
+  /** Startup failures that stop the app before any screen (never a blank screen). */
+  startup: {
+    secureStorageTitle: string;
+    secureStorageBody: string;
+    code: (code: string) => string;
+    retry: string;
+  };
   tabs: {
     search: string;
     ask: string;

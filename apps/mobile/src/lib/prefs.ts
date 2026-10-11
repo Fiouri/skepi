@@ -1,4 +1,4 @@
-import { deleteSetting, getSetting, setSetting, type SettingKey, type Settings, type UiLocaleSetting } from '@skepi/db';
+import { deleteSetting, getSetting, SecureStorageError, setSetting, type SettingKey, type Settings, type UiLocaleSetting } from '@skepi/db';
 import { getLocales } from 'expo-localization';
 import { create } from 'zustand';
 import { appDb } from './db';
@@ -7,8 +7,16 @@ import { appDb } from './db';
  * User preferences from onboarding and the home screen (persisted in app.db). Loaded before
  * anything else so the app can open on onboarding, in the chosen language and theme.
  */
+/** Why the app could not start (shown instead of any screen; app/_layout.tsx). */
+export interface StartupError {
+  kind: 'secure-storage' | 'other';
+  code: string;
+  message: string;
+}
+
 interface PrefsState {
   loaded: boolean;
+  startupError: StartupError | null;
   onboardingCompletedAt: number | null;
   disclaimerAcceptedAt: number | null;
   locale: UiLocaleSetting;
@@ -41,6 +49,7 @@ export function deviceRegion(): string | null {
 
 export const usePrefs = create<PrefsState>((set) => ({
   loaded: false,
+  startupError: null,
   onboardingCompletedAt: null,
   disclaimerAcceptedAt: null,
   locale: 'system',
@@ -49,7 +58,19 @@ export const usePrefs = create<PrefsState>((set) => ({
   blackout: false,
   greekUi: false,
   load: async () => {
-    const db = await appDb();
+    set({ startupError: null });
+    let db;
+    try {
+      db = await appDb();
+    } catch (e) {
+      const startupError: StartupError =
+        e instanceof SecureStorageError
+          ? { kind: 'secure-storage', code: e.displayCode, message: e.native.message }
+          : { kind: 'other', code: 'ERR_APP_DB', message: e instanceof Error ? e.message : String(e) };
+      if (!(e instanceof SecureStorageError)) console.error(`[skepi] app.db: ${startupError.message}`);
+      set({ startupError });
+      return;
+    }
     const [onboardingCompletedAt, disclaimerAcceptedAt, locale, country, budgetGb, blackout, greekUi] = await Promise.all([
       getSetting(db, 'onboarding.completedAt'),
       getSetting(db, 'disclaimer.acceptedAt'),

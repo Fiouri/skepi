@@ -40,3 +40,12 @@ export {
   type TrustedKeySetting,
   type UiLocaleSetting,
 } from './settings';
+export {
+  DATABASE_KEY_NAME,
+  describeNativeFailure,
+  loadOrCreateDatabaseKey,
+  SecureStorageError,
+  type NativeStorageFailure,
+  type SecureKeyStore,
+  type SecureStorageStep,
+} from './databaseKey';

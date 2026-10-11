@@ -5,6 +5,13 @@ export const en: Messages = {
     loading: 'Loading…',
     error: (message) => `Error: ${message}`,
   },
+  startup: {
+    secureStorageTitle: 'Secure storage unavailable',
+    secureStorageBody:
+      "SKEPI keeps the key of its encrypted database in this device's secure storage, and it could not be read. Nothing was opened without encryption. Try again; if this keeps happening, restart the device.",
+    code: (code) => `Error code: ${code}`,
+    retry: 'Retry',
+  },
   tabs: {
     search: 'Search',
     ask: 'Ask',
