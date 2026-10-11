@@ -58,8 +58,13 @@ final class SealingTests: XCTestCase {
 
   func testInlineScriptDoesNotRunInRealPage() {
     // The fixture page sets document.title = 'pwned' from an inline <script>.
-    let title = loadAndAwait(zim("index"))
-    XCTAssertEqual(title, "Sealing fixture")
+    _ = loadAndAwait(zim("index"))
+    // WKWebView can publish the document title just after didFinish: wait for it (bounded).
+    let deadline = Date().addingTimeInterval(10)
+    while (view.title ?? "").isEmpty && Date() < deadline {
+      RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+    }
+    XCTAssertEqual(view.title, "Sealing fixture")
     XCTAssertTrue(view.url?.absoluteString.hasPrefix("zim://\(Self.archiveId)/") ?? false)
     // Whatever the page tried outside zim:// was refused (sub-frames are logged; the rest never left WebKit).
     XCTAssertTrue(blockedLog().allSatisfy { $0.reason.hasPrefix("scheme:") }, "\(blockedLog())")
