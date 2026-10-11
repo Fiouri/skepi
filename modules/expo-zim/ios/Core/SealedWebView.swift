@@ -46,8 +46,8 @@ final class SealedUserContentController: WKUserContentController {
 /// Kept free of Expo types so tests can create it without a React/Expo runtime.
 public final class SealedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate {
   /// Content blocker: block everything, then let `zim:` (articles) and `data:` (inline images) through.
-  public static let ruleListIdentifier = "org.skepi.zim.sealed.v1"
-  public static let blockRules = """
+  nonisolated public static let ruleListIdentifier = "org.skepi.zim.sealed.v1"
+  nonisolated public static let blockRules = """
     [{"trigger":{"url-filter":".*"},"action":{"type":"block"}},
      {"trigger":{"url-filter":"^zim:"},"action":{"type":"ignore-previous-rules"}},
      {"trigger":{"url-filter":"^data:"},"action":{"type":"ignore-previous-rules"}}]
@@ -200,7 +200,7 @@ public final class SealedWebView: WKWebView, WKNavigationDelegate, WKUIDelegate 
 
   /// zim:// stays in the viewer; anything else never loads. Main-frame targets (links the reader tapped)
   /// are reported as external links for the UI to show as text; sub-frames are logged as blocked.
-  public static func navigationPolicy(for url: URL?, mainFrame: Bool) -> (allow: Bool, reason: String) {
+  nonisolated public static func navigationPolicy(for url: URL?, mainFrame: Bool) -> (allow: Bool, reason: String) {
     let scheme = url?.scheme ?? ""
     if scheme == ZimSchemeHandler.scheme && ZimSchemeHandler.parse(url) != nil { return (true, "") }
     return (false, mainFrame ? "navigation:\(scheme)" : "scheme:\(scheme)")

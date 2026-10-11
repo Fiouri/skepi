@@ -12,6 +12,12 @@ public struct ZimSection: Equatable {
   public let heading: String
   public let level: Int
   public let text: String
+
+  public init(heading: String, level: Int, text: String) {
+    self.heading = heading
+    self.level = level
+    self.text = text
+  }
 }
 
 /// Entry reads and HTML -> text for RAG: the Swift twin of ZimContent.kt (jsoup there, SwiftSoup here),

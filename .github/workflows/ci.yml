@@ -437,11 +437,12 @@ jobs:
         run: |
           set -o pipefail
           udid=$(e2e/ios/simulator.sh create skepi-tests)
-          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -list | sed -n '/Schemes:/,$p' | grep -i -E 'skepi|zim|hash' || true
           rc=0
+          # React Native's post_install points CC at $(REACT_NATIVE_PATH)/scripts/xcode/ccache-clang.sh in every
+          # Pods target; the CocoaPods test host does not define REACT_NATIVE_PATH, so it is passed here.
           xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$udid" \
             -derivedDataPath "$DERIVED_DATA" -resultBundlePath "$RUNNER_TEMP/SkepiZimTests.xcresult" \
-            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
+            REACT_NATIVE_PATH="$GITHUB_WORKSPACE/node_modules/react-native" CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
           grep -E "Test (Case|Suite)|error:|Executed" "$RUNNER_TEMP/xcodebuild-tests.log" || tail -n 200 "$RUNNER_TEMP/xcodebuild-tests.log"
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/SkepiZimTests.xcresult" | tee "$RUNNER_TEMP/swift-tests-summary.json" || true
           xcrun simctl delete "$udid" || true
