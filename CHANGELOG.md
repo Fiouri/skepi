@@ -3,6 +3,22 @@
 All notable changes. Versions follow [Semantic Versioning](https://semver.org/); pre-releases carry a
 suffix. Phase reports in `docs/` have the details and the measurements.
 
+## [Unreleased]
+
+### Security
+- Unicode normalisation before every structural check of source text: NFKC, zero-width and other format
+  characters ignored, look-alike letters (Cyrillic/Greek for Latin) folded — for detection only; shown
+  text stays as in the source.
+- Layer 1 excerpts show "[link removed]" instead of a URL or e-mail address (the rule AI sentences
+  already followed).
+- Quoted or reported instructions addressed to an AI, assistant, model or summariser are removed like
+  direct ones.
+- Emergency questions: a phone number inside a source excerpt is flagged "Number from a source — use the
+  emergency number shown above"; the bundled country numbers stay first.
+
+### Changed
+- rag-eval held-out findings judge Layer 1 on what it shows (addresses removed) and note flagged numbers.
+
 ## [0.1.0-preview] — Developer Preview (Android + Windows)
 
 First public build, for developers and testers. **Not for emergency use.**

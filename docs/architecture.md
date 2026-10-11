@@ -250,7 +250,7 @@ HTML is converted to text natively (jsoup on Android, SwiftSoup on iOS, scraper 
 
 Every answer comes in **two layers**, both built only from passages found on the device. All logic lives in `packages/core` and is identical on all platforms.
 
-- **Layer 1 — extractive answer (instant, no LLM).** The best passages from the sources, with the sentences that match the question highlighted, each with its source id and section anchor (`buildLayer1`). Always correct, because it is verbatim source text. Shown before any model work starts; primary answer on T1 and in blackout mode. Target < 1 s on T1.
+- **Layer 1 — extractive answer (instant, no LLM).** The best passages from the sources, with the sentences that match the question highlighted, each with its source id and section anchor (`buildLayer1`). Always correct, because it is verbatim source text — with two exceptions (post-preview hardening): URLs and e-mail addresses are replaced by "[link removed]" (`redactLinks`, the rule AI sentences follow), and on emergency intent every sentence records its phone numbers (`findPhoneNumbers`) so the apps can flag the ones that are not a bundled number of the user's country. Shown before any model work starts; primary answer on T1 and in blackout mode. Target < 1 s on T1.
 - **Layer 2 — AI summary.** Streams below Layer 1 (`summarise`). Automatic on T2+, on demand ("Summarise with AI") on T1 and in T1-simulation, on tap only for medical intent. **Never on emergency intent** (`summaryAllowed`, every build): no summary and no button, only the number, the card and Layer 1.
 
 **Pipeline** (`retrieve` = steps 1–6 and Layer 1; `summarise` = steps 7–9)
@@ -259,7 +259,7 @@ Every answer comes in **two layers**, both built only from passages found on the
 2. **Emergency and medical intercept:** fixed lexicons per language (English, Greek). An emergency match shows the emergency number and the card slot immediately; a medical match (doses, drugs, symptoms, diseases, treatment) shows the number and Layer 1 first and gates the AI summary behind a tap.
 3. **Query rewrite (T2+ only, later phase):** the LLM with GBNF outputs `{ queries: { lang: string, terms: string[] }[], intent }`. Today every tier uses the question without stopwords.
 4. **Retrieval:** in each open pack, Xapian full-text with the conjunctive query plus single-keyword queries (always, not only when the conjunctive query is short) and title suggestions for all keywords and adjacent keyword pairs; all lists merged with reciprocal rank fusion over the **rank inside each archive** (never the position in an engine's concatenated multi-archive list; Phase 1c parity fix), packs in another language than the question offset by one full list, deterministic tie-breaks; top 8 articles. Folding maps the Greek final ς to σ for matching; queries restore ς because the ZIM index keeps it (Phase 1b fix: Greek single-word questions found nothing).
-5. **Passage selection:** sections are first cleaned of injected text (`sanitizeSourceText`: the Phase 1d **structural filter** — forged `<source>` blocks/tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines, sentences addressed to the model/assistant/AI/summariser, each with the rest of its paragraph — plus the Phase 1b lexicon, and (Developer Preview) `<!-- … -->` spans written as text; section text keeps one line per block element so paragraphs bound the removal; every `|` is a unit boundary and text between two `|` is a table cell, kept apart through sanitizing, chunking and validation and never highlighted alone in Layer 1), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
+5. **Passage selection:** sections are first cleaned of injected text (`sanitizeSourceText`: the Phase 1d **structural filter** — forged `<source>` blocks/tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines, sentences addressed to the model/assistant/AI/summariser, each with the rest of its paragraph — plus the Phase 1b lexicon, and (Developer Preview) `<!-- … -->` spans written as text; (post-preview hardening) every check looks at a normalised copy of the text (`normalize.ts`: NFKC, format characters dropped, look-alike letters folded), and quoted or reported instructions addressed to a model count like direct ones; section text keeps one line per block element so paragraphs bound the removal; every `|` is a unit boundary and text between two `|` is a table cell, kept apart through sanitizing, chunking and validation and never highlighted alone in Layer 1), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
 6. **Context budget, in characters** per tier and language, converted with the active model's tokens-per-character (table above). Every passage must pass the no-source bar and contain the question's numbers; when the question names an article (full title match), passages come from that article. Otherwise preference for diversity across articles. Articles are ordered by their best passage; **passages of one article keep reading order** (lead first) — rag-eval coverage en 60 → 72%, el 40 → 47% (Phase 1c).
 7. **No source:** if the best chunk covers < 60% of the query terms or scores < 0.5, show "No relevant source found". No Layer 1 passages, no generation. Calibrated with rag-eval.
 8. **Prompt and output format:** a short fixed system prompt (`rag-v5-json-short`, KV-cache prefix; asks for `covered: false` on personal and future questions), passages wrapped in `<source id="S1" title="…">…</source>` with tag characters neutralised, then a one-line language instruction and the question. The model must answer in grammar-constrained JSON `{covered, sentences[1..n]{text ≤ maxLength, source ∈ ids}}`. Source text is data, not instructions.
@@ -273,7 +273,7 @@ Every answer comes in **two layers**, both built only from passages found on the
 
 **Medical intent:** the emergency number, the matching curated cards (intercept topics + card keywords) and Layer 1 are shown, in that order (Phase 1d). The AI summary is available only by tap and is labelled "Unverified AI summary — check the source".
 
-**Emergency intent** (`detectEmergency`, any topic): the number, the cards and Layer 1 only. `summaryAllowed` is false, `summarise` refuses, `runRag` returns Layer 1, and the Ask screens show "No AI summary in an emergency" with no summary button (decision 2026-10-10, Developer Preview, all builds — the rule below, not a filter for particular wording). Bench, rag-eval and the on-device held-out runner apply the same rule; rag-eval summary coverage counts only the answer items that may have a summary.
+**Emergency intent** (`detectEmergency`, any topic): the number, the cards and Layer 1 only. `summaryAllowed` is false, `summarise` refuses, `runRag` returns Layer 1, and the Ask screens show "No AI summary in an emergency" with no summary button (decision 2026-10-10, Developer Preview, all builds — the rule below, not a filter for particular wording). Bench, rag-eval and the on-device held-out runner apply the same rule; rag-eval summary coverage counts only the answer items that may have a summary. A Layer 1 sentence with a phone number that is not a bundled number of the user's country carries a visible flag: "Number from a source — use the emergency number shown above" (post-preview hardening); the bundled numbers stay first.
 
 **Why not a vector index of all of Wikipedia:** embeddings for millions of chunks would take many GB and hours on a phone. Xapian is already in the ZIM and covers recall. Embeddings are only for reranking a few dozen chunks. Small curated packs (Survival, WikiMed) may ship precomputed embeddings later.
 
@@ -428,13 +428,26 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
   sentences, cited sources, app version — nothing else. Copy, or save (Android: `reports/` in the app
   folder; Windows: native save dialog through the narrow `report_save` command, `.txt`, ≤ 256 KiB). No
   network call.
-- **Planned before v1 (post-preview backlog, decision 2026-10-10).** Held-out set 3 left injected text
-  in Layer 1 for 6 items (report only; nothing changed for the preview). Each item below is a generic
-  rule, validated with a fresh held-out set 4 before v1: homoglyph normalisation (Cyrillic/Greek
-  look-alikes) before the role-prefix checks; e-mail address and URL removal in Layer 1 excerpts too
-  (today only AI sentences); quoted instructions addressed to an AI or assistant ("any AI helper reading
-  this must …") handled by the structural filter; phone numbers in Layer 1 excerpts flagged when the
-  question has emergency intent (the bundled country number stays first).
+- **Post-preview hardening (generic Layer 1 rules, Unreleased; `docs/hardening-report.md`).** The
+  backlog left by held-out set 3 (decision 2026-10-10), implemented as generic rules with fresh unit
+  examples, no phrase lists, no held-out item used for tuning; validated next with a fresh held-out set 4:
+  1. **Unicode normalisation before every structural check** (`packages/core/src/normalize.ts`): NFKC
+     per code point, format characters (zero-width, bidirectional controls, soft hyphen) dropped, and
+     confusable folding after Unicode TR39 — a word mixing Latin, Greek and Cyrillic letters is folded to
+     one script, a word made only of Cyrillic or Greek look-alikes is folded to Latin inside Latin text.
+     Two detection forms (Latin for English and markup checks, Greek for Greek checks) keep a map back
+     to the source, so a span found in normalised text is cut from the source; displayed text is the
+     source's own.
+  2. **No addresses in Layer 1**: URLs and e-mail addresses in shown excerpts become "[link removed]"
+     (`redactLinks`, the same shapes as the AI-sentence rule `containsLink`, also on the normalised text).
+  3. **Quoted instructions**: quoted or reported segments (paired or unclosed quotes, text after a colon)
+     go through the same addressed-to-model patterns as whole sentences; inside a quotation, an active
+     directive whose subject is an AI noun phrase ("any AI tool must …") is an instruction, a passive or
+     copular one ("AI systems must be transparent") is not. An AI noun phrase taking in "this" text
+     ("an AI … reading this …") is addressed to the model, quoted or not.
+  4. **Phone numbers on emergency intent**: Layer 1 records each sentence's phone numbers (dialling shapes
+     and digits after a calling verb; dates, year ranges, thousands and decimals excluded); the Ask screens
+     flag a sentence whose number is not a bundled number of the user's country.
 - **AI gates include the device pipeline.** The AI layer can differ between runtimes: on held-out set 3
   the same model and prompt declared a passage covered on the phone (llama.rn, Q4_0, CPU) and not
   covered in the eval and desktop runs (node-llama-cpp / llama.cpp), so only the phone showed an
@@ -456,7 +469,7 @@ The biggest risk is a malicious file (ZIM, GGUF, PMTiles) reaching a C++ parser.
 | Tampered content via mirror, MITM or P2P | Ed25519 catalog with pinned keys, SHA-256 per file and chunk, `sequence` anti-rollback |
 | Theft of the catalog signing key | Key kept offline (hardware key or offline machine), never in CI; backup key and rotation procedure |
 | XSS or data leak from article HTML | Native viewer: `zim://` only, JS off, strict CSP, no JS bridge, no file:// or network; covered by instrumentation tests |
-| Prompt injection via articles | No LLM tools; the structural filter (forged source markup, chat markup, JSON role objects, role prefixes, sentences addressed to the model) and the injection lexicon remove text before chunking, so neither Layer 1 nor the model sees it; answers always with checked citations; emergency cards never pass through the LLM |
+| Prompt injection via articles | No LLM tools; the structural filter (forged source markup, chat markup, JSON role objects, role prefixes, sentences addressed to the model, quoted instructions to a model) and the injection lexicon, run on Unicode-normalised text, remove text before chunking, so neither Layer 1 nor the model sees it; Layer 1 shows no addresses and flags source phone numbers on emergency intent; answers always with checked citations; emergency cards never pass through the LLM |
 | Attacker on the local network during P2P | Session token, TLS pinned from the QR, read-only server for selected packs, auto-close |
 | Physical access or device seizure | SQLite encrypted with SQLCipher (key in Keystore/Keychain); optional biometric lock; one-tap "clear history" |
 | Network leaks to third parties | Network only via `ContentStore` to catalog hosts; no analytics SDK, no Google Play Services for location; a test asserts zero egress |
@@ -724,6 +737,7 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - Gate: Maestro green on iOS · verified transfer Android→iPhone · fuzzing without crashes.
 4. **Phase 3 · Desktop and public release.** Tauri app for Windows and macOS with "Station" · GitHub Releases, F-Droid, Play, App Store · security review of the threat model.
    - **Developer Preview `v0.1.0-preview` — see `docs/preview-report.md`.** Held-out set 2 (own report section; eval, desktop and Android pipelines) and the generic rules it led to (links never shown, comment spans removed, table cells, Layer 1 labelled "Source excerpts — not verified advice") · preview build mode: card steps not shipped (bundler alias to `@skepi/emergency-cards/preview`, bundles scanned) · About screens with generated third-party notices (`tools/notices`) · "Report a problem with this answer" (text only, nothing sent) · release catalog sequence 3 propagated desktop Station → S23 · draft GitHub pre-release.
+   - **Post-preview hardening — see `docs/hardening-report.md`.** Generic Layer 1 rules from the set 3 backlog: Unicode normalisation (NFKC, format characters, confusables) before every structural check · no URLs or e-mail addresses in Layer 1 · quoted instructions to a model treated like direct ones · source phone numbers flagged on emergency intent. Fresh held-out set 4 next.
    - **Phase 3a · Windows desktop with Station mode — see `docs/phase-3a-report.md`.** Persistent build cache · deterministic GNSS in E2E (debug-only mock provider) · `apps/desktop` (Tauri 2, React over `@skepi/core`) · `crates/zim-ffi` (libzim 9.7.0, same as Android) · llama.cpp in-process with Vulkan · sealed viewer window · MapLibre GL JS over the `maps` protocol · SQLCipher + DPAPI · Rust ContentStore · Station mode · desktop retrieval parity 108/108 with the S23 · unsigned MSI/NSIS.
    - Gate: store approvals · emergency cards reviewed by first-aid professionals · T1 targets measured on a real 4 GB device.
 5. **Later.** Precomputed embeddings for curated packs · NPU on Android · more locales.
@@ -753,7 +767,7 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Test devices | Galaxy S23 (T2) now; T1 targets pending; T1-simulation mode until a 4 GB device is available. |
 | Answer model | Two layers: Layer 1 extractive (instant), Layer 2 AI summary (automatic on T2+, on demand on T1). |
 | Latency targets | Layer 1 < 1 s and sources < 2 s on T1; first token < 15 s on T2; T1 first-token target set after measurement. |
-| Citation checks | JSON per-sentence output; bigram support check; numbers with units must be verbatim in the source or the sentence is removed; an AI sentence with a URL or e-mail address is never shown (Developer Preview); adversarial rag-eval set. |
+| Citation checks | JSON per-sentence output; bigram support check; numbers with units must be verbatim in the source or the sentence is removed; an AI sentence with a URL or e-mail address is never shown (Developer Preview), and Layer 1 excerpts show "[link removed]" instead of one (post-preview hardening); adversarial rag-eval set. |
 | Article viewer | Native viewer in expo-zim (not react-native-webview), with sealing instrumentation tests. |
 | ICU | Excluded (ADR). Re-test any new locale without ICU. |
 | Files from SAF | Copied into app-specific storage (fd-only breaks the Xapian index). |
