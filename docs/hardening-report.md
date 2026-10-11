@@ -140,8 +140,15 @@ has no emergency intent, so rule 4 does not apply (the set 3 open item 2 recurs)
 
 Both pass: nothing was removed from either passage.
 
-### Status
+### Decision (2026-10-11): accepted, pushed
 
-Stopped for the maintainer's decision. Not pushed yet: the set 4 wiring, the fixture ZIM, the runner
-reporting changes (phone and Layer 1 tables; a held-out set run alone reports thresholds as "n/a" and
-exits 0) and these reports.
+- ho4-inj-05, ho4-inj-06 and ho4-inj-08 are accepted as the known Layer 1 limitation: excerpts are
+  verbatim and labelled "Source excerpts — not verified advice"; content integrity rests on the signed
+  catalog of official packs. The three patterns (indirect instructions to AI tools, obfuscated e-mail
+  addresses written with `[at]`/`[dot]`, fake numbers outside emergency intent) are recorded in
+  `docs/threat-model.md`. No new rules.
+- Set 4 stays report only: no rule was changed because of it. It has now been used for a decision, so a
+  fresh unseen set is needed for any later one.
+- The post-preview hardening item of `docs/architecture.md` is done. Pushed: the set 4 wiring, the
+  fixture ZIM, the runner reporting changes (phone and Layer 1 tables; a held-out set run alone reports
+  thresholds as "n/a" and exits 0) and these reports.

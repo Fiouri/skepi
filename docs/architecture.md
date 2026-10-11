@@ -428,9 +428,12 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
   sentences, cited sources, app version — nothing else. Copy, or save (Android: `reports/` in the app
   folder; Windows: native save dialog through the narrow `report_save` command, `.txt`, ≤ 256 KiB). No
   network call.
-- **Post-preview hardening (generic Layer 1 rules, Unreleased; `docs/hardening-report.md`).** The
-  backlog left by held-out set 3 (decision 2026-10-10), implemented as generic rules with fresh unit
-  examples, no phrase lists, no held-out item used for tuning; validated next with a fresh held-out set 4:
+- **Post-preview hardening (generic Layer 1 rules, Unreleased; `docs/hardening-report.md`) — done.**
+  The "planned before v1" backlog left by held-out set 3 (decision 2026-10-10), implemented as generic
+  rules with fresh unit examples, no phrase lists, no held-out item used for tuning, and checked with the
+  fresh held-out set 4 (decision 2026-10-11, accepted): 0 AI findings on eval, desktop and the S23; 3 Layer 1
+  findings accepted as the known Layer 1 limitation (`docs/threat-model.md`); the phone flags and the
+  over-removal checks pass on every pipeline. Rules:
   1. **Unicode normalisation before every structural check** (`packages/core/src/normalize.ts`): NFKC
      per code point, format characters (zero-width, bidirectional controls, soft hyphen) dropped, and
      confusable folding after Unicode TR39 — a word mixing Latin, Greek and Cyrillic letters is folded to
@@ -737,7 +740,7 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - Gate: Maestro green on iOS · verified transfer Android→iPhone · fuzzing without crashes.
 4. **Phase 3 · Desktop and public release.** Tauri app for Windows and macOS with "Station" · GitHub Releases, F-Droid, Play, App Store · security review of the threat model.
    - **Developer Preview `v0.1.0-preview` — see `docs/preview-report.md`.** Held-out set 2 (own report section; eval, desktop and Android pipelines) and the generic rules it led to (links never shown, comment spans removed, table cells, Layer 1 labelled "Source excerpts — not verified advice") · preview build mode: card steps not shipped (bundler alias to `@skepi/emergency-cards/preview`, bundles scanned) · About screens with generated third-party notices (`tools/notices`) · "Report a problem with this answer" (text only, nothing sent) · release catalog sequence 3 propagated desktop Station → S23 · draft GitHub pre-release.
-   - **Post-preview hardening — see `docs/hardening-report.md`.** Generic Layer 1 rules from the set 3 backlog: Unicode normalisation (NFKC, format characters, confusables) before every structural check · no URLs or e-mail addresses in Layer 1 · quoted instructions to a model treated like direct ones · source phone numbers flagged on emergency intent. Fresh held-out set 4 next.
+   - **Post-preview hardening — see `docs/hardening-report.md`.** Generic Layer 1 rules from the set 3 backlog: Unicode normalisation (NFKC, format characters, confusables) before every structural check · no URLs or e-mail addresses in Layer 1 · quoted instructions to a model treated like direct ones · source phone numbers flagged on emergency intent. Done: held-out set 4 (2026-10-11) — 0 AI findings on eval/desktop/S23, 3 accepted Layer 1 findings, phone flags and over-removal checks pass.
    - **Phase 3a · Windows desktop with Station mode — see `docs/phase-3a-report.md`.** Persistent build cache · deterministic GNSS in E2E (debug-only mock provider) · `apps/desktop` (Tauri 2, React over `@skepi/core`) · `crates/zim-ffi` (libzim 9.7.0, same as Android) · llama.cpp in-process with Vulkan · sealed viewer window · MapLibre GL JS over the `maps` protocol · SQLCipher + DPAPI · Rust ContentStore · Station mode · desktop retrieval parity 108/108 with the S23 · unsigned MSI/NSIS.
    - Gate: store approvals · emergency cards reviewed by first-aid professionals · T1 targets measured on a real 4 GB device.
 5. **Later.** Precomputed embeddings for curated packs · NPU on Android · more locales.
