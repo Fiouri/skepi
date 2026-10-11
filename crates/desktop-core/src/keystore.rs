@@ -1,6 +1,8 @@
 //! The app.db key (architecture: "256-bit random key per install"), protected with Windows DPAPI for
 //! the current user (`CryptProtectData`, no UI). Only the encrypted blob is written to disk; another
 //! Windows user, or the file copied to another machine, cannot unprotect it.
+//! macOS (Phase 3b-0): the key itself is a generic password in the user's login Keychain; the file on
+//! disk holds only the item's random account name, so the file alone reveals nothing.
 
 use std::io;
 use std::path::Path;
@@ -68,14 +70,47 @@ pub fn unprotect(blob: &[u8]) -> io::Result<Vec<u8>> {
     Ok(take_blob(out))
 }
 
-#[cfg(not(windows))]
-pub fn protect(_data: &[u8]) -> io::Result<Vec<u8>> {
-    Err(io::Error::new(io::ErrorKind::Unsupported, "DPAPI is Windows-only (macOS: Keychain, later phase)"))
+#[cfg(target_os = "macos")]
+const KEYCHAIN_SERVICE: &str = "org.skepi.desktop.app-db-key";
+#[cfg(target_os = "macos")]
+const KEYCHAIN_REF_PREFIX: &[u8] = b"SKEPI keychain v1:";
+
+#[cfg(target_os = "macos")]
+pub fn protect(data: &[u8]) -> io::Result<Vec<u8>> {
+    let mut id = [0u8; 16];
+    getrandom::fill(&mut id).map_err(|e| io::Error::other(e.to_string()))?;
+    let account: String = id.iter().map(|b| format!("{b:02x}")).collect();
+    security_framework::passwords::set_generic_password(KEYCHAIN_SERVICE, &account, data)
+        .map_err(|e| io::Error::other(format!("Keychain: {e}")))?;
+    let mut reference = KEYCHAIN_REF_PREFIX.to_vec();
+    reference.extend_from_slice(account.as_bytes());
+    Ok(reference)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn keychain_account(reference: &[u8]) -> io::Result<&str> {
+    reference
+        .strip_prefix(KEYCHAIN_REF_PREFIX)
+        .filter(|a| a.len() == 32 && a.iter().all(u8::is_ascii_hexdigit))
+        .and_then(|a| std::str::from_utf8(a).ok())
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "not a SKEPI Keychain reference"))
+}
+
+#[cfg(target_os = "macos")]
+pub fn unprotect(blob: &[u8]) -> io::Result<Vec<u8>> {
+    let account = keychain_account(blob)?;
+    security_framework::passwords::get_generic_password(KEYCHAIN_SERVICE, account)
+        .map_err(|e| io::Error::new(io::ErrorKind::PermissionDenied, format!("Keychain: {e}")))
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub fn protect(_data: &[u8]) -> io::Result<Vec<u8>> {
+    Err(io::Error::new(io::ErrorKind::Unsupported, "no key protection on this platform (Windows: DPAPI, macOS: Keychain)"))
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn unprotect(_blob: &[u8]) -> io::Result<Vec<u8>> {
-    Err(io::Error::new(io::ErrorKind::Unsupported, "DPAPI is Windows-only (macOS: Keychain, later phase)"))
+    Err(io::Error::new(io::ErrorKind::Unsupported, "no key protection on this platform (Windows: DPAPI, macOS: Keychain)"))
 }
 
 #[cfg(all(test, windows))]
@@ -101,5 +136,43 @@ mod tests {
         let b = load_or_create(&path).expect("load");
         assert_eq!(a, b);
         assert_ne!(std::fs::read(&path).expect("read"), a.to_vec());
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+
+    /// Removes the Keychain item a test created (the CI runner's login Keychain is shared).
+    fn forget(reference: &[u8]) {
+        if let Ok(account) = keychain_account(reference) {
+            let _ = security_framework::passwords::delete_generic_password(KEYCHAIN_SERVICE, account);
+        }
+    }
+
+    #[test]
+    fn round_trip_and_wrong_reference() {
+        let reference = protect(b"secret key bytes").expect("protect");
+        assert!(!reference.windows(16).any(|w| w == b"secret key bytes"));
+        assert_eq!(unprotect(&reference).expect("unprotect"), b"secret key bytes");
+        let mut other = reference.clone();
+        let last = other.len() - 1;
+        other[last] = if other[last] == b'0' { b'1' } else { b'0' };
+        assert!(unprotect(&other).is_err());
+        assert!(unprotect(b"SKEPI keychain v1:../../etc").is_err());
+        forget(&reference);
+        assert!(unprotect(&reference).is_err());
+    }
+
+    #[test]
+    fn creates_once_then_reuses_the_key() {
+        let dir = tempfile::tempdir().expect("tmp");
+        let path = dir.path().join("db.key");
+        let a = load_or_create(&path).expect("create");
+        let b = load_or_create(&path).expect("load");
+        assert_eq!(a, b);
+        let on_disk = std::fs::read(&path).expect("read");
+        assert!(!on_disk.windows(KEY_LEN).any(|w| w == a));
+        forget(&on_disk);
     }
 }

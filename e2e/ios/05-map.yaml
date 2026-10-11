@@ -1,0 +1,15 @@
+# iOS Simulator: the offline map renders from the provisioned, verified map-gr PMTiles pack (MapLibre
+# Native, pmtiles://file://, style assets from the app bundle via asset://).
+appId: org.skepi.app
+name: SKEPI iOS offline map
+---
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-map
+- extendedWaitUntil:
+    visible:
+      text: "Map ready.*"
+    timeout: 90000
+- takeScreenshot: e2e/out/ios/07-map

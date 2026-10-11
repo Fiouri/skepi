@@ -1,0 +1,32 @@
+{
+  "artifact": "libkiwix_xcframework",
+  "version": "14.2.1-2",
+  "url": "https://download.kiwix.org/release/libkiwix/libkiwix_xcframework-14.2.1-2.tar.gz",
+  "upstreamMd5Url": "https://download.kiwix.org/release/libkiwix/libkiwix_xcframework-14.2.1-2.tar.gz.md5",
+  "md5": "78c0398d14228d11d2caf2c888314d04",
+  "sha256": "14820648788dddc3df8a89ff0820af60d7efc1cfda6c83602989455263ee1561",
+  "builtBy": "kiwix-build CI (apple_all_static); the same build Kiwix's own iOS/macOS app pins (kiwix-apple Brewfile)",
+  "contains": {
+    "libkiwix": "14.2.1",
+    "libzim": "9.7.0",
+    "icu": "73.2 (data linked in, icudt73l)",
+    "xapian": "statically linked",
+    "zstd": "statically linked",
+    "lzma": "statically linked",
+    "zlib": "statically linked",
+    "unused": "libcurl and libmicrohttpd (libkiwix downloader/server) are in the archive; SKEPI references only libzim symbols and CI asserts that neither is linked"
+  },
+  "slices": {
+    "ios-arm64": "iOS devices",
+    "ios-arm64_x86_64-simulator": "iOS Simulator",
+    "macos-arm64_x86_64": "macOS (desktop app, crates/zim-ffi)"
+  },
+  "files": {
+    "CoreKiwix.xcframework/Info.plist": "d70cdb99afaed270cb9fdf8bc68b6be4f2b475c27b0b62dc1132f9096170e720",
+    "CoreKiwix.xcframework/ios-arm64/merged.a": "0aede5ddc7f2ae47f9fb5c410f047f2daf631d757791556f35f472ed36bedb8c",
+    "CoreKiwix.xcframework/ios-arm64_x86_64-simulator/merged.a": "eaea7ac5beeb8e144e7d8f806bbb6a535f856c8b9de77e3790ef230db6bbcb5a",
+    "CoreKiwix.xcframework/macos-arm64_x86_64/merged.a": "71546f960a2ac1c79e5739f580bd0e2335b36be57ac39be8b3cd0d700ec00161"
+  },
+  "license": "GPL-3.0-or-later (libkiwix); GPL-2.0-or-later (libzim, Xapian); ICU (Unicode-3.0); zstd (BSD-3-Clause); xz/lzma (0BSD); zlib (Zlib)",
+  "source": "https://github.com/kiwix/libkiwix/releases/tag/14.2.1"
+}

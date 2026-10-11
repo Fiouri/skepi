@@ -15,6 +15,8 @@ crate-type = ["rlib"]
 default = ["vulkan"]
 # llama.cpp GPU offload (Vulkan SDK at build time); `--no-default-features` builds the CPU-only app.
 vulkan = ["desktop-core/vulkan"]
+# macOS: llama.cpp with Metal (`--no-default-features --features metal`, Phase 3b-0).
+metal = ["desktop-core/metal"]
 # Debug builds only (build.rs refuses it in release): trust the local HTTPS test mirror CA.
 test-mirror = ["desktop-core/test-mirror"]
 

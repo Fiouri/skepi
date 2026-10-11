@@ -3,7 +3,7 @@ import type { CatalogPack } from '@skepi/core';
 import { getDocumentAsync } from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Switch, Text, View } from 'react-native';
+import { Alert, Platform, ScrollView, Switch, Text, View } from 'react-native';
 import { Button, useStyles } from '../../components/ui';
 import { contentStore, useContent } from '../../lib/content';
 import { ContentError, fetchCatalogUpdate } from '../../lib/contentStore';
@@ -152,8 +152,13 @@ export default function LibraryScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={{ gap: 12, paddingBottom: 48 }} testID="library">
       {/* Nearby sharing first: in a crisis this is how packs and the app reach other phones. */}
       <View style={styles.row}>
-        <Button testID="library-share" label={t.transfer.share} onPress={() => { router.push('/share'); }} disabled={busy} />
-        <Button testID="library-receive" label={t.transfer.receive} onPress={() => { router.push('/receive'); }} disabled={busy} />
+        {/* P2P sharing is Android-only for now (iOS: no LocalOnlyHotspot; Phase 3b-0 adds no iOS features). */}
+        {Platform.OS === 'android' ? (
+          <>
+            <Button testID="library-share" label={t.transfer.share} onPress={() => { router.push('/share'); }} disabled={busy} />
+            <Button testID="library-receive" label={t.transfer.receive} onPress={() => { router.push('/receive'); }} disabled={busy} />
+          </>
+        ) : null}
       </View>
       <View style={{ gap: 4 }}>
         <Text style={styles.mono} testID="catalog-info">

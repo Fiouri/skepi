@@ -1,6 +1,16 @@
 {
-  "platforms": ["android"],
+  "platforms": [
+    "android",
+    "apple"
+  ],
   "android": {
-    "modules": ["org.skepi.zim.ExpoZimModule"]
+    "modules": [
+      "org.skepi.zim.ExpoZimModule"
+    ]
+  },
+  "apple": {
+    "modules": [
+      "ExpoZimModule"
+    ]
   }
 }

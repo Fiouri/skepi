@@ -1,0 +1,13 @@
+# Subflow (iOS): wait for the home screen or onboarding, and finish onboarding if shown.
+appId: org.skepi.app
+name: App ready (iOS)
+---
+- extendedWaitUntil:
+    visible:
+      id: "(tab-search|onboarding)"
+    timeout: 90000
+- runFlow:
+    when:
+      visible:
+        id: onboarding
+    file: skip-onboarding.yaml

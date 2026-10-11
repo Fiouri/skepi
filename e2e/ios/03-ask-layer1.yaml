@@ -1,0 +1,49 @@
+# iOS Simulator: Ask shows Layer 1 (verbatim source excerpts, no model involved). No AI summary: no model
+# is provisioned on the Simulator (the AI runs on devices). An unrelated question has no source.
+appId: org.skepi.app
+name: SKEPI iOS Ask, Layer 1
+env:
+  ASK_QUESTION: What is the capital of Australia?
+  UNRELATED_QUESTION: What is my grandmother's recipe for truffle souffle?
+---
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-ask
+- tapOn:
+    id: ask-input
+- inputText: ${ASK_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: layer1-passage-0
+    timeout: 30000
+- assertVisible: "Source excerpts — not verified advice"
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 60000
+- assertNotVisible:
+    id: ai-summary
+- takeScreenshot: e2e/out/ios/03-layer1
+- tapOn:
+    id: ask-clear
+- tapOn:
+    id: ask-input
+- inputText: ${UNRELATED_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: no-source
+    timeout: 60000
+- assertNotVisible:
+    id: layer1
+- assertNotVisible:
+    id: ai-summary
+- takeScreenshot: e2e/out/ios/04-no-source

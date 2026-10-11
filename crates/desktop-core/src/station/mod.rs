@@ -295,7 +295,42 @@ pub fn local_addresses() -> Vec<LocalAddress> {
     Vec::new()
 }
 
-#[cfg(not(windows))]
+/// macOS (Phase 3b-0): IPv4 addresses of interfaces that are up and not loopback (`getifaddrs`); VPN
+/// tunnels and bridges count as virtual.
+#[cfg(target_os = "macos")]
+pub fn local_addresses() -> Vec<LocalAddress> {
+    let mut head: *mut libc::ifaddrs = std::ptr::null_mut();
+    // SAFETY: getifaddrs allocates the list into head; it is freed below with freeifaddrs.
+    if unsafe { libc::getifaddrs(&mut head) } != 0 {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    let mut p = head;
+    while !p.is_null() {
+        // SAFETY: p walks the list returned by getifaddrs, alive until freeifaddrs.
+        let a = unsafe { &*p };
+        let up = a.ifa_flags & (libc::IFF_UP as u32) != 0 && a.ifa_flags & (libc::IFF_LOOPBACK as u32) == 0;
+        // SAFETY: ifa_addr, when not null, points to a sockaddr of the family it declares.
+        if up && !a.ifa_addr.is_null() && i32::from(unsafe { (*a.ifa_addr).sa_family }) == libc::AF_INET {
+            // SAFETY: AF_INET means a sockaddr_in; ifa_name is a NUL-terminated C string.
+            let (ip, name) = unsafe {
+                let sin = &*a.ifa_addr.cast::<libc::sockaddr_in>();
+                (Ipv4Addr::from(u32::from_be(sin.sin_addr.s_addr)), std::ffi::CStr::from_ptr(a.ifa_name).to_string_lossy().into_owned())
+            };
+            let virtual_adapter = ["utun", "bridge", "vmnet", "awdl", "llw", "gif", "stf", "anpi"].iter().any(|v| name.starts_with(v));
+            if is_local(&ip) {
+                out.push(LocalAddress { ip: ip.to_string(), adapter: name, virtual_adapter });
+            }
+        }
+        p = a.ifa_next;
+    }
+    // SAFETY: head came from getifaddrs and is freed once.
+    unsafe { libc::freeifaddrs(head) };
+    out.sort_by_key(|a| (a.virtual_adapter, a.ip.starts_with("169.254.")));
+    out
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn local_addresses() -> Vec<LocalAddress> {
     Vec::new()
 }

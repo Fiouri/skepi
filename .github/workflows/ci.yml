@@ -1,7 +1,11 @@
 # CI: typecheck, lint, unit tests and the committed-fixtures check (verify, every change); the rag-eval
 # smoke subset (llama.cpp on CPU), the Android release guards (permission allowlist on the release APK,
 # release JS bundle rebuild probe, draft emergency cards gate) and the Windows desktop crates (skipped
-# when only docs change). The full rag-eval run and Maestro E2E run locally (phase reports).
+# when only docs change). The full rag-eval run and Android Maestro E2E run locally (phase reports).
+# Phase 3b-0: the Apple jobs on GitHub's macOS runners (no Mac, no signing): ios-simulator (Simulator
+# Release build, Swift unit tests, Maestro on the Simulator) and desktop-macos (Rust gates, unsigned
+# Tauri build with Metal, egress check). They run on their own path filters, nightly on main and on
+# demand (workflow_dispatch); the nightly run starts the Apple jobs only.
 # Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
 name: CI
 
@@ -9,6 +13,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Nightly on the default branch (main): Apple jobs only.
+    - cron: '23 2 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,22 +36,38 @@ jobs:
     timeout-minutes: 5
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      ios: ${{ steps.diff.outputs.ios }}
+      macos: ${{ steps.diff.outputs.macos }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - id: diff
         env:
+          EVENT: ${{ github.event_name }}
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
+          # Apple jobs (Phase 3b-0) follow their own paths: never docs-only changes.
+          IOS_PATHS='^(apps/mobile/(app\.json|package\.json|metro\.config\.js|plugins/)|apps/mobile/ios/|modules/|native/kiwix/|e2e/ios/|packages/emergency-cards/|catalog/|pnpm-lock\.yaml$|(.*/)?Podfile(\.lock)?$|\.github/workflows/ci\.yml$)'
+          MACOS_PATHS='^(crates/|apps/desktop/|native/kiwix/|Cargo\.(toml|lock)$|\.cargo/|rustfmt\.toml$|packages/emergency-cards/|catalog/|\.github/workflows/ci\.yml$)'
+          if [ "$EVENT" = schedule ]; then
+            echo "nightly: Apple jobs only"; echo "code=false" >> "$GITHUB_OUTPUT"; echo "ios=true" >> "$GITHUB_OUTPUT"; echo "macos=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$EVENT" = workflow_dispatch ]; then
+            echo "manual run: every job"; echo "code=true" >> "$GITHUB_OUTPUT"; echo "ios=true" >> "$GITHUB_OUTPUT"; echo "macos=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
           if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            echo "base unknown: running every job"; echo "code=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "base unknown: running every job"; echo "code=true" >> "$GITHUB_OUTPUT"; echo "ios=true" >> "$GITHUB_OUTPUT"; echo "macos=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           files=$(git diff --name-only "$BASE...$HEAD")
           echo "$files"
           code=$(echo "$files" | grep -v -E '^docs/|\.md$' | grep -c . || true)
           if [ -z "$files" ] || [ "$code" -gt 0 ]; then echo "code=true" >> "$GITHUB_OUTPUT"; else echo "docs only: heavy jobs skipped"; echo "code=false" >> "$GITHUB_OUTPUT"; fi
+          ios=$(echo "$files" | grep -v -E '\.md$' | grep -c -E "$IOS_PATHS" || true)
+          macos=$(echo "$files" | grep -v -E '\.md$' | grep -c -E "$MACOS_PATHS" || true)
+          echo "ios=$([ "$ios" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "macos=$([ "$macos" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   verify:
     runs-on: ubuntu-latest
@@ -301,3 +325,214 @@ jobs:
       - name: Downloads against the local HTTPS test mirror (Node)
         shell: pwsh
         run: ./scripts/with-msvc.ps1 cargo test -p desktop-core --features test-mirror --test downloads
+
+  # Phase 3b-0: the iOS app on the Simulator (macOS runner, no signing, no TestFlight). CoreKiwix
+  # (libzim 9.7.0) from the official Kiwix xcframework, SHA-256 pinned in native/kiwix; llama.rn built
+  # from source; Developer Preview bundle (no card step text, scanned after the build).
+  ios-simulator:
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 180
+    env:
+      SKEPI_CACHE_DIR: ${{ github.workspace }}/.cache/skepi
+      SKEPI_COREKIWIX_DIR: ${{ github.workspace }}/.cache/corekiwix
+      SKEPI_PREVIEW: '1'
+      # React Native's post_install wires ccache into the C/C++ builds (llama.cpp, React Native, SQLCipher).
+      USE_CCACHE: '1'
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_NOHASHDIR: 'true'
+      CCACHE_MAXSIZE: 2G
+      CCACHE_SLOPPINESS: clang_index_store,file_stat_matches,include_file_ctime,include_file_mtime,ivfsoverlay,pch_defines,modules,system_headers,time_macros
+      CCACHE_FILECLONE: 'true'
+      CCACHE_DEPEND: 'true'
+      CCACHE_INODECACHE: 'true'
+      DERIVED_DATA: ${{ github.workspace }}/apps/mobile/ios/build
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          pod --version
+          xcrun simctl list runtimes available
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/corekiwix
+          key: corekiwix-${{ hashFiles('native/kiwix/corekiwix.lock.json') }}
+      - name: CoreKiwix.xcframework (official Kiwix build, SHA-256 pinned)
+        run: native/kiwix/fetch-corekiwix.sh --install-ios
+      - name: ccache
+        run: |
+          brew install ccache
+          ccache --version | head -n 1
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .ccache
+          key: ccache-ios-v1-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-ios-v1-${{ hashFiles('pnpm-lock.yaml') }}-
+            ccache-ios-v1-
+      - run: ccache --zero-stats
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: cocoapods-v1-${{ hashFiles('pnpm-lock.yaml', 'modules/*/ios/*.podspec') }}
+          restore-keys: cocoapods-v1-
+      # Swift packages (MapLibre's binary distribution) and the clang module cache of DerivedData.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            apps/mobile/ios/build/SourcePackages
+            apps/mobile/ios/build/ModuleCache.noindex
+          key: deriveddata-ios-v1-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: deriveddata-ios-v1-
+      - name: Expo prebuild (ios/ is generated, never committed)
+        run: pnpm --filter @skepi/mobile exec expo prebuild --platform ios --clean --no-install
+      - name: pod install
+        working-directory: apps/mobile/ios
+        run: pod install
+      - name: Release build must fail with draft emergency cards
+        run: |
+          rc=0
+          env -u SKEPI_PREVIEW CONFIGURATION=Release TARGET_BUILD_DIR="$RUNNER_TEMP/gate" UNLOCALIZED_RESOURCES_FOLDER_PATH=SKEPI.app \
+            bash apps/mobile/plugins/ios/skepi-xcode.sh resources > gate.log 2>&1 || rc=$?
+          cat gate.log
+          if [ "$rc" -eq 0 ]; then echo "::error::the draft-cards gate let a release build through"; exit 1; fi
+          grep -q "emergency cards are DRAFT" gate.log
+      - name: xcodebuild Release for the Simulator (unsigned, Developer Preview)
+        run: |
+          set -o pipefail
+          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SKEPI -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED_DATA" \
+            ARCHS=arm64 CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-release.log"
+      - name: ccache statistics
+        if: always()
+        run: |
+          ccache --show-stats --verbose
+          ccache --evict-older-than 7d
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always()
+        with:
+          path: .ccache
+          key: ccache-ios-v1-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: App binary links no libcurl or libmicrohttpd (unused parts of CoreKiwix)
+        run: |
+          app="$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app"
+          otool -L "$app/SKEPI"
+          if nm -a "$app/SKEPI" | grep -E 'curl_easy_init|curl_multi_perform|MHD_start_daemon'; then echo "::error::network code from CoreKiwix is linked"; exit 1; fi
+          echo "libzim symbols: $(nm -a "$app/SKEPI" | grep -c '3zim7Archive' || true)"
+      - name: Preview bundle holds no card advice text
+        run: node node_modules/tsx/dist/cli.mjs tools/release-guards/src/preview-cards-cli.ts "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app/main.jsbundle"
+      - name: Swift unit tests (SkepiZim; binding, catalog/hash, viewer sealing)
+        run: |
+          set -o pipefail
+          udid=$(e2e/ios/simulator.sh create skepi-tests)
+          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -list | sed -n '/Schemes:/,$p' | grep -i -E 'skepi|zim|hash' || true
+          rc=0
+          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$udid" \
+            -derivedDataPath "$DERIVED_DATA" -resultBundlePath "$RUNNER_TEMP/SkepiZimTests.xcresult" \
+            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
+          grep -E "Test (Case|Suite)|error:|Executed" "$RUNNER_TEMP/xcodebuild-tests.log" || tail -n 200 "$RUNNER_TEMP/xcodebuild-tests.log"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/SkepiZimTests.xcresult" | tee "$RUNNER_TEMP/swift-tests-summary.json" || true
+          xcrun simctl delete "$udid" || true
+          exit "$rc"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/skepi
+          key: ios-e2e-packs-${{ hashFiles('catalog/embedded/release/catalog.json') }}
+      - name: Maestro (pinned, SHA-256 checked)
+        env:
+          MAESTRO_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip
+          MAESTRO_SHA256: 5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a
+        run: |
+          curl --fail --location --retry 5 --silent --show-error --output "$RUNNER_TEMP/maestro.zip" "$MAESTRO_URL"
+          echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | shasum -a 256 -c
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME/.maestro-dist"
+          echo "MAESTRO=$HOME/.maestro-dist/maestro/bin/maestro" >> "$GITHUB_ENV"
+      - name: Maestro flows on the Simulator (provisioned packs, no AI on the Simulator)
+        run: e2e/ios/run-ios-e2e.sh "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: ios-simulator
+          path: |
+            e2e/out/ios/
+            ${{ runner.temp }}/swift-tests-summary.json
+            ${{ runner.temp }}/xcodebuild-*.log
+          if-no-files-found: ignore
+
+  # Phase 3b-0: the desktop app on macOS (Apple silicon). libzim 9.7.0 is the macOS slice of the same
+  # pinned CoreKiwix.xcframework (static); llama.cpp with Metal (Vulkan stays on Windows); unsigned bundle.
+  desktop-macos:
+    needs: changes
+    if: needs.changes.outputs.macos == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      SKEPI_COREKIWIX_DIR: ${{ github.workspace }}/.cache/corekiwix
+      SKEPI_CACHE_DIR: ${{ github.workspace }}/.cache/skepi
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+      FEATURES: desktop-core/metal,skepi-desktop/metal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Rust toolchain (pinned)
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal -c rustfmt -c clippy
+          rustup default 1.98.1
+          sw_vers
+          xcodebuild -version
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: llama-cpp-sys-2-0.1.159-metal-${{ hashFiles('native/kiwix/corekiwix.lock.json') }}
+          cache-on-failure: 'true'
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/corekiwix
+          key: corekiwix-${{ hashFiles('native/kiwix/corekiwix.lock.json') }}
+      - name: CoreKiwix.xcframework (official Kiwix build, SHA-256 pinned; macOS slice)
+        run: native/kiwix/fetch-corekiwix.sh
+      - run: cargo fmt --all -- --check
+      - name: Clippy (Metal build)
+        run: cargo clippy --workspace --all-targets --no-default-features --features "$FEATURES" -- -D warnings
+      - name: Tests (Metal build)
+        run: cargo test --workspace --no-default-features --features "$FEATURES"
+      - name: Desktop UI (Developer Preview) holds no card advice text
+        run: |
+          SKEPI_PREVIEW=1 pnpm --filter @skepi/desktop build
+          node node_modules/tsx/dist/cli.mjs tools/release-guards/src/preview-cards-cli.ts apps/desktop/dist
+      - name: Unsigned Tauri build (aarch64-apple-darwin, app + dmg, Developer Preview)
+        env:
+          SKEPI_PREVIEW: '1'
+        run: pnpm --filter @skepi/desktop exec tauri build --target aarch64-apple-darwin --bundles app,dmg --no-sign --features metal -- --no-default-features
+      - name: Binary links only system libraries; no libcurl or libmicrohttpd
+        run: |
+          bin="target/aarch64-apple-darwin/release/skepi-desktop"
+          otool -L "$bin"
+          if otool -L "$bin" | tail -n +2 | grep -v -E '^[[:space:]]+(/usr/lib/|/System/Library/)'; then echo "::error::non-system library linked"; exit 1; fi
+          if nm -a "$bin" | grep -E 'curl_easy_init|curl_multi_perform|MHD_start_daemon'; then echo "::error::network code from CoreKiwix is linked"; exit 1; fi
+          ls -la target/aarch64-apple-darwin/release/bundle/macos target/aarch64-apple-darwin/release/bundle/dmg
+      - name: Egress (idle; the app process and its WebKit processes)
+        run: node apps/desktop/e2e/egress-macos.mjs --app target/aarch64-apple-darwin/release/bundle/macos/SKEPI.app --out e2e/out/egress-macos --idle 90 --expect-none
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: desktop-macos
+          path: |
+            e2e/out/egress-macos/egress.*
+            target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 7
+          if-no-files-found: ignore

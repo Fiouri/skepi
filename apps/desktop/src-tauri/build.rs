@@ -4,7 +4,8 @@
 //! - release builds embed the release catalog, which must verify with the release keys (and those
 //!   must differ from the test keys), like `skepiCheckReleaseCatalog` on Android;
 //! - the `test-mirror` feature (trusts the local test mirror CA) is refused in release builds;
-//! - the libzim DLLs (pinned in native/kiwix) are copied into `bin/` for bundling.
+//! - Windows: the libzim DLLs (pinned in native/kiwix) are copied into `bin/` for bundling; macOS links
+//!   libzim statically (crates/zim-ffi), so there is nothing to ship next to the binary.
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
@@ -124,7 +125,9 @@ fn main() {
     for p in ["catalog/embedded", "catalog/keys", "catalog/sources", "native/kiwix/libzim-windows.lock.json"] {
         println!("cargo:rerun-if-changed={}", repo().join(p).display());
     }
-    copy_libzim();
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        copy_libzim();
+    }
     tauri_build::try_build(
         tauri_build::Attributes::new()
             .app_manifest(tauri_build::AppManifest::new().commands(COMMANDS))

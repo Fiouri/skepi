@@ -121,13 +121,20 @@ pub async fn zim_plain_text(state: State<'_, AppState>, archive_id: String, path
 /// domain reliability reports or pings. docs/threat-model.md, "WebView2 runtime egress".
 pub const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msOneAuthWAM,msLoadOneAuthInBackground,msEdgeOSAccountInfoSubstrate --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings";
 
+/// The `zim` protocol's origin: WebView2 serves custom schemes as `http://<scheme>.localhost`, WKWebView
+/// (macOS) as `<scheme>://localhost`.
+#[cfg(not(target_os = "macos"))]
+const VIEWER_ORIGIN: &str = "http://zim.localhost";
+#[cfg(target_os = "macos")]
+const VIEWER_ORIGIN: &str = "zim://localhost";
+
 fn viewer_url(archive_id: &str, path: &str, anchor: Option<&str>) -> Res<Url> {
     let encoded: String = path
         .split('/')
         .map(|s| percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC).to_string())
         .collect::<Vec<_>>()
         .join("/");
-    let mut url = Url::parse(&format!("http://zim.localhost/{archive_id}/{encoded}")).map_err(err)?;
+    let mut url = Url::parse(&format!("{VIEWER_ORIGIN}/{archive_id}/{encoded}")).map_err(err)?;
     // Section anchors from Layer 1 (ZIM heading ids): a fragment never reaches the protocol handler.
     if let Some(a) = anchor.filter(|a| !a.is_empty() && a.len() < 256) {
         url.set_fragment(Some(a));
