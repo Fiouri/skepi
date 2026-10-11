@@ -15,16 +15,13 @@ final class MorsePlayer {
   static let maxMs = 10_000.0
   static let maxSteps = 512
 
-  private let setOn: (Bool) -> Void
+  /// Switches the torch; set by the module (OnCreate).
+  var setOn: (Bool) -> Void = { _ in }
   private var timeline: [Double] = []
   private var index = 0
   private var loop = true
   private var generation = 0
   private(set) var running = false
-
-  init(setOn: @escaping (Bool) -> Void) {
-    self.setOn = setOn
-  }
 
   static func validate(_ durations: [Double]) throws {
     guard !durations.isEmpty, durations.count % 2 == 0 else {
@@ -78,15 +75,7 @@ final class MorsePlayer {
 /// satellite counts (no onGnssStatus) and no on-device magnetic model (declination throws; the UI then
 /// shows no declination).
 public class ExpoEmergencyToolsModule: Module {
-  private lazy var morse = MorsePlayer { [weak self] on in
-    do {
-      try self?.setTorchMode(on)
-    } catch {
-      // The camera may be busy: stop instead of blinking erratically.
-      self?.morse.stop()
-      self?.sendEvent("onTorchError", ["message": String(describing: error)])
-    }
-  }
+  private let morse = MorsePlayer()
   private let location = LocationTools()
   private var savedBrightness: CGFloat?
 
@@ -106,6 +95,16 @@ public class ExpoEmergencyToolsModule: Module {
     }
   }
 
+  private func torchStep(_ on: Bool) {
+    do {
+      try setTorchMode(on)
+    } catch {
+      // The camera may be busy: stop instead of blinking erratically.
+      morse.stop()
+      sendEvent("onTorchError", ["message": String(describing: error)])
+    }
+  }
+
   private func stopAll() {
     morse.stop()
     location.stopHeading()
@@ -117,6 +116,7 @@ public class ExpoEmergencyToolsModule: Module {
     Events("onHeading", "onGnssStatus", "onTorchError")
 
     OnCreate {
+      self.morse.setOn = { [weak self] on in self?.torchStep(on) }
       self.location.onHeading = { [weak self] heading, accuracy in
         self?.sendEvent("onHeading", ["heading": heading, "accuracy": accuracy])
       }

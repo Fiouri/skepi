@@ -410,6 +410,8 @@ jobs:
       - name: xcodebuild Release for the Simulator (unsigned, Developer Preview)
         run: |
           set -o pipefail
+          # Report every compile error of a run, not only the first target's.
+          defaults write com.apple.dt.Xcode IDEBuildingContinueBuildingAfterErrors -bool YES
           xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SKEPI -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED_DATA" \
             ARCHS=arm64 CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-release.log"
