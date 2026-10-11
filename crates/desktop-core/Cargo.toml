@@ -11,6 +11,8 @@ publish.workspace = true
 default = ["vulkan"]
 # llama.cpp GPU offload on Windows (needs the Vulkan SDK at build time; CPU fallback at run time).
 vulkan = ["llama-cpp-2/vulkan"]
+# llama.cpp GPU offload on macOS (Metal, shaders embedded in the binary; Phase 3b-0).
+metal = ["llama-cpp-2/metal"]
 # Debug builds only: trusts the local HTTPS test mirror CA for 127.0.0.1 (e2e/mirror/certs).
 test-mirror = []
 
@@ -50,6 +52,10 @@ windows = { version = "=0.62.2", features = [
   "Win32_NetworkManagement_Ndis",
   "Win32_Networking_WinSock",
 ] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "=0.2.190"
+security-framework = "=3.7.0"
 
 [dev-dependencies]
 tempfile = "=3.27.0"

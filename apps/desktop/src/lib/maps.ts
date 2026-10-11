@@ -3,9 +3,11 @@ import { PMTiles, Protocol, type Source } from 'pmtiles';
 /**
  * PMTiles bytes come from the app's own `maps` protocol (src-tauri/src/protocols.rs): HTTP Range reads
  * of a verified map pack on disk, named by pack id. No tile server, no network: WebView2 serves the
- * scheme as http://maps.localhost, which the main window's CSP allows for connections.
+ * scheme as http://maps.localhost, WKWebView (macOS) as maps://localhost; the main window's CSP allows
+ * the platform's form for connections (tauri.conf.json, tauri.macos.conf.json).
  */
-export const MAPS_ORIGIN = import.meta.env.MODE === 'e2e' ? '/e2e-maps' : 'http://maps.localhost';
+const WEBKIT_MAC = typeof navigator !== 'undefined' && navigator.userAgent.includes('Macintosh');
+export const MAPS_ORIGIN = import.meta.env.MODE === 'e2e' ? '/e2e-maps' : WEBKIT_MAC ? 'maps://localhost' : 'http://maps.localhost';
 
 class PackSource implements Source {
   constructor(private readonly packId: string) {}

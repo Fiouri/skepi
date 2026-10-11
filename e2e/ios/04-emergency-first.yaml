@@ -1,0 +1,69 @@
+# iOS Simulator, country Greece: an emergency question shows the number and the card before anything
+# else; on an emergency question the packs answer, the number comes before Layer 1, and there is never an
+# AI summary on emergency intent (summaryAllowed).
+appId: org.skepi.app
+name: SKEPI iOS emergency number before Layer 1
+env:
+  CPR_QUESTION: Someone collapsed and is not breathing. How do I do CPR?
+  QUAKE_QUESTION: What should I do in an earthquake?
+---
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-ask
+- tapOn:
+    id: ask-input
+- inputText: ${CPR_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: emergency-banner
+    timeout: 30000
+- assertVisible: "Emergency\\? Call 112"
+- assertVisible:
+    id: inline-card-cpr
+    below:
+      id: emergency-banner
+- assertVisible: "Under professional review"
+- takeScreenshot: e2e/out/ios/05-card-first
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 60000
+- tapOn:
+    id: ask-clear
+- tapOn:
+    id: ask-input
+- inputText: ${QUAKE_QUESTION}
+- hideKeyboard
+- tapOn:
+    id: ask-submit
+- extendedWaitUntil:
+    visible:
+      id: layer1
+    timeout: 60000
+- assertVisible:
+    id: emergency-banner
+- assertVisible:
+    id: layer1
+    below:
+      id: emergency-banner
+- takeScreenshot: e2e/out/ios/06-number-before-layer1
+- extendedWaitUntil:
+    visible:
+      id: ask-phase
+      text: "done"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: summary-emergency
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible:
+    id: ask-summarise
+- assertNotVisible:
+    id: ai-summary

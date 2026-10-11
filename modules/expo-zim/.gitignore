@@ -5,3 +5,4 @@ android/.cxx/
 *.iml
 local.properties
 node_modules/
+ios/Frameworks/

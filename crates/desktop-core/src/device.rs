@@ -1,6 +1,8 @@
 //! DeviceProfile on Windows: RAM, free disk, battery (laptops; desktops report mains power), CPU
 //! topology (performance cores from the efficiency class of each core, so inference threads match
 //! the P-cores of hybrid CPUs). Thermal state is not exposed to user mode on Windows: "nominal".
+//! macOS (Phase 3b-0): RAM and performance cores from sysctl, free disk from statvfs; battery and
+//! thermal state are not read yet (mains power, "nominal").
 
 use serde::Serialize;
 use std::path::Path;
@@ -97,22 +99,75 @@ pub fn cpu_info() -> CpuInfo {
     CpuInfo { cores: logical, performance_cores: ids.len().max(1) as u32, performance_core_ids: ids }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn sysctl_u64(name: &str) -> Option<u64> {
+    let cname = std::ffi::CString::new(name).ok()?;
+    let mut buf = [0u8; 8];
+    let mut len: libc::size_t = buf.len();
+    // SAFETY: buf is a live 8-byte buffer and len holds its size; sysctl writes at most len bytes.
+    let rc = unsafe { libc::sysctlbyname(cname.as_ptr(), buf.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0) };
+    match (rc, len) {
+        (0, 8) => Some(u64::from_ne_bytes(buf)),
+        (0, 4) => Some(u64::from(u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]))),
+        _ => None,
+    }
+}
+
+/// Total RAM (`hw.memsize`) and available RAM: total × `kern.memorystatus_level` (the kernel's percentage
+/// of memory available before pressure, the figure Activity Monitor's memory pressure is based on).
+#[cfg(target_os = "macos")]
 pub fn memory_mb() -> (u64, u64) {
-    (0, 0)
+    let Some(total) = sysctl_u64("hw.memsize") else { return (0, 0) };
+    let level = sysctl_u64("kern.memorystatus_level").unwrap_or(0).min(100);
+    (total / (1024 * 1024), total / 100 * level / (1024 * 1024))
 }
 
-#[cfg(not(windows))]
-pub fn free_disk_bytes(_path: &Path) -> Option<u64> {
-    None
+#[cfg(target_os = "macos")]
+pub fn free_disk_bytes(path: &Path) -> Option<u64> {
+    use std::os::unix::ffi::OsStrExt;
+    let dir = if path.is_dir() { path.to_path_buf() } else { path.parent()?.to_path_buf() };
+    let c = std::ffi::CString::new(dir.as_os_str().as_bytes()).ok()?;
+    let mut st = std::mem::MaybeUninit::<libc::statvfs>::zeroed();
+    // SAFETY: c is a NUL-terminated path; st is a writable statvfs.
+    if unsafe { libc::statvfs(c.as_ptr(), st.as_mut_ptr()) } != 0 {
+        return None;
+    }
+    // SAFETY: statvfs returned 0, so st is initialised.
+    let st = unsafe { st.assume_init() };
+    Some(u64::from(st.f_bavail) * st.f_frsize)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
 fn battery() -> (f64, bool) {
     (100.0, true)
 }
 
-#[cfg(not(windows))]
+/// Apple silicon: `hw.perflevel0.*` is the performance cluster (P-cores); Intel Macs have one level.
+#[cfg(target_os = "macos")]
+pub fn cpu_info() -> CpuInfo {
+    let logical = std::thread::available_parallelism().map(|n| n.get() as u32).unwrap_or(1);
+    let levels = sysctl_u64("hw.nperflevels").unwrap_or(1);
+    let performance = if levels > 1 { sysctl_u64("hw.perflevel0.logicalcpu").map(|n| n as u32) } else { None };
+    let performance_cores = performance.unwrap_or(logical).clamp(1, logical);
+    CpuInfo { cores: logical, performance_cores, performance_core_ids: Vec::new() }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub fn memory_mb() -> (u64, u64) {
+    (0, 0)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub fn free_disk_bytes(_path: &Path) -> Option<u64> {
+    None
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn battery() -> (f64, bool) {
+    (100.0, true)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn cpu_info() -> CpuInfo {
     let n = std::thread::available_parallelism().map(|n| n.get() as u32).unwrap_or(1);
     CpuInfo { cores: n, performance_cores: n, performance_core_ids: Vec::new() }
@@ -131,7 +186,7 @@ pub fn snapshot(content_root: &Path) -> DeviceSnapshot {
     }
 }
 
-#[cfg(all(test, windows))]
+#[cfg(all(test, any(windows, target_os = "macos")))]
 mod tests {
     use super::*;
 

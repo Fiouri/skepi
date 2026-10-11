@@ -4,7 +4,7 @@ import { ExpoEmergencyTools, type GnssFix } from 'expo-emergency-tools';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, PermissionsAndroid, ScrollView, Text, View } from 'react-native';
+import { Linking, PermissionsAndroid, Platform, ScrollView, Text, View } from 'react-native';
 import { PowerTips } from '../../components/Blackout';
 import { CardLinks } from '../../components/EmergencyCards';
 import { Button, useStyles } from '../../components/ui';
@@ -92,7 +92,8 @@ export default function ToolsScreen() {
 
   const locate = async (): Promise<void> => {
     setSmsError(false);
-    if (!ExpoEmergencyTools.locationPermissionGranted()) {
+    // iOS asks for "while in use" permission inside getFix (CoreLocation); Android asks here.
+    if (Platform.OS === 'android' && !ExpoEmergencyTools.locationPermissionGranted()) {
       const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
       if (result !== PermissionsAndroid.RESULTS.GRANTED) {
         setLocation({ kind: 'error', code: 'permission', message: t.tools.permissionDenied });
@@ -230,7 +231,7 @@ export default function ToolsScreen() {
                 testID="location-settings"
                 label={t.tools.openSettings}
                 onPress={() => {
-                  if (location.code === 'gps-off') void Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS').catch(() => undefined);
+                  if (location.code === 'gps-off' && Platform.OS === 'android') void Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS').catch(() => undefined);
                   else void Linking.openSettings();
                 }}
               />

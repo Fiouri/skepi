@@ -1,0 +1,81 @@
+# iOS Simulator, first start after install (packs provisioned by e2e/ios/provision-sim.sh, verified
+# against the embedded release catalog at startup): "Get prepared" with English, Greece, the detected
+# tier, the storage preset mapped to the installed packs and the disclaimer, then the home screen.
+appId: org.skepi.app
+name: SKEPI iOS onboarding (packs installed)
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: onboarding-language
+    timeout: 90000
+- assertVisible: "Step 1 of 4"
+- assertNotVisible:
+    id: lang-el
+- tapOn:
+    id: lang-en
+- scrollUntilVisible:
+    element:
+      id: country-GR
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: country-GR
+- takeScreenshot: e2e/out/ios/onb-01-language
+- scrollUntilVisible:
+    element:
+      id: onboarding-next
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-tier-T[0-3]"
+    timeout: 10000
+- assertVisible:
+    id: onboarding-free-space
+    text: "Free space: .*"
+- takeScreenshot: e2e/out/ios/onb-02-device
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-storage
+    timeout: 10000
+- tapOn:
+    id: budget-2
+- extendedWaitUntil:
+    visible:
+      id: onboarding-plan
+    timeout: 30000
+# The startup reconcile hashes the provisioned packs (~1 GB) before they count as installed.
+- extendedWaitUntil:
+    visible:
+      id: plan-state-wikipedia_en_top_mini
+      text: "installed"
+    timeout: 180000
+- assertVisible:
+    id: plan-state-wikipedia_en_medicine_mini
+    text: "installed"
+- takeScreenshot: e2e/out/ios/onb-03-storage
+- scrollUntilVisible:
+    element:
+      id: onboarding-next
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: onboarding-next
+- extendedWaitUntil:
+    visible:
+      id: onboarding-disclaimer
+    timeout: 10000
+- assertVisible: ".*not medical advice.*"
+- tapOn:
+    id: onboarding-accept
+- extendedWaitUntil:
+    visible:
+      id: home-emergency
+    timeout: 30000
+- takeScreenshot: e2e/out/ios/onb-04-home
