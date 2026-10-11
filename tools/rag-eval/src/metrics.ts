@@ -222,8 +222,13 @@ export interface ThresholdCheck {
   /** `min`: value must be ≥ threshold; `max`: value must be ≤ threshold. */
   kind: 'min' | 'max';
   pass: boolean;
-  /** False for a frozen locale (Greek until after v1): reported, never fails the run. */
+  /** False for a frozen locale (Greek until after v1) and when not applicable: reported, never fails the run. */
   gated: boolean;
+  /**
+   * False when the run has no gated items (a held-out set run alone): the value means nothing, the
+   * report shows "n/a" and the check never fails the run.
+   */
+  applicable: boolean;
 }
 
 /** Sets that count towards the thresholds; the held-out set is reported separately, never gated. */
@@ -246,6 +251,7 @@ export function gatedOutcomes(outcomes: readonly ItemOutcome[]): ItemOutcome[] {
  */
 export function checkThresholds(outcomes: readonly ItemOutcome[], thresholds: Thresholds): ThresholdCheck[] {
   const gated = gatedOutcomes(outcomes);
+  const applicable = gated.length > 0;
   const all = computeSetMetrics(gated);
   const adversarial = computeSetMetrics(gated.filter((o) => o.set === 'adversarial'));
   const atLeast = (name: ThresholdName, value: number | null, threshold: number, isGated = true): ThresholdCheck => ({
@@ -254,7 +260,8 @@ export function checkThresholds(outcomes: readonly ItemOutcome[], thresholds: Th
     threshold,
     kind: 'min',
     pass: value !== null && value >= threshold,
-    gated: isGated,
+    gated: isGated && applicable,
+    applicable,
   });
   const atMost = (name: ThresholdName, value: number, threshold: number): ThresholdCheck => ({
     name,
@@ -262,7 +269,8 @@ export function checkThresholds(outcomes: readonly ItemOutcome[], thresholds: Th
     threshold,
     kind: 'max',
     pass: value <= threshold,
-    gated: true,
+    gated: applicable,
+    applicable,
   });
   const checks = [
     atLeast('citationPrecision', all.citationPrecision, thresholds.citationPrecision),

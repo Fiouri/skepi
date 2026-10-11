@@ -295,7 +295,8 @@ async function main(): Promise<number> {
       console.error(`THRESHOLDS MISSED: ${failed.map((c) => `${c.name}=${String(c.value)} (need ${c.threshold})`).join(', ')}`);
       return 1;
     }
-    console.log(inference ? 'RAG-EVAL PASS' : 'RAG-EVAL (Layer 1 only, no thresholds)');
+    if (inference && checks.every((c) => !c.applicable)) console.log('RAG-EVAL (no gated items: thresholds n/a, report only)');
+    else console.log(inference ? 'RAG-EVAL PASS' : 'RAG-EVAL (Layer 1 only, no thresholds)');
     return 0;
   } finally {
     knowledge.close();

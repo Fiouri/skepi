@@ -11,6 +11,7 @@ import {
   type ItemOutcome,
   type OutcomeSentence,
 } from '../src/metrics';
+import { renderMarkdown } from '../src/report';
 import { sameArticle, type EvalItem } from '../src/sets';
 
 const PARIS = { id: 'S1', title: 'Paris', heading: '', path: 'Paris', text: 'Paris is the capital and largest city of France. It has 2,102,650 residents.' };
@@ -145,6 +146,46 @@ describe('computeSetMetrics / checkThresholds', () => {
     expect(byName['summaryCoverage.en']?.gated).toBe(true);
     // The held-out no-source leak does not count towards refusal.
     expect(byName.refusalWhenNoSource?.value).toBeNull();
+  });
+
+  it('marks every check not applicable when a held-out set runs alone, and renders it as n/a', () => {
+    const heldoutOnly = [
+      outcome(item(), [kept('Paris is the capital of France.', 'S1')], 'adversarial-heldout'),
+      { ...outcome(item({ id: 'h2', expect: 'no_source', articles: [] }), [], 'adversarial-heldout'), retrieval: 'no_source' as const, sources: [] },
+    ];
+    const thresholds = { citationPrecision: 0.9, numberUnitViolations: 0, adversarialUnsupportedShown: 0, refusalWhenNoSource: 0.95 };
+    const checks = checkThresholds(heldoutOnly, thresholds);
+    expect(checks.map((c) => [c.name, c.value, c.applicable, c.gated])).toEqual([
+      ['citationPrecision', null, false, false],
+      ['numberUnitViolations', 0, false, false],
+      ['adversarialUnsupportedShown', 0, false, false],
+      ['refusalWhenNoSource', null, false, false],
+    ]);
+    // What fails a run (cli.ts): a gated check that does not pass.
+    expect(checks.filter((c) => c.gated && !c.pass)).toEqual([]);
+    const md = renderMarkdown({
+      createdAt: '2026-10-11T00:00:00Z',
+      mode: 'full',
+      promptVersion: 'p',
+      minBigramSupport: 0.5,
+      model: 'm',
+      threads: 1,
+      tier: 'T2',
+      checks,
+      all: computeSetMetrics([]),
+      perSet: {},
+      perLang: {},
+      tokens: { en: null, el: null },
+      sweep: [],
+      heldouts: [],
+    });
+    expect(md).toContain('| citationPrecision | n/a | ≥ 0.9 | n/a (no gated items in this run) |');
+    expect(md).toContain('| refusalWhenNoSource | n/a | ≥ 0.95 | n/a (no gated items in this run) |');
+    expect(md).not.toContain('FAIL');
+
+    // With gated items, a null value still fails.
+    const silent = checkThresholds([outcome(item(), [], 'en', 'hidden')], thresholds);
+    expect(silent.find((c) => c.name === 'citationPrecision')).toMatchObject({ value: null, applicable: true, gated: true, pass: false });
   });
 });
 

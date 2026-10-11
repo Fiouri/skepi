@@ -80,9 +80,14 @@ export function renderMarkdown(r: ReportInput): string {
     lines.push('| Threshold | Value | Required | Result |');
     lines.push('| --- | --- | --- | --- |');
     for (const c of r.checks) {
+      const required = `${c.kind === 'min' ? '≥' : '≤'} ${c.threshold}`;
+      if (!c.applicable) {
+        lines.push(`| ${c.name} | n/a | ${required} | n/a (no gated items in this run) |`);
+        continue;
+      }
       const value = c.value === null ? '–' : c.kind === 'min' ? pct(c.value) : String(c.value);
       const result = c.pass ? 'PASS' : 'FAIL';
-      lines.push(`| ${c.name} | ${value} | ${c.kind === 'min' ? '≥' : '≤'} ${c.threshold} | ${c.gated ? result : `${result} (frozen locale, not gated)`} |`);
+      lines.push(`| ${c.name} | ${value} | ${required} | ${c.gated ? result : `${result} (frozen locale, not gated)`} |`);
     }
     lines.push('');
   }
