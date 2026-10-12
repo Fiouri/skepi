@@ -40,6 +40,10 @@ const withProperties = (config) =>
     setGradleProperty(cfg.modResults, 'android.enableMinifyInReleaseBuilds', 'true');
     // D8 ran out of the template's 2 GB heap merging ~25 androidTest APKs in parallel.
     setGradleProperty(cfg.modResults, 'org.gradle.jvmargs', '-Xmx4096m -XX:MaxMetaspaceSize=1024m');
+    // Reproducible builds: without it the React Native Gradle plugin writes the build host's first IPv4
+    // address into the resource react_native_dev_server_ip (resources.arsc differed between CI runners).
+    // Debug builds reach Metro through `adb reverse` on localhost.
+    setGradleProperty(cfg.modResults, 'reactNativeDevServerIp', 'localhost');
     return cfg;
   });
 
@@ -218,12 +222,30 @@ tasks.matching { it.name.startsWith('createBundle') && it.name.endsWith('JsAndAs
   });
 
 const SPLITS_MARKER = '// skepi:abi-split';
+// APKs: an ABI split with only arm64-v8a. ABI splits do not apply to an AAB, where prebuilt AARs (React
+// Native, Hermes, libzim, MapLibre, ...) would add armeabi-v7a/x86/x86_64 copies without the app's own
+// native code, and Play would serve those devices a split that crashes. A bundle task therefore turns the
+// split off and filters to arm64-v8a instead (the two cannot be combined); APK builds are unchanged.
 const withAbiSplit = (config) =>
   withAppBuildGradle(config, (cfg) => {
     if (cfg.modResults.contents.includes(SPLITS_MARKER)) return cfg;
     cfg.modResults.contents = cfg.modResults.contents.replace(
       /\nandroid\s*\{\n/,
-      `\nandroid {\n    ${SPLITS_MARKER}\n    splits {\n        abi {\n            enable true\n            reset()\n            include "${ABI}"\n            universalApk false\n        }\n    }\n`,
+      `\ndef skepiBundleBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains('bundle') }
+android {
+    ${SPLITS_MARKER}
+    splits {
+        abi {
+            enable !skepiBundleBuild
+            reset()
+            include "${ABI}"
+            universalApk false
+        }
+    }
+    if (skepiBundleBuild) {
+        defaultConfig.ndk.abiFilters "${ABI}"
+    }
+`,
     );
     return cfg;
   });
