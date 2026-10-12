@@ -31,14 +31,14 @@ Runner: `macos-latest` (Apple silicon) = macOS 26.6.2, Xcode 26.6, iOS Simulator
 
 ## What runs in CI
 
-**iOS (`ios-simulator`).**
+**iOS (`ios-build` + `ios-e2e`; one `ios-simulator` job until the follow-up below).** `ios-build` runs steps 1–5; `ios-e2e` runs step 6 on the Simulator apps that `ios-build` built.
 
 1. `expo prebuild -p ios --clean --no-install`, `pod install` (SkepiZim with its test spec, SkepiHash, llama.rn from source).
 2. Draft-cards gate: `plugins/ios/skepi-xcode.sh resources` with `CONFIGURATION=Release` and no preview flag **fails** with "emergency cards are DRAFT" (like `skepiCheckEmergencyCards` on Android).
 3. `xcodebuild` Release, `iphonesimulator`, `ARCHS=arm64`, `CODE_SIGNING_ALLOWED=NO`, `SKEPI_PREVIEW=1`. Build phases embed the release catalog (verified with the release keys) and the map assets, check the cards with `--preview` and scan the built bundle.
 4. The app binary holds no `curl_*` / `MHD_*` symbol (CoreKiwix's unused downloader and server are not linked); libzim symbols are present.
 5. XCTest `SkepiZim-Unit-Tests` on a Simulator: 26/26 (table below).
-6. Maestro 2.11.0 (zip pinned by SHA-256) on a fresh Simulator. First the unsigned build must stop on "Secure storage unavailable" (`e2e/ios/startup/secure-storage-unavailable.yaml`). Then the ad-hoc copy, with the packs provisioned (`wikipedia_en_top_mini`, `wikipedia_en_medicine_mini`, `map-gr`, `places-gr`; URLs and SHA-256 from the embedded release catalog), runs `01-onboarding` … `06-cards-preview`.
+6. Maestro 2.11.0 (zip pinned by SHA-256) on a fresh Simulator. First the unsigned build must stop on "Secure storage unavailable" (`e2e/ios/startup/secure-storage-unavailable.yaml`). Then the ad-hoc copy, with the packs provisioned (`wikipedia_en_top_mini`, `wikipedia_en_medicine_mini`, `map-gr`, `places-gr`; URLs and SHA-256 from the embedded release catalog), runs `01-onboarding` … `06-cards-preview`, then the retrieval parity run (`e2e/ios/parity.yaml`, see "Follow-up").
 
 | Swift test class | Tests | What |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ and cannot be installed on a device. The checked Release build stays `CODE_SIGNI
 | Tools: SOS torch, compass, location fix, SMS hand-off | Hardware: the Simulator has no torch, compass or GNSS receiver |
 | P2P share / receive, Station → iPhone | iOS has no LocalOnlyHotspot; `expo-transfer` reports "not supported on this platform" in this phase (no new iOS features); Share/Receive are hidden on iOS |
 | Pack downloads (mirror E2E, onboarding downloads) | Not supported on iOS in this phase (`startDownload` rejects `ERR_CS_UNSUPPORTED`; background `URLSession` comes later); packs are provisioned or imported |
-| AI summary, T1 simulation, bench, held-out and parity runs | Need the GGUF model and llama.rn on a device; no model is provisioned on the Simulator |
+| AI summary, T1 simulation, bench and held-out runs | Need the GGUF model and llama.rn on a device; no model is provisioned on the Simulator (retrieval parity needs no model and runs: see "Follow-up") |
 | Blackout battery simulation, energy meter | Android-only tools (`dumpsys battery`, battery current) |
 | Airplane mode in the flows | Maestro cannot toggle it on iOS; this build has no code path to the network (downloads unsupported, no P2P) |
 | Driven (non-idle) macOS egress, desktop smoke | `tauri-driver` does not support macOS (WKWebView has no WebDriver); the idle egress run is done |
@@ -93,7 +93,6 @@ and cannot be installed on a device. The checked Release build stays `CODE_SIGNI
 - llama.rn with Metal and the GGUF model on an iPhone; the desktop Metal path with a model (CI has no model).
 - GPS, compass and torch on hardware; the "while in use" location prompt.
 - `pmtiles://file://` on a real iPhone (the Simulator renders it).
-- Retrieval parity iPhone ↔ S23 ↔ desktop: CoreKiwix links full ICU data, the Android AAR does not.
 - Keychain behaviour after an unsigned rebuild of the macOS app (the item's ACL names the old binary).
 - Signing, notarisation, TestFlight, App Store review (GPL question in "Licences and legal").
 
@@ -121,4 +120,71 @@ Main, after the merge of PR #2 (rebased; all jobs green in both runs):
 
 Iterations on the PR (all on `phase-3b0-apple-ci`): 38152805309 (macOS: dead constant on non-Windows; iOS: Swift circular reference), 38154347355 (Metal link: compiler-rt), 38156090024 (test-host CC path, test fixes; desktop-macos first green), 38158141683 (Swift 26/26; Maestro white screen → Keychain), 38162035127 (secure-storage fix + ad-hoc copy: Maestro 7/7; one flaky title assertion), 38165134459 (all green; ccache wired).
 
-Cost note: the repository is public, so GitHub-hosted macOS minutes are not billed; on a private repository macOS minutes count 10× against the plan. The nightly run starts only the two Apple jobs (~42 min warm).
+Cost note: the repository is public, so GitHub-hosted macOS minutes are not billed; on a private repository macOS minutes count 10× against the plan. The nightly run starts only the Apple jobs: since the follow-up `ios-build` + `ios-e2e` + `desktop-macos`, ~41 macOS minutes warm.
+
+## Follow-up: iOS CI split and retrieval parity on the Simulator (2026-10-12)
+
+### Job split
+
+- **`ios-build`** (push to main and pull requests, on the iOS path filter): steps 1–5 above (Release
+  Simulator build, link checks, bundle scan, Swift unit tests). When `ios-e2e` will run, it also builds the
+  ad-hoc Simulator copy and hands both apps to `ios-e2e` as one uncompressed tar artifact (kept 3 days).
+- **`ios-e2e`** (nightly on main, `workflow_dispatch`, pull requests labelled `ios-e2e`; `needs: ios-build`):
+  no Xcode build. It downloads the apps, checks that the copy has no team identity, provisions the packs
+  (cache) and runs `e2e/ios/run-ios-e2e.sh`: the secure-storage failure flow, flows 01–06 and the parity run.
+- `workflow_dispatch` input `cold`: the iOS jobs restore and save no cache (cold timing runs).
+- Swift tests: `build-for-testing` first, then a fresh Simulator is booted, then `test-without-building`.
+  The first boot of a Simulator on the 3-core runner takes 1.5–3 min of CPU and disk. Tried and dropped:
+  booting it in parallel with `pnpm install` (install 15 s → 3 min 52 s) or with `xcodebuild` (5 min →
+  11 min 34 s, ccache 676/676 both times), and reusing the runner image's device (boot ~100 s, but a long
+  settle afterwards and a Maestro driver failure in the next E2E run).
+- Maestro: `MAESTRO_DRIVER_STARTUP_TIMEOUT` 300 s, and one retry of a flow only on a driver error ("iOS
+  driver not ready in time", `DeviceUnreachableException`; the first attempt's log and JUnit are kept and
+  the job prints a warning). Simulator typing can drop characters under load: run 38229617151 typed
+  "Wurification" for "Water purification" (0 full-text results, flow 02 failed; the other 8 flows and the
+  parity run passed). Flows 02, 03 and 04 now type, submit and check the first outcome inside one Maestro
+  `retry` (erase, retype once). A wrong app result still fails both attempts.
+
+### Timings
+
+Old single job (`ios-simulator`): cold 47 min 39 s, warm 34 min 51 s (runs 38167191548, 38170634902).
+
+| Run | Kind | `ios-build` | `ios-e2e` | Result |
+| --- | --- | --- | --- | --- |
+| [38243154663](https://github.com/Fiouri/skepi/actions/runs/38243154663) | main, dispatch `cold=true` | 25 min 26 s | 28 min 37 s | All jobs green; Maestro 7/7; parity PASS |
+| [38229617151](https://github.com/Fiouri/skepi/actions/runs/38229617151) | main, dispatch, warm | 14 min 36 s (incl. ad-hoc copy 1 min 27 s) | 18 min 59 s | Flow 02 failed (typing, above); parity PASS |
+| [38237834411](https://github.com/Fiouri/skepi/actions/runs/38237834411) | branch, dispatch, warm (typing retry) | 14 min 22 s | 34 min 05 s (slow runner: every flow ~2×, driver start 4 min) | All jobs green; Maestro 7/7, no retry used; parity PASS |
+| [38224310841](https://github.com/Fiouri/skepi/actions/runs/38224310841) | PR #3, label, warm | 14 min 38 s | 17 min 49 s | All jobs green; Maestro 7/7; parity PASS |
+| [38227883505](https://github.com/Fiouri/skepi/actions/runs/38227883505) | main push, warm | 14 min 50 s (no ad-hoc copy) | skipped (by design) | All jobs green |
+| [38243150124](https://github.com/Fiouri/skepi/actions/runs/38243150124) | main push, warm | 15 min 43 s (Swift test step 7 min 04 s) | skipped (by design) | All jobs green |
+
+| `ios-build` step | Cold | Warm |
+| --- | --- | --- |
+| CoreKiwix download + verify | 1 min 18 s | cache |
+| `pod install` | 1 min 44 s | 42–58 s |
+| `xcodebuild` Release (Simulator) | 13 min 30 s (ccache 0/676) | 5 min 05 s – 5 min 20 s (676/676) |
+| Swift tests (build-for-testing, boot, 26 tests) | 5 min 49 s | 5 min 47 s – 7 min 04 s, of which the boot and settle ≈ 4–5 min |
+| Ad-hoc copy (only when `ios-e2e` runs) | 1 min 09 s | 1 min 03 s – 1 min 27 s |
+
+`ios-e2e`: the Simulator boot takes 105–165 s. Packs come from the cache (~795 MB restore, ~5 s) or are
+downloaded and hashed (cold: 4 packs in ~32 s). The flows, including Maestro's driver start, take 12–28 min depending on the runner; the parity flow alone takes ~1 min.
+
+The < 15 min warm target for a path-filtered push is met in 4 of 6 warm `ios-build` runs (14 min 22 s –
+14 min 50 s). The two misses are 15 min 43 s and the cold run. What is left above the target is the
+Simulator boot inside the Swift test step. A faster runner class (paid) or skipping the Swift tests on PRs
+would cut it; both were left out.
+
+### Retrieval parity iOS ↔ eval ↔ S23 ↔ desktop: done
+
+The 108 English questions of the golden set (T2, `contextSize` 2048, the zimDefault packs) run through
+`retrieve()` on the Simulator: Bench → "Run retrieval parity", `probeRetrieval`, no model. Every step is
+compared with the stored hardening runs of 2026-10-11 (`tools/rag-eval/parity-reference/`: Galaxy S23,
+desktop Rust libzim, rag-eval python-libzim; 108/108 identical to each other): keywords, per-archive search
+lists, fused hits, article text hashes, ranked chunks, status and chosen sources.
+`parity.ts --device … --reference` writes `parity-reference.md` to the job summary and fails on any
+difference.
+
+**Result: iOS Simulator (CoreKiwix 14.2.1-2) 108/108 identical to S23, desktop and rag-eval** in every run
+above that reached the parity stage: 38208915241, 38224310841, 38229617151, 38237834411, 38243154663.
+CoreKiwix links full ICU data and the Android AAR does not. This produced no difference on these
+questions (English, the zimDefault packs); the Greek set stays frozen (manual, `--greek`).
