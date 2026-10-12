@@ -4,6 +4,7 @@
 // - Network access only through ContentStore (plugins/withContentStore.js, modules/expo-content-store).
 // - R8 minification for release with SKEPI keep rules (plugins/proguard-rules.skepi.pro).
 // - Release signing with the dedicated keystore (plugins/withReleaseSigning.js).
+// - Reproducible native libraries (plugins/reproducible.cmake).
 // - Release gate for draft emergency cards (plugins/withEmergencyCards.js).
 // - Debug installs side-by-side with release: applicationId suffix ".dev", label "SKEPI Dev".
 const fs = require('fs');
@@ -150,6 +151,35 @@ subprojects { p ->
 
 // The release JS bundle task only tracks files under apps/mobile, so a change in packages/* or
 // modules/* alone left the bundle UP-TO-DATE and shipped stale core code (found in Phase 1c).
+// Reproducible native libraries: every Android module with a CMake build (app, llama.rn, op-sqlite,
+// React Native and Expo libraries) loads plugins/reproducible.cmake after its project() call
+// (--build-id=none, -ffile-prefix-map for the checkout, the Gradle user home and the NDK). finalizeDsl
+// runs after each module's own android {} block, so a module that assigns its arguments list keeps ours.
+const REPRODUCIBLE_MARKER = '// skepi:reproducible-native';
+const withReproducibleNative = (config) =>
+  withProjectBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(REPRODUCIBLE_MARKER)) return cfg;
+    cfg.modResults.contents += `
+${REPRODUCIBLE_MARKER}
+def skepiCmakePath = { File f -> f.canonicalPath.replace('\\\\', '/') }
+def skepiReproArgs = [
+    "-DCMAKE_PROJECT_INCLUDE=\${skepiCmakePath(new File(rootDir, '../plugins/reproducible.cmake'))}",
+    "-DSKEPI_REPRO_REPO_ROOT=\${skepiCmakePath(new File(rootDir, '../../..'))}",
+    "-DSKEPI_REPRO_GRADLE_HOME=\${skepiCmakePath(gradle.gradleUserHomeDir)}",
+]
+subprojects { p ->
+    ['com.android.application', 'com.android.library'].each { id ->
+        p.plugins.withId(id) {
+            p.extensions.getByName('androidComponents').finalizeDsl { ext ->
+                ext.defaultConfig.externalNativeBuild.cmake.arguments.addAll(skepiReproArgs)
+            }
+        }
+    }
+}
+`;
+    return cfg;
+  });
+
 const BUNDLE_INPUTS_MARKER = '// skepi:bundle-inputs';
 const withBundleInputs = (config) =>
   withAppBuildGradle(config, (cfg) => {
@@ -236,10 +266,10 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withThirdPartyNotices(withEmergencyCards(withContentStore(withBundleInputs(withAndroidTestPackaging(withDevVariant(
+  withThirdPartyNotices(withEmergencyCards(withContentStore(withReproducibleNative(withBundleInputs(withAndroidTestPackaging(withDevVariant(
     withReleaseSigning(
       withKeepRules(
         withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
       ),
     ),
-  ))))));
+  )))))));

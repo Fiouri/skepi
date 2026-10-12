@@ -53,5 +53,14 @@
   "op-sqlite": {
     "sqlcipher": true,
     "fts5": true
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          ".*"
+        ]
+      }
+    }
   }
 }

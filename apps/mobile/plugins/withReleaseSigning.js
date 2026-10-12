@@ -2,8 +2,11 @@
 // - Release builds sign with the dedicated SKEPI keystore described by four Gradle properties,
 //   normally kept in ~/.gradle/gradle.properties (never in the repo). See docs/release-signing.md.
 // - Missing properties fail the release build before any compilation starts.
-// - `-PskepiDebugSign=true` is the only escape hatch (local E2E): signs with the Expo debug key and
-//   prints a loud warning. Such an APK must never be distributed.
+// - `-PskepiDebugSign=true` (local E2E): signs with the Expo debug key and prints a loud warning. Such an
+//   APK must never be distributed.
+// - `-PskepiUnsigned=true` (F-Droid, CI): no signing config at all, so AGP writes an unsigned APK/AAB
+//   (`*-release-unsigned.apk`). The release key is signed onto it later with apksigner, off CI.
+//   Exclusive with -PskepiDebugSign.
 const { withAppBuildGradle } = require('expo/config-plugins');
 
 const MARKER = '// skepi:release-signing';
@@ -20,6 +23,7 @@ def skepiProp = { String key -> (findProperty(key) ?: '').toString().trim() }
 def skepiMissingKeys = skepiSigningKeys.findAll { skepiProp(it).isEmpty() }
 def skepiStoreFile = skepiMissingKeys.contains('SKEPI_RELEASE_STORE_FILE') ? null : file(skepiProp('SKEPI_RELEASE_STORE_FILE'))
 def skepiDebugSign = skepiProp('skepiDebugSign').toBoolean()
+def skepiUnsigned = skepiProp('skepiUnsigned').toBoolean()
 def skepiReleaseKeyReady = skepiMissingKeys.isEmpty() && skepiStoreFile != null && skepiStoreFile.isFile()
 
 android {
@@ -35,15 +39,23 @@ android {
     }
     buildTypes {
         release {
-            // Overrides the template's debug signing. Null (unsigned) is never packaged:
-            // skepiCheckReleaseSigning fails the build first.
-            signingConfig skepiDebugSign ? signingConfigs.debug : (skepiReleaseKeyReady ? signingConfigs.skepiRelease : null)
+            // Overrides the template's debug signing. Null (unsigned) is packaged only with
+            // -PskepiUnsigned=true; otherwise skepiCheckReleaseSigning fails the build first.
+            signingConfig skepiUnsigned ? null : (skepiDebugSign ? signingConfigs.debug : (skepiReleaseKeyReady ? signingConfigs.skepiRelease : null))
         }
     }
 }
 
 def skepiCheckReleaseSigning = tasks.register('skepiCheckReleaseSigning') {
     doLast {
+        if (skepiUnsigned && skepiDebugSign) {
+            throw new GradleException("-PskepiUnsigned=true and -PskepiDebugSign=true are exclusive.")
+        }
+        if (skepiUnsigned) {
+            def bar = '!' * 78
+            logger.warn("\\n\${bar}\\n!! SKEPI: UNSIGNED release build (-PskepiUnsigned=true): no signing config is used.\\n!! Sign it with apksigner and the release key before distributing (docs/release-process.md).\\n\${bar}\\n")
+            return
+        }
         if (skepiDebugSign) {
             def bar = '!' * 78
             logger.warn("\\n\${bar}\\n!! SKEPI: release build signed with the Expo DEBUG key (-PskepiDebugSign=true).\\n!! For local E2E only. NEVER distribute this APK.\\n\${bar}\\n")
@@ -52,7 +64,8 @@ def skepiCheckReleaseSigning = tasks.register('skepiCheckReleaseSigning') {
         if (!skepiMissingKeys.isEmpty()) {
             throw new GradleException(
                 "SKEPI release signing is not configured. Missing Gradle properties: \${skepiMissingKeys.join(', ')}.\\n" +
-                "Add them to ~/.gradle/gradle.properties (see docs/release-signing.md), or pass\\n" +
+                "Add them to ~/.gradle/gradle.properties (see docs/release-signing.md), pass\\n" +
+                "-PskepiUnsigned=true for an unsigned build (F-Droid, CI; sign it before distributing), or\\n" +
                 "-PskepiDebugSign=true for a local, debug-signed E2E build that must never be distributed.")
         }
         if (!skepiStoreFile.isFile()) {
