@@ -460,14 +460,17 @@ jobs:
         run: |
           set -o pipefail
           # Booting in parallel with the build or pnpm install saves nothing on these runners (the first boot
-          # is CPU- and disk-bound); a device the image already has may skip the first-boot migration.
+          # is CPU- and disk-bound), and a just-booted Simulator slows a build: compile first, then boot (a
+          # device the image already has skips the first-boot migration), then run.
           udid=$(e2e/ios/simulator.sh reuse skepi-tests)
-          xcrun simctl boot "$udid"
-          start=$(date +%s); xcrun simctl bootstatus "$udid" -b > /dev/null; echo "Simulator booted in $(( $(date +%s) - start )) s"
+          tests=(-workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$udid" -derivedDataPath "$DERIVED_DATA")
           rc=0
-          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$udid" \
-            -derivedDataPath "$DERIVED_DATA" -resultBundlePath "$RUNNER_TEMP/SkepiZimTests.xcresult" \
-            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
+          xcodebuild "${tests[@]}" CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO build-for-testing > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            start=$(date +%s); xcrun simctl bootstatus "$udid" -b > /dev/null; echo "Simulator booted in $(( $(date +%s) - start )) s"
+            xcodebuild "${tests[@]}" -resultBundlePath "$RUNNER_TEMP/SkepiZimTests.xcresult" \
+              CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test-without-building >> "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
+          fi
           grep -E "Test (Case|Suite)|error:|Executed" "$RUNNER_TEMP/xcodebuild-tests.log" || tail -n 200 "$RUNNER_TEMP/xcodebuild-tests.log"
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/SkepiZimTests.xcresult" | tee "$RUNNER_TEMP/swift-tests-summary.json" || true
           xcrun simctl delete "$udid" || true
