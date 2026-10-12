@@ -20,6 +20,11 @@ on:
     # Nightly on the default branch (main): Apple jobs only.
     - cron: '23 2 * * *'
   workflow_dispatch:
+    inputs:
+      cold:
+        description: 'iOS jobs without caches (restore nothing, save nothing): cold timing run'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -366,21 +371,16 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: pnpm
+          cache: ${{ !inputs.cold && 'pnpm' || '' }}
       - name: Toolchain
         run: |
           sw_vers
           xcodebuild -version
           pod --version
           xcrun simctl list runtimes available
-      # A fresh Simulator's first boot takes ~4 min; CoreSimulator boots it while the app builds.
-      - name: Simulator for the unit tests (boots in the background)
-        run: |
-          udid=$(e2e/ios/simulator.sh create skepi-tests)
-          xcrun simctl boot "$udid"
-          echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
       - run: pnpm install --frozen-lockfile
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ !inputs.cold }}
         with:
           path: .cache/corekiwix
           key: corekiwix-${{ hashFiles('native/kiwix/corekiwix.lock.json') }}
@@ -391,6 +391,7 @@ jobs:
           brew install ccache
           ccache --version | head -n 1
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ !inputs.cold }}
         with:
           path: .ccache
           key: ccache-ios-v2-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -399,12 +400,14 @@ jobs:
             ccache-ios-v2-
       - run: ccache --zero-stats
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ !inputs.cold }}
         with:
           path: ~/Library/Caches/CocoaPods
           key: cocoapods-v1-${{ hashFiles('pnpm-lock.yaml', 'modules/*/ios/*.podspec') }}
           restore-keys: cocoapods-v1-
       # Swift packages (MapLibre's binary distribution) and the clang module cache of DerivedData.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ !inputs.cold }}
         with:
           path: |
             apps/mobile/ios/build/SourcePackages
@@ -424,6 +427,13 @@ jobs:
           cat gate.log
           if [ "$rc" -eq 0 ]; then echo "::error::the draft-cards gate let a release build through"; exit 1; fi
           grep -q "emergency cards are DRAFT" gate.log
+      # A fresh Simulator's first boot takes ~4 min; CoreSimulator boots it while the app builds. Not earlier:
+      # its first-boot data migration slows pnpm install and pod install (disk-bound) by minutes.
+      - name: Simulator for the unit tests (boots in the background)
+        run: |
+          udid=$(e2e/ios/simulator.sh create skepi-tests)
+          xcrun simctl boot "$udid"
+          echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
       - name: xcodebuild Release for the Simulator (unsigned, Developer Preview)
         id: build
         run: |
@@ -441,7 +451,7 @@ jobs:
           ccache --show-stats --verbose
           ccache --evict-older-than 7d
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: always()
+        if: ${{ always() && !inputs.cold }}
         with:
           path: .ccache
           key: ccache-ios-v2-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -518,7 +528,9 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: pnpm
+          cache: ${{ !inputs.cold && 'pnpm' || '' }}
+      - run: pnpm install --frozen-lockfile
+      # Boots while the apps, packs and Maestro arrive (after pnpm install: the first boot is disk-bound).
       - name: Simulator (boots in the background)
         run: |
           sw_vers
@@ -526,7 +538,6 @@ jobs:
           udid=$(e2e/ios/simulator.sh create skepi-e2e)
           xcrun simctl boot "$udid"
           echo "SKEPI_SIM_UDID=$udid" >> "$GITHUB_ENV"
-      - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ios-sim-apps.tar
@@ -539,6 +550,7 @@ jobs:
           codesign -dv "$RUNNER_TEMP/apps/adhoc/SKEPI.app" 2>&1 | grep -E "Signature|TeamIdentifier|Identifier"
           if codesign -dv "$RUNNER_TEMP/apps/adhoc/SKEPI.app" 2>&1 | grep -q "TeamIdentifier=[A-Z0-9]\{10\}"; then echo "::error::the Simulator copy carries a team identity"; exit 1; fi
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ !inputs.cold }}
         with:
           path: .cache/skepi
           key: ios-e2e-packs-${{ hashFiles('catalog/embedded/release/catalog.json') }}
