@@ -3,26 +3,31 @@
 # with different Gradle user homes, no Gradle build cache and no ccache. android-repro passes only when
 # both APKs are byte-identical; it then uploads the unsigned APK and its SHA-256. That artifact is what
 # the maintainer signs locally with the release key (never in CI) and publishes.
-# Developer Preview mode (SKEPI_PREVIEW=1, -PskepiPreview=true), as the F-Droid recipe builds it.
+# Developer Preview mode (SKEPI_PREVIEW=1, -PskepiPreview=true) with the JDK 21 toolchain and Node 24
+# (scripts/android/jdk21.sh, -PskepiJdk21=true), as the F-Droid recipe builds it on Debian trixie.
+# fdroid-build runs `fdroid build` of docs/fdroid/org.skepi.app.yml in F-Droid's buildserver container and
+# must produce the same bytes as android-repro (scripts/ci/fdroid-build.sh).
 # Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
 name: Android reproducible build
 
 on:
   push:
     branches: [main]
-    # Only what cannot change the APK is ignored.
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'fastlane/**'
-      - 'crates/**'
-      - 'apps/desktop/**'
-      - 'e2e/**'
-      - 'native/vulkan/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rustfmt.toml'
-      - '.github/workflows/ci.yml'
+    # Everything that can change the APK, plus the F-Droid recipe (later patterns win).
+    paths:
+      - '**'
+      - '!**.md'
+      - '!docs/**'
+      - 'docs/fdroid/**'
+      - '!fastlane/**'
+      - '!crates/**'
+      - '!apps/desktop/**'
+      - '!e2e/**'
+      - '!native/vulkan/**'
+      - '!Cargo.toml'
+      - '!Cargo.lock'
+      - '!rustfmt.toml'
+      - '!.github/workflows/ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -33,6 +38,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # fdroid-build is slow (~1 h): it runs on demand and when the recipe or the Android build inputs change.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      fdroid: ${{ steps.diff.outputs.fdroid }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "fdroid=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          FDROID_PATHS='^(docs/fdroid/|apps/mobile/(android/|plugins/|package\.json$|app\.json$|metro\.config\.js$)|modules/[^/]+/(android/|package\.json$|expo-module\.config\.json$)|scripts/(android|ci)/|pnpm-lock\.yaml$|package\.json$|pnpm-workspace\.yaml$|\.github/workflows/android-repro\.yml$)'
+          n=$(git diff --name-only "$BASE...$GITHUB_SHA" | grep -c -E "$FDROID_PATHS" || true)
+          echo "fdroid=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   android-repro-build:
     name: android-repro-build (${{ matrix.leg }})
     runs-on: ubuntu-24.04
@@ -63,13 +90,14 @@ jobs:
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: ${{ matrix.dir }}/package.json
+      # Node and JDK as on F-Droid's Debian buildserver (nodejs from forky, OpenJDK 21 from trixie).
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: 24.21.0
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - name: Swap (10 GB)
         run: |
           sudo swapoff -a || true
@@ -81,6 +109,9 @@ jobs:
       - name: Install (frozen lockfile)
         working-directory: ${{ matrix.dir }}
         run: pnpm install --frozen-lockfile
+      - name: JDK 21 toolchain (scripts/android/jdk21.sh, as in the F-Droid recipe)
+        working-directory: ${{ matrix.dir }}
+        run: bash scripts/android/jdk21.sh
       - name: Expo prebuild (android/ is generated, never committed)
         working-directory: ${{ matrix.dir }}
         run: pnpm --filter @skepi/mobile run prebuild
@@ -89,7 +120,7 @@ jobs:
         run: |
           echo "checkout: $PWD"
           echo "Gradle user home: $GRADLE_USER_HOME"
-          ./gradlew assembleRelease -PskepiUnsigned=true -PskepiPreview=true --no-build-cache --no-configuration-cache --console=plain
+          ./gradlew assembleRelease -PskepiUnsigned=true -PskepiPreview=true -PskepiJdk21=true -Porg.gradle.java.installations.auto-download=false --no-build-cache --no-configuration-cache --console=plain
       - name: APK is unsigned
         working-directory: ${{ matrix.dir }}
         run: python3 scripts/ci/apk-compare.py unsigned apps/mobile/android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
@@ -185,3 +216,85 @@ jobs:
           path: out/
           retention-days: 90
           if-no-files-found: error
+
+  # `fdroid build` of the recipe at this commit in F-Droid's buildserver container (Debian trixie, OpenJDK
+  # 21, fdroidserver pinned like fdroiddata's CI). Passes only when its unsigned APK is byte-identical to
+  # android-repro's.
+  fdroid-build:
+    needs: changes
+    if: needs.changes.outputs.fdroid == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: src
+      - name: Disk space (the container, two NDKs and the build need ~40 GB)
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/share/swift /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force > /dev/null
+          df -h / /mnt
+      - name: fdroid build in registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /mnt/fdroid/build /mnt/fdroid/gradle /mnt/fdroid/out
+          sudo docker run --rm \
+            -v "$GITHUB_WORKSPACE/src:/src:ro" \
+            -v /mnt/fdroid/build:/home/vagrant/build \
+            -v /mnt/fdroid/gradle:/home/vagrant/.gradle \
+            -v /mnt/fdroid/out:/out \
+            -e APP_COMMIT="$GITHUB_SHA" \
+            -e REPO_URL="https://github.com/$GITHUB_REPOSITORY.git" \
+            registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie \
+            bash /src/scripts/ci/fdroid-build.sh
+      - name: Collect the output
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" /mnt/fdroid/out || true
+          mkdir -p fdroid-out && cp -r /mnt/fdroid/out/. fdroid-out/ || true
+          ls -la fdroid-out
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: fdroid-build
+          path: fdroid-out/
+          retention-days: 14
+          if-no-files-found: warn
+      # android-repro-build runs in parallel; wait for its artifact (same run).
+      - name: Wait for the android-repro artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 120); do
+            n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '[.artifacts[] | select(.name=="repro-a")] | length')
+            [ "$n" -gt 0 ] && exit 0
+            sleep 30
+          done
+          echo "::error::repro-a did not appear within 60 minutes"; exit 1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: repro-a
+          path: repro
+      - name: fdroid build and android-repro are byte-identical
+        id: compare
+        run: |
+          apk=$(ls fdroid-out/org.skepi.app_*.apk)
+          python3 src/scripts/ci/apk-compare.py same "$apk" repro/app-arm64-v8a-release-unsigned.apk | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Differences (diffoscope)
+        if: failure() && steps.compare.outcome == 'failure'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q diffoscope-minimal llvm binutils-aarch64-linux-gnu default-jdk-headless > /dev/null
+          mkdir -p uf ur
+          unzip -q fdroid-out/org.skepi.app_*.apk -d uf
+          unzip -q repro/app-arm64-v8a-release-unsigned.apk -d ur
+          diffoscope --exclude-directory-metadata=yes --max-text-report-size 400000 --text diffoscope-fdroid.txt uf ur || true
+          head -c 150000 diffoscope-fdroid.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure() && steps.compare.outcome == 'failure'
+        with:
+          name: fdroid-diffoscope
+          path: diffoscope-fdroid.txt
+          retention-days: 14

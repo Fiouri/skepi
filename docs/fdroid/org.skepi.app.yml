@@ -16,29 +16,33 @@ Builds:
   - versionName: 0.1.1-preview
     versionCode: 3
     commit: v0.1.1-preview
-    subdir: apps/mobile/android/app
+    subdir: apps/mobile
     sudo:
+      - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list
       - apt-get update
       - apt-get install -y -t forky nodejs npm
       - npm install -g pnpm@10.33.0
     init:
-      - cd ../../../..
-      - pnpm install --frozen-lockfile --filter @skepi/mobile... --filter @skepi/catalog-builder...
-        --filter @skepi/release-guards... --filter @skepi/emergency-cards...
-    output: build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
-    prebuild:
       - cd ../..
+      - pnpm install --frozen-lockfile
+    output: android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+    prebuild:
+      - bash ../../scripts/android/jdk21.sh
+      - sed -i -e '/play-services-location/d' ../../node_modules/@maplibre/maplibre-react-native/android/build.gradle
       - npx expo prebuild --platform android --clean --no-install
     scanignore:
       - node_modules/hermes-compiler
+      - node_modules/@esbuild/linux-x64
+      - node_modules/@react-native-masked-view/masked-view/android/build.gradle
+      - node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - node_modules/react-native-safe-area-context/android/build.gradle
+      - node_modules/react-native-screens/android/build.gradle
     scandelete:
-      - node_modules/llama.rn/bin
-      - node_modules/@op-engineering/op-sqlite/android/src/main/jniLibs
-      - node_modules/@op-engineering/op-sqlite/android/src/main/libsqlitevec
-      - node_modules/@op-engineering/op-sqlite/android/src/main/tursoLibs
+      - node_modules
+      - tools/rag-eval/parity-reference
     build:
-      - cd ..
-      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true
+      - cd android
+      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true -PskepiJdk21=true
         --no-daemon
     ndk:
       - 27.1.12297006

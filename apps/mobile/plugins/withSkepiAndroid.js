@@ -203,6 +203,28 @@ android {
   });
 };
 
+// JDK 21 builds (-PskepiJdk21=true; android-repro and the F-Droid recipe, after scripts/android/jdk21.sh).
+// Debian trixie, F-Droid's buildserver, has only OpenJDK 21, while React Native and Expo request a JDK 17
+// toolchain. jdk21.sh switches those requests to 21; a Kotlin jvmTarget would then follow the toolchain,
+// so it is pinned to the 17 that React Native sets for Java. Local builds without the property: JDK 17.
+const JDK21_MARKER = '// skepi:jdk21';
+const withJdk21Option = (config) =>
+  withProjectBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(JDK21_MARKER)) return cfg;
+    cfg.modResults.contents += `
+${JDK21_MARKER}
+if ((findProperty('skepiJdk21') ?: 'false').toString().toBoolean()) {
+    logger.lifecycle('SKEPI: JDK 21 toolchain, bytecode target 17 (-PskepiJdk21=true)')
+    allprojects { p ->
+        p.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile).configureEach { t ->
+            t.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+}
+`;
+    return cfg;
+  });
+
 const BUNDLE_INPUTS_MARKER = '// skepi:bundle-inputs';
 const withBundleInputs = (config) =>
   withAppBuildGradle(config, (cfg) => {
@@ -307,10 +329,10 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withThirdPartyNotices(withEmergencyCards(withContentStore(withReproducibleNative(withBundleInputs(withAndroidTestPackaging(withDevVariant(
+  withThirdPartyNotices(withEmergencyCards(withContentStore(withJdk21Option(withReproducibleNative(withBundleInputs(withAndroidTestPackaging(withDevVariant(
     withReleaseSigning(
       withKeepRules(
         withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
       ),
     ),
-  )))))));
+  ))))))));
