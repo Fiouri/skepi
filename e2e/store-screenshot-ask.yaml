@@ -35,13 +35,16 @@ onFlowComplete:
       text: "done"
     timeout: 240000
 - assertVisible: "Source excerpts — not verified advice"
+# Stop as soon as the first AI sentence is fully on screen: the last source excerpt stays visible above
+# the labelled AI summary (scrolling further brings up the debug lines below it).
 - scrollUntilVisible:
     element:
-      id: "citation-S[0-9]+"
+      id: answer-sentence-0
     direction: DOWN
-    centerElement: true
+    visibilityPercentage: 100
     timeout: 20000
 - assertVisible: "AI summary — check the source"
+- assertVisible: "\\[S[0-9]+\\].*"
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: ${OUT}/4_ask_sources

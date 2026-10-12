@@ -51,7 +51,7 @@ if ($state -ne 'device') { throw "$Connect is $state" }
 # Changing the phone's settings needs the shared device lock (scripts/device-lock.ps1).
 $deviceLock = $null
 if ($KeepWifiInAirplane -or $Restore) {
-  . (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts\device-lock.ps1')
+  . (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts\device-lock-lib.ps1')
   $deviceLock = Enter-DeviceLock -Serial $Connect -Purpose 'e2e/adb-wireless.ps1'
 }
 try {

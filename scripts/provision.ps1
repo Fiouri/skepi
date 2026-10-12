@@ -40,7 +40,7 @@ $ErrorActionPreference = 'Stop'
 
 # Shared device lock (scripts/device-lock.ps1): waits while another project or session uses the
 # device and never stops their processes; released in the finally block at the end of this script.
-. (Join-Path $PSScriptRoot 'device-lock.ps1')
+. (Join-Path $PSScriptRoot 'device-lock-lib.ps1')
 $deviceLocks = @(if (-not $DownloadOnly) { Enter-DeviceLock -Serial $Serial -Purpose 'scripts/provision.ps1' })
 try {
 
