@@ -55,11 +55,17 @@ cat "$recipe"
 chown -R vagrant "$home_vagrant"
 
 cd "$home_vagrant"
+fdroid() {
+  sudo --preserve-env --user vagrant \
+    env PATH="$fdroidserver:$PATH" PYTHONPATH="$fdroidserver:$fdroidserver/examples" PYTHONUNBUFFERED=true \
+    HOME="$home_vagrant" GRADLE_USER_HOME="$home_vagrant/.gradle" \
+    fdroid "$@"
+}
+# --on-server builds the checkout in build/org.skepi.app; fdroiddata CI makes it with its fetchsrclibs plugin,
+# which wraps this internal command.
+fdroid fetch_repo "org.skepi.app:$code" --verbose
 set +e
-sudo --preserve-env --user vagrant \
-  env PATH="$fdroidserver:$PATH" PYTHONPATH="$fdroidserver:$fdroidserver/examples" PYTHONUNBUFFERED=true \
-  HOME="$home_vagrant" GRADLE_USER_HOME="$home_vagrant/.gradle" \
-  fdroid build --verbose --test --refresh-scanner --on-server --no-tarball "org.skepi.app:$code" 2>&1 | tee "$OUT/fdroid-build.log"
+(unset CI; fdroid build --verbose --test --refresh-scanner --on-server --no-tarball "org.skepi.app:$code") 2>&1 | tee "$OUT/fdroid-build.log"
 rc=${PIPESTATUS[0]}
 set -e
 cp -r "$home_vagrant/logs" "$OUT/logs" 2>/dev/null || true
