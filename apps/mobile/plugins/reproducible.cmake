@@ -28,4 +28,13 @@ endif()
 foreach(_skepi_map IN LISTS _skepi_maps)
   add_compile_options("-ffile-prefix-map=${_skepi_map}")
 endforeach()
-message(STATUS "SKEPI reproducible build: --build-id=none, prefix maps ${_skepi_maps}")
+
+# react-native-reanimated compiles with -flto=thin. ThinLTO identifies modules by their object file paths,
+# and CMake names the objects of sources outside the project directory (reanimated's ../Common/cpp) after
+# their absolute path, so the order of RTTI names and code in libreanimated.so followed the checkout path.
+# Compiled without LTO it is path-independent (compile options come after CMAKE_CXX_FLAGS: last flag wins).
+if(PROJECT_NAME STREQUAL "Reanimated")
+  add_compile_options(-fno-lto)
+  set(_skepi_lto " (Reanimated: -fno-lto)")
+endif()
+message(STATUS "SKEPI reproducible build: --build-id=none, prefix maps ${_skepi_maps}${_skepi_lto}")

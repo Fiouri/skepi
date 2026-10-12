@@ -153,25 +153,43 @@ subprojects { p ->
 // modules/* alone left the bundle UP-TO-DATE and shipped stale core code (found in Phase 1c).
 // Reproducible native libraries: every Android module with a CMake build (app, llama.rn, op-sqlite,
 // React Native and Expo libraries) loads plugins/reproducible.cmake after its project() call
-// (--build-id=none, -ffile-prefix-map for the checkout, the Gradle user home and the NDK). finalizeDsl
-// runs after each module's own android {} block, so a module that assigns its arguments list keeps ours.
+// (--build-id=none, -ffile-prefix-map for the checkout, the Gradle user home and the NDK).
+// Libraries: finalizeDsl runs after each module's own android {} block, so a module that assigns its
+// arguments list keeps ours. The app: React Native's root plugin evaluates :app before the root build
+// script ends, so the root block cannot reach it; app/build.gradle sets the same arguments itself.
 const REPRODUCIBLE_MARKER = '// skepi:reproducible-native';
-const withReproducibleNative = (config) =>
-  withProjectBuildGradle(config, (cfg) => {
-    if (cfg.modResults.contents.includes(REPRODUCIBLE_MARKER)) return cfg;
-    cfg.modResults.contents += `
-${REPRODUCIBLE_MARKER}
-def skepiCmakePath = { File f -> f.canonicalPath.replace('\\\\', '/') }
+const REPRODUCIBLE_ARGS = `def skepiCmakePath = { File f -> f.canonicalPath.replace('\\\\', '/') }
 def skepiReproArgs = [
     "-DCMAKE_PROJECT_INCLUDE=\${skepiCmakePath(new File(rootDir, '../plugins/reproducible.cmake'))}",
     "-DSKEPI_REPRO_REPO_ROOT=\${skepiCmakePath(new File(rootDir, '../../..'))}",
     "-DSKEPI_REPRO_GRADLE_HOME=\${skepiCmakePath(gradle.gradleUserHomeDir)}",
-]
+]`;
+const withReproducibleNative = (config) => {
+  config = withProjectBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(REPRODUCIBLE_MARKER)) return cfg;
+    cfg.modResults.contents += `
+${REPRODUCIBLE_MARKER}
+${REPRODUCIBLE_ARGS}
 subprojects { p ->
-    ['com.android.application', 'com.android.library'].each { id ->
-        p.plugins.withId(id) {
-            p.extensions.getByName('androidComponents').finalizeDsl { ext ->
-                ext.defaultConfig.externalNativeBuild.cmake.arguments.addAll(skepiReproArgs)
+    p.plugins.withId('com.android.library') {
+        p.extensions.getByName('androidComponents').finalizeDsl { ext ->
+            ext.defaultConfig.externalNativeBuild.cmake.arguments.addAll(skepiReproArgs)
+        }
+    }
+}
+`;
+    return cfg;
+  });
+  return withAppBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(REPRODUCIBLE_MARKER)) return cfg;
+    cfg.modResults.contents += `
+${REPRODUCIBLE_MARKER}
+${REPRODUCIBLE_ARGS}
+android {
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                arguments(*skepiReproArgs)
             }
         }
     }
@@ -179,6 +197,7 @@ subprojects { p ->
 `;
     return cfg;
   });
+};
 
 const BUNDLE_INPUTS_MARKER = '// skepi:bundle-inputs';
 const withBundleInputs = (config) =>

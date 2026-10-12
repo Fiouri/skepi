@@ -1,0 +1,187 @@
+# Android reproducible build (F-Droid "reproducible, our signature"; docs/release-process.md).
+# Two clean unsigned release builds of the same commit on two runners, in different checkout paths and
+# with different Gradle user homes, no Gradle build cache and no ccache. android-repro passes only when
+# both APKs are byte-identical; it then uploads the unsigned APK and its SHA-256. That artifact is what
+# the maintainer signs locally with the release key (never in CI) and publishes.
+# Developer Preview mode (SKEPI_PREVIEW=1, -PskepiPreview=true), as the F-Droid recipe builds it.
+# Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
+name: Android reproducible build
+
+on:
+  push:
+    branches: [main]
+    # Only what cannot change the APK is ignored.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'fastlane/**'
+      - 'crates/**'
+      - 'apps/desktop/**'
+      - 'e2e/**'
+      - 'native/vulkan/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rustfmt.toml'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-repro-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  android-repro-build:
+    name: android-repro-build (${{ matrix.leg }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Different depth and length of the checkout path, different Gradle user home.
+          - leg: a
+            dir: a
+            gradle_home: /home/runner/.gradle
+          - leg: b
+            dir: build-bb/second-checkout
+            gradle_home: /home/runner/gradle-home-bb
+    env:
+      GRADLE_USER_HOME: ${{ matrix.gradle_home }}
+      SKEPI_PREVIEW: '1'
+      # At most two native links at once (scripts/ci/link-slot.sh): llama.rn's variant libraries link
+      # together and each ld.lld run needs ~2.4 GB. The launcher does not change the output.
+      CMAKE_C_LINKER_LAUNCHER: ${{ github.workspace }}/${{ matrix.dir }}/scripts/ci/link-slot.sh
+      CMAKE_CXX_LINKER_LAUNCHER: ${{ github.workspace }}/${{ matrix.dir }}/scripts/ci/link-slot.sh
+      SKEPI_LINK_SLOTS: '2'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ${{ matrix.dir }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: ${{ matrix.dir }}/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Swap (10 GB)
+        run: |
+          sudo swapoff -a || true
+          sudo fallocate -l 10G /mnt/skepi.swap
+          sudo chmod 600 /mnt/skepi.swap
+          sudo mkswap /mnt/skepi.swap > /dev/null
+          sudo swapon /mnt/skepi.swap
+          free -m
+      - name: Install (frozen lockfile)
+        working-directory: ${{ matrix.dir }}
+        run: pnpm install --frozen-lockfile
+      - name: Expo prebuild (android/ is generated, never committed)
+        working-directory: ${{ matrix.dir }}
+        run: pnpm --filter @skepi/mobile run prebuild
+      - name: Unsigned release APK (clean, no build cache)
+        working-directory: ${{ matrix.dir }}/apps/mobile/android
+        run: |
+          echo "checkout: $PWD"
+          echo "Gradle user home: $GRADLE_USER_HOME"
+          ./gradlew assembleRelease -PskepiUnsigned=true -PskepiPreview=true --no-build-cache --no-configuration-cache --console=plain
+      - name: APK is unsigned
+        working-directory: ${{ matrix.dir }}
+        run: python3 scripts/ci/apk-compare.py unsigned apps/mobile/android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+      - name: Native libraries carry no build-id and no checkout or Gradle paths
+        working-directory: ${{ matrix.dir }}
+        run: |
+          set -euo pipefail
+          apk=apps/mobile/android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+          readelf=$(ls "$ANDROID_HOME"/ndk/*/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf | head -n 1)
+          rm -rf "$RUNNER_TEMP/libs" && mkdir -p "$RUNNER_TEMP/libs"
+          unzip -q -o "$apk" 'lib/*' -d "$RUNNER_TEMP/libs"
+          bad=0
+          for so in "$RUNNER_TEMP"/libs/lib/arm64-v8a/*.so; do
+            if grep -a -q -F -e "$GITHUB_WORKSPACE" -e "$GRADLE_USER_HOME" "$so"; then
+              echo "::warning::$(basename "$so") contains a checkout or Gradle home path"; bad=1
+            fi
+            if "$readelf" -n "$so" | grep -q 'GNU_BUILD_ID'; then echo "$(basename "$so"): build-id"; fi
+          done
+          echo "path check: $([ $bad -eq 0 ] && echo clean || echo 'paths found (prebuilt Maven libraries are checked by the comparison only)')"
+      - name: SHA-256
+        working-directory: ${{ matrix.dir }}/apps/mobile/android/app/build/outputs/apk/release
+        run: sha256sum app-arm64-v8a-release-unsigned.apk | tee "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: repro-${{ matrix.leg }}
+          path: ${{ matrix.dir }}/apps/mobile/android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  android-repro:
+    needs: android-repro-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            scripts/ci
+            apps/mobile/app.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: repro-a
+          path: a
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: repro-b
+          path: b
+      - name: Both builds are byte-identical
+        id: compare
+        run: python3 scripts/ci/apk-compare.py same a/app-arm64-v8a-release-unsigned.apk b/app-arm64-v8a-release-unsigned.apk
+      - name: Differences (diffoscope on the differing entries)
+        if: failure() && steps.compare.outcome == 'failure'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q diffoscope-minimal llvm binutils-aarch64-linux-gnu > /dev/null
+          mkdir -p ua ub
+          unzip -q a/app-arm64-v8a-release-unsigned.apk -d ua
+          unzip -q b/app-arm64-v8a-release-unsigned.apk -d ub
+          diffoscope --max-text-report-size 400000 --text diffoscope.txt ua ub || true
+          head -c 200000 diffoscope.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure() && steps.compare.outcome == 'failure'
+        with:
+          name: repro-diffoscope
+          path: diffoscope.txt
+          retention-days: 7
+      - name: Name the artifact and write SHA256SUMS
+        id: name
+        run: |
+          set -euo pipefail
+          version=$(python3 -c "import json;print(json.load(open('apps/mobile/app.json'))['expo']['version'])")
+          code=$(python3 -c "import json;print(json.load(open('apps/mobile/app.json'))['expo']['android']['versionCode'])")
+          name="skepi-${version}-arm64-unsigned.apk"
+          mkdir -p out
+          cp a/app-arm64-v8a-release-unsigned.apk "out/$name"
+          (cd out && sha256sum "$name" > SHA256SUMS.txt)
+          echo "artifact=skepi-${version}-vc${code}-${GITHUB_SHA::12}-unsigned" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Reproducible unsigned APK"
+            echo
+            echo "Commit \`$GITHUB_SHA\`, version \`$version\` (versionCode $code), run \`$GITHUB_RUN_ID\`."
+            echo
+            echo '```'
+            cat out/SHA256SUMS.txt
+            echo '```'
+            echo
+            echo "Two clean builds (different runners, checkout paths and Gradle homes) are byte-identical."
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.name.outputs.artifact }}
+          path: out/
+          retention-days: 90
+          if-no-files-found: error

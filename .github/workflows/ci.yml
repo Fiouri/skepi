@@ -1,7 +1,8 @@
 # CI: typecheck, lint, unit tests and the committed-fixtures check (verify, every change); the rag-eval
-# smoke subset (llama.cpp on CPU), the Android release guards (permission allowlist on the release APK,
+# smoke subset (llama.cpp on CPU), the Android release guards (unsigned release APK, permission allowlist,
 # release JS bundle rebuild probe, draft emergency cards gate) and the Windows desktop crates (skipped
-# when only docs change). The full rag-eval run and Android Maestro E2E run locally (phase reports).
+# when only docs change); the reproducible unsigned APK is android-repro.yml. The full rag-eval run and
+# Android Maestro E2E run locally (phase reports).
 # Phase 3b-0: the Apple jobs on GitHub's macOS runners (no Mac, no signing): ios-build (Simulator Release
 # build, Swift unit tests, bundle scan, link checks; on its path filter), ios-e2e (the ad-hoc signed
 # Simulator copy built by ios-build, Maestro flows, retrieval parity with the stored S23/desktop/eval runs;
@@ -243,11 +244,13 @@ jobs:
           grep -q "emergency cards are DRAFT" gate.log
       # Developer Preview mode (what ships): no card steps in the bundle, checked by Gradle right after
       # the JS bundle is built (skepiCheckPreviewBundle -> tools/release-guards preview-cards).
-      - name: Release APK, Developer Preview (debug-signed in CI)
+      # Unsigned (-PskepiUnsigned=true): CI holds no key, not even the debug key; the reproducible APK that
+      # gets signed for release comes from .github/workflows/android-repro.yml.
+      - name: Release APK, Developer Preview (unsigned)
         working-directory: apps/mobile/android
         env:
           SKEPI_PREVIEW: '1'
-        run: ./gradlew assembleRelease -PskepiDebugSign=true -PskepiPreview=true --build-cache --console=plain
+        run: ./gradlew assembleRelease -PskepiUnsigned=true -PskepiPreview=true --build-cache --console=plain
       - name: ccache statistics
         if: always()
         run: |
