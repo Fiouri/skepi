@@ -113,6 +113,13 @@ step per question (`out/parity.md`). Phase 1c root causes: fusion used the posit
 multi-archive list (archive order differs per engine) instead of the rank inside each archive, and
 BeautifulSoup joined text at `<br>` where jsoup puts a space.
 
+Stored references (`parity-reference/`, gzipped `ParityReport`s of the hardening run, 2026-10-11, 108/108
+identical to each other): `s23.json.gz` (Galaxy S23), `desktop.json.gz` (Rust libzim + text.rs),
+`rag-eval.json.gz` (python-libzim). `parity.ts --device <run.json> --reference` compares a run with all
+three without ZIM files and writes `parity-reference.md` (per differing question: first diverging step,
+expected vs run passages). The iOS Simulator run uses it (`e2e/ios/run-ios-e2e.sh`, CI job `ios-e2e`).
+Refresh the references only from a new S23 run that is identical to desktop and rag-eval.
+
 Options: `--sets en,el,adversarial`, `--zim <file>` (repeatable), `--model <gguf>`, `--no-model`
 (Layer 1 only), `--threads N`, `--tier T1|T2` (character budget), `--min-coverage X`, `--limit N`,
 `--out <dir>`. Reports: `out/rag-eval-<mode>.json` (every outcome, raw model output included) and `.md`.

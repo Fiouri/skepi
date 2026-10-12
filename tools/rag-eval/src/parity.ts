@@ -13,6 +13,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveCacheDir } from '@skepi/catalog-builder/paths';
 import { parseArgs } from 'node:util';
+import { compareWithReferences, loadReferences, loadReport, renderReferenceMarkdown } from './parityReference';
 import { loadSet } from './sets';
 import { SidecarZimEngine } from './zimEngine';
 
@@ -23,6 +24,8 @@ import { SidecarZimEngine } from './zimEngine';
  *                           list here and compare
  *   --engine python|desktop python-libzim (default) or the desktop app's Rust engine (--sidecar <exe>,
  *                           default target/release/zim-sidecar.exe)
+ *   --reference             with --device: compare with the stored S23, desktop and rag-eval runs
+ *                           (parity-reference/) instead of rerunning; no ZIM files needed (iOS Simulator)
  * Exit 1 on any difference; the report names the first pipeline step where each question diverges.
  */
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -45,6 +48,7 @@ const { values: args } = parseArgs({
     sidecar: { type: 'string' },
     python: { type: 'string' },
     out: { type: 'string' },
+    reference: { type: 'boolean', default: false },
     // English-only until v1: the Greek questions (and the Greek pack) only on request.
     greek: { type: 'boolean', default: false },
   },
@@ -89,6 +93,24 @@ function renderMarkdown(device: ParityReport, evalRun: ParityReport, diffs: read
   return lines.join('\n');
 }
 
+async function compareReferences(devicePath: string): Promise<number> {
+  const run = await loadReport(devicePath);
+  const results = compareWithReferences(run, await loadReferences(join(ROOT, 'parity-reference')));
+  const outDir = args.out ? resolve(args.out) : join(ROOT, 'out');
+  await mkdir(outDir, { recursive: true });
+  const md = renderReferenceMarkdown(run, results);
+  await writeFile(join(outDir, 'parity-reference.md'), md);
+  await writeFile(join(outDir, 'parity-reference-diffs.json'), `${JSON.stringify(results.map((r) => ({ reference: r.name, diffs: r.diffs })), null, 2)}\n`);
+  console.log(md);
+  const failed = results.filter((r) => r.diffs.length > 0);
+  if (failed.length > 0) {
+    console.error(`PARITY FAILED: ${failed.map((r) => `${r.name} ${new Set(r.diffs.map((d) => d.id)).size} of ${r.reference.records.length}`).join(' · ')} differ (see ${join(outDir, 'parity-reference.md')})`);
+    return 1;
+  }
+  console.log(`PARITY PASS: ${run.records.length} queries identical to ${results.map((r) => r.name).join(', ')}`);
+  return 0;
+}
+
 async function main(): Promise<number> {
   const lock = JSON.parse(await readFile(join(REPO, 'scripts', 'content.lock.json'), 'utf8')) as Lock;
   const writeTo = args['write-queries'];
@@ -101,6 +123,7 @@ async function main(): Promise<number> {
   }
   const devicePath = args.device;
   if (!devicePath) throw new Error('use --write-queries <file> or --device <device.json>');
+  if (args.reference) return compareReferences(devicePath);
   const device = JSON.parse(await readFile(devicePath, 'utf8')) as ParityReport;
   const zims = args.zim ?? [...lock.zimDefault, ...(args.greek ? lock.zimLocale : [])].map((id) => join(cacheDir(), lock.zim[id]?.file ?? id));
   for (const z of zims) if (!existsSync(z)) throw new Error(`missing ${z} (scripts/provision.ps1 -DownloadOnly)`);

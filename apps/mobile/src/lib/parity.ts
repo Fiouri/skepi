@@ -1,8 +1,9 @@
 import { probeRetrieval, type ParityQueryFile, type ParityRecord, type ParityReport } from '@skepi/core';
 import { ExpoZim } from 'expo-zim';
+import { Platform } from 'react-native';
 import { knowledge, ragArchives, useContent } from './content';
 
-/** Written by tools/rag-eval (`parity --write-queries`) and pushed by e2e/run-parity.ps1. */
+/** Written by tools/rag-eval (`parity --write-queries`); pushed by e2e/run-parity.ps1 (Android) or copied by e2e/ios/run-ios-e2e.sh. */
 export const PARITY_QUERIES = 'parity/queries.json';
 export const PARITY_OUTPUT = 'parity/device.json';
 
@@ -30,7 +31,7 @@ export async function runParity(log: (line: string) => void): Promise<ParityRepo
   }
   const report: ParityReport = {
     schema: 1,
-    engine: 'android',
+    engine: Platform.OS,
     createdAt: new Date().toISOString(),
     config: input.config,
     archives: archives.map((a) => ({ archiveId: a.archiveId, name: a.name, language: a.language, articleCount: a.articleCount })),

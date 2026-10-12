@@ -2,10 +2,11 @@
 # smoke subset (llama.cpp on CPU), the Android release guards (permission allowlist on the release APK,
 # release JS bundle rebuild probe, draft emergency cards gate) and the Windows desktop crates (skipped
 # when only docs change). The full rag-eval run and Android Maestro E2E run locally (phase reports).
-# Phase 3b-0: the Apple jobs on GitHub's macOS runners (no Mac, no signing): ios-simulator (Simulator
-# Release build, Swift unit tests, Maestro on the Simulator) and desktop-macos (Rust gates, unsigned
-# Tauri build with Metal, egress check). They run on their own path filters, nightly on main and on
-# demand (workflow_dispatch); the nightly run starts the Apple jobs only.
+# Phase 3b-0: the Apple jobs on GitHub's macOS runners (no Mac, no signing): ios-build (Simulator Release
+# build, Swift unit tests, bundle scan, link checks; on its path filter), ios-e2e (the ad-hoc signed
+# Simulator copy built by ios-build, Maestro flows, retrieval parity with the stored S23/desktop/eval runs;
+# nightly on main, on workflow_dispatch and on pull requests labelled "ios-e2e") and desktop-macos (Rust
+# gates, unsigned Tauri build with Metal, egress check). The nightly run starts the Apple jobs only.
 # Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
 name: CI
 
@@ -13,6 +14,8 @@ on:
   push:
     branches: [main]
   pull_request:
+    # labeled: adding the "ios-e2e" label starts the iOS E2E job on the pull request.
+    types: [opened, synchronize, reopened, labeled]
   schedule:
     # Nightly on the default branch (main): Apple jobs only.
     - cron: '23 2 * * *'
@@ -37,6 +40,7 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
       ios: ${{ steps.diff.outputs.ios }}
+      ios_e2e: ${{ steps.diff.outputs.ios_e2e }}
       macos: ${{ steps.diff.outputs.macos }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,7 +51,13 @@ jobs:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          E2E_LABEL: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ios-e2e') }}
         run: |
+          # iOS E2E (Maestro + retrieval parity): nightly, on demand, and on pull requests labelled "ios-e2e"
+          # (which also forces ios-build, whose Simulator apps it installs).
+          ios_e2e=false
+          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ] || [ "$E2E_LABEL" = true ]; then ios_e2e=true; fi
+          echo "ios_e2e=$ios_e2e" >> "$GITHUB_OUTPUT"
           # Apple jobs (Phase 3b-0) follow their own paths: never docs-only changes.
           IOS_PATHS='^(apps/mobile/(app\.json|package\.json|metro\.config\.js|plugins/)|apps/mobile/ios/|modules/|native/kiwix/|e2e/ios/|packages/emergency-cards/|catalog/|pnpm-lock\.yaml$|(.*/)?Podfile(\.lock)?$|\.github/workflows/ci\.yml$)'
           MACOS_PATHS='^(crates/|apps/desktop/|native/kiwix/|Cargo\.(toml|lock)$|\.cargo/|rustfmt\.toml$|packages/emergency-cards/|catalog/|\.github/workflows/ci\.yml$)'
@@ -66,7 +76,7 @@ jobs:
           if [ -z "$files" ] || [ "$code" -gt 0 ]; then echo "code=true" >> "$GITHUB_OUTPUT"; else echo "docs only: heavy jobs skipped"; echo "code=false" >> "$GITHUB_OUTPUT"; fi
           ios=$(echo "$files" | grep -v -E '\.md$' | grep -c -E "$IOS_PATHS" || true)
           macos=$(echo "$files" | grep -v -E '\.md$' | grep -c -E "$MACOS_PATHS" || true)
-          echo "ios=$([ "$ios" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "ios=$([ "$ios" -gt 0 ] || [ "$ios_e2e" = true ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "macos=$([ "$macos" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   verify:
@@ -329,13 +339,14 @@ jobs:
   # Phase 3b-0: the iOS app on the Simulator (macOS runner, no signing, no TestFlight). CoreKiwix
   # (libzim 9.7.0) from the official Kiwix xcframework, SHA-256 pinned in native/kiwix; llama.rn built
   # from source; Developer Preview bundle (no card step text, scanned after the build).
-  ios-simulator:
+  # ios-build: Release build, Swift unit tests, bundle scan and link checks (path filter). When ios-e2e runs
+  # in the same workflow run, it also builds the ad-hoc Simulator copy and hands both apps over as an artifact.
+  ios-build:
     needs: changes
     if: needs.changes.outputs.ios == 'true'
     runs-on: macos-latest
-    timeout-minutes: 180
+    timeout-minutes: 90
     env:
-      SKEPI_CACHE_DIR: ${{ github.workspace }}/.cache/skepi
       SKEPI_COREKIWIX_DIR: ${{ github.workspace }}/.cache/corekiwix
       SKEPI_PREVIEW: '1'
       # ccache for the C/C++/Objective-C builds (llama.cpp, SQLCipher, React Native modules) through Xcode's own
@@ -362,6 +373,12 @@ jobs:
           xcodebuild -version
           pod --version
           xcrun simctl list runtimes available
+      # A fresh Simulator's first boot takes ~4 min; CoreSimulator boots it while the app builds.
+      - name: Simulator for the unit tests (boots in the background)
+        run: |
+          udid=$(e2e/ios/simulator.sh create skepi-tests)
+          xcrun simctl boot "$udid"
+          echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
       - run: pnpm install --frozen-lockfile
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -439,38 +456,93 @@ jobs:
       - name: Swift unit tests (SkepiZim; binding, catalog/hash, viewer sealing)
         run: |
           set -o pipefail
-          udid=$(e2e/ios/simulator.sh create skepi-tests)
+          xcrun simctl bootstatus "$SIM_UDID" -b
           rc=0
-          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$udid" \
+          xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$SIM_UDID" \
             -derivedDataPath "$DERIVED_DATA" -resultBundlePath "$RUNNER_TEMP/SkepiZimTests.xcresult" \
             CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO test > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
           grep -E "Test (Case|Suite)|error:|Executed" "$RUNNER_TEMP/xcodebuild-tests.log" || tail -n 200 "$RUNNER_TEMP/xcodebuild-tests.log"
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/SkepiZimTests.xcresult" | tee "$RUNNER_TEMP/swift-tests-summary.json" || true
-          xcrun simctl delete "$udid" || true
+          xcrun simctl delete "$SIM_UDID" || true
           exit "$rc"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        with:
-          path: .cache/skepi
-          key: ios-e2e-packs-${{ hashFiles('catalog/embedded/release/catalog.json') }}
-      # CI only: the copy Maestro installs is built with "Sign to Run Locally" (CODE_SIGN_IDENTITY=-; no team,
-      # certificate, provisioning profile or secret; not installable on a device), so the Simulator's Keychain
-      # accepts the app.db key. The checked Release build above stays CODE_SIGNING_ALLOWED=NO and is kept for
-      # the secure-storage failure flow.
+      # For ios-e2e only. CI only: the copy Maestro installs is built with "Sign to Run Locally"
+      # (CODE_SIGN_IDENTITY=-; no team, certificate, provisioning profile or secret; not installable on a
+      # device), so the Simulator's Keychain accepts the app.db key. The checked Release build above stays
+      # CODE_SIGNING_ALLOWED=NO and is handed over too, for the secure-storage failure flow.
       - name: Simulator copy for Maestro (ad-hoc "Sign to Run Locally", CI only)
-        id: adhoc
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        if: needs.changes.outputs.ios_e2e == 'true'
         run: |
           set -o pipefail
           products="$DERIVED_DATA/Build/Products/Release-iphonesimulator"
-          mkdir -p "$RUNNER_TEMP/unsigned"
-          rm -rf "$RUNNER_TEMP/unsigned/SKEPI.app"
-          cp -R "$products/SKEPI.app" "$RUNNER_TEMP/unsigned/"
+          apps="$RUNNER_TEMP/ios-sim-apps"
+          rm -rf "$apps"
+          mkdir -p "$apps/unsigned" "$apps/adhoc"
+          cp -R "$products/SKEPI.app" "$apps/unsigned/"
           xcodebuild -workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SKEPI -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED_DATA" ARCHS=arm64 COMPILER_INDEX_STORE_ENABLE=NO $XCODE_CCACHE CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$GITHUB_WORKSPACE/e2e/ios/simulator-ci.entitlements" -quiet build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-adhoc.log"
           codesign -dv "$products/SKEPI.app" 2>&1 | grep -E "Signature|TeamIdentifier|Identifier"
           if codesign -dv "$products/SKEPI.app" 2>&1 | grep -q "TeamIdentifier=[A-Z0-9]\{10\}"; then echo "::error::the Simulator copy carries a team identity"; exit 1; fi
+          cp -R "$products/SKEPI.app" "$apps/adhoc/"
+          # tar keeps the executable bits, symlinks and code signatures (artifact zips do not).
+          tar -C "$apps" -cf "$RUNNER_TEMP/ios-sim-apps.tar" unsigned adhoc
+          ls -la "$RUNNER_TEMP/ios-sim-apps.tar"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: needs.changes.outputs.ios_e2e == 'true'
+        with:
+          # A single file uploaded as-is (no zip); the artifact is named after it.
+          path: ${{ runner.temp }}/ios-sim-apps.tar
+          archive: false
+          retention-days: 3
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: ios-build
+          path: |
+            ${{ runner.temp }}/swift-tests-summary.json
+            ${{ runner.temp }}/xcodebuild-*.log
+          if-no-files-found: ignore
+
+  # iOS E2E on the Simulator with the apps ios-build made in this run (no rebuild): the secure-storage
+  # failure flow (unsigned build), the Maestro flows (ad-hoc copy, provisioned packs, no AI) and the
+  # retrieval parity run (108 en queries; no model) against the stored S23, desktop and rag-eval runs.
+  ios-e2e:
+    needs: [changes, ios-build]
+    if: needs.changes.outputs.ios_e2e == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      SKEPI_CACHE_DIR: ${{ github.workspace }}/.cache/skepi
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Simulator (boots in the background)
+        run: |
+          sw_vers
+          xcrun simctl list runtimes available
+          udid=$(e2e/ios/simulator.sh create skepi-e2e)
+          xcrun simctl boot "$udid"
+          echo "SKEPI_SIM_UDID=$udid" >> "$GITHUB_ENV"
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-sim-apps.tar
+          path: ${{ runner.temp }}/sim-apps
+      - name: Simulator apps from ios-build
+        run: |
+          ls -la "$RUNNER_TEMP/sim-apps"
+          mkdir -p "$RUNNER_TEMP/apps"
+          tar -C "$RUNNER_TEMP/apps" -xf "$RUNNER_TEMP/sim-apps/ios-sim-apps.tar"
+          codesign -dv "$RUNNER_TEMP/apps/adhoc/SKEPI.app" 2>&1 | grep -E "Signature|TeamIdentifier|Identifier"
+          if codesign -dv "$RUNNER_TEMP/apps/adhoc/SKEPI.app" 2>&1 | grep -q "TeamIdentifier=[A-Z0-9]\{10\}"; then echo "::error::the Simulator copy carries a team identity"; exit 1; fi
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/skepi
+          key: ios-e2e-packs-${{ hashFiles('catalog/embedded/release/catalog.json') }}
       - name: Maestro (pinned, SHA-256 checked)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           MAESTRO_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip
           MAESTRO_SHA256: 5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a
@@ -479,17 +551,16 @@ jobs:
           echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | shasum -a 256 -c
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME/.maestro-dist"
           echo "MAESTRO=$HOME/.maestro-dist/maestro/bin/maestro" >> "$GITHUB_ENV"
-      - name: Maestro flows on the Simulator (provisioned packs, no AI on the Simulator)
-        if: ${{ !cancelled() && steps.adhoc.outcome == 'success' }}
-        run: e2e/ios/run-ios-e2e.sh "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app" "$RUNNER_TEMP/unsigned/SKEPI.app"
+      - name: Maestro flows and retrieval parity on the Simulator (provisioned packs, no AI on the Simulator)
+        run: e2e/ios/run-ios-e2e.sh "$RUNNER_TEMP/apps/adhoc/SKEPI.app" "$RUNNER_TEMP/apps/unsigned/SKEPI.app"
+      - name: Retrieval parity report
+        if: always()
+        run: cat e2e/out/ios/parity/parity-reference.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "no parity report"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: ios-simulator
-          path: |
-            e2e/out/ios/
-            ${{ runner.temp }}/swift-tests-summary.json
-            ${{ runner.temp }}/xcodebuild-*.log
+          name: ios-e2e
+          path: e2e/out/ios/
           if-no-files-found: ignore
 
   # Phase 3b-0: the desktop app on macOS (Apple silicon). libzim 9.7.0 is the macOS slice of the same

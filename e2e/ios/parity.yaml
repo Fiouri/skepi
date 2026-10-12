@@ -1,0 +1,32 @@
+# iOS Simulator: retrieval parity (no model: retrieval, passage selection, Layer 1). Reads
+# parity/queries.json from the content dir (copied by run-ios-e2e.sh), runs every query through retrieve()
+# and writes parity/device.json; tools/rag-eval compares it with the stored S23, desktop and rag-eval runs.
+# No airplane mode: Maestro cannot toggle it on iOS and this build has no network code path.
+appId: org.skepi.app
+name: SKEPI iOS retrieval parity
+---
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-bench
+# The packs are verified (hashed) before they open; the Bench screen waits for them.
+- extendedWaitUntil:
+    visible:
+      id: bench-run
+    timeout: 300000
+- scrollUntilVisible:
+    element:
+      id: bench-parity
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: bench-parity
+- extendedWaitUntil:
+    visible:
+      id: parity-status
+      text: "parity: (done|error)"
+    timeout: 900000
+- assertVisible:
+    id: parity-status
+    text: "parity: done"
