@@ -30,8 +30,10 @@ SKEPI_RELEASE_KEY_ALIAS=skepi
 SKEPI_RELEASE_KEY_PASSWORD=<password>
 ```
 
-In CI the same names are passed as `ORG_GRADLE_PROJECT_SKEPI_RELEASE_*` environment variables from a
-GitHub Environment with required approval; the keystore is restored from a secret into a temp file.
+The key never enters CI: CI builds the release unsigned (`-PskepiUnsigned=true`), and the maintainer
+signs the reproducible CI artifact locally with `scripts/release/sign-release-apk.ps1`
+(`docs/release-process.md`), which reads only the keystore path and alias from this file; apksigner
+prompts for the password.
 
 ## 3. Build behaviour
 
@@ -40,6 +42,7 @@ GitHub Environment with required approval; the keystore is restored from a secre
 | All four properties set, keystore file exists | Release signed with the SKEPI key |
 | Any property missing or keystore file missing | `assembleRelease` / `bundleRelease` **fail** at `skepiCheckReleaseSigning` with the list of missing properties |
 | `-PskepiDebugSign=true` | Signed with the Expo debug key, with a loud warning. Local E2E only; never distribute |
+| `-PskepiUnsigned=true` | No signing config: `app-arm64-v8a-release-unsigned.apk` / unsigned `app-release.aab`, with a loud warning. CI and F-Droid; sign before distributing. Exclusive with `-PskepiDebugSign` |
 
 Debug builds and `connectedAndroidTest` are unaffected. Debug builds use the applicationId
 `org.skepi.app.dev` ("SKEPI Dev"), so they install next to a release-signed `org.skepi.app` instead of

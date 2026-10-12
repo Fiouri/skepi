@@ -1,0 +1,52 @@
+Categories:
+  - Reading
+  - Science & Education
+License: GPL-3.0-or-later
+SourceCode: https://github.com/Fiouri/skepi
+IssueTracker: https://github.com/Fiouri/skepi/issues
+Changelog: https://github.com/Fiouri/skepi/blob/HEAD/CHANGELOG.md
+
+AutoName: SKEPI
+
+RepoType: git
+Repo: https://github.com/Fiouri/skepi.git
+Binaries: https://github.com/Fiouri/skepi/releases/download/v%v/skepi-%v-arm64.apk
+
+Builds:
+  - versionName: 0.1.1-preview
+    versionCode: 3
+    commit: v0.1.1-preview
+    subdir: apps/mobile/android/app
+    sudo:
+      - apt-get update
+      - apt-get install -y -t forky nodejs npm
+      - npm install -g pnpm@10.33.0
+    init:
+      - cd ../../../..
+      - pnpm install --frozen-lockfile --filter @skepi/mobile... --filter @skepi/catalog-builder...
+        --filter @skepi/release-guards... --filter @skepi/emergency-cards...
+    output: build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+    prebuild:
+      - cd ../..
+      - npx expo prebuild --platform android --clean --no-install
+    scanignore:
+      - node_modules/hermes-compiler
+    scandelete:
+      - node_modules/llama.rn/bin
+      - node_modules/@op-engineering/op-sqlite/android/src/main/jniLibs
+      - node_modules/@op-engineering/op-sqlite/android/src/main/libsqlitevec
+      - node_modules/@op-engineering/op-sqlite/android/src/main/tursoLibs
+    build:
+      - cd ..
+      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true
+        --no-daemon
+    ndk:
+      - 27.1.12297006
+      - 27.3.13750724
+
+AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$
+CurrentVersion: 0.1.1-preview
+CurrentVersionCode: 3

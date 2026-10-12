@@ -26,9 +26,16 @@ suffix. Phase reports in `docs/` have the details and the measurements.
   (Swift binding over the official CoreKiwix build, sealed WKWebView viewer, Swift tests, Maestro flows)
   and the macOS desktop app (Metal, Keychain, unsigned app and dmg, egress check). Not released yet: no
   signing, no TestFlight.
+- Android: "Report a problem with this answer" takes your description and opens the phone's share menu
+  with the report ("Send…"); SKEPI itself still sends nothing and needs no new permission.
+- Reproducible Android builds: CI builds the unsigned release twice on different runners and paths and
+  checks they are byte-identical (`android-repro`); published APKs are that artifact, signed locally
+  (`docs/release-process.md`). F-Droid is the first store (`docs/store-readiness.md`).
 
 ### Changed
 - rag-eval held-out findings judge Layer 1 on what it shows (addresses removed) and note flagged numbers.
+- Android release builds compile every Expo module from source, carry no build-id and no build paths,
+  and the AAB holds only arm64-v8a libraries. Reanimated is compiled without ThinLTO.
 
 ## [0.1.0-preview] — Developer Preview (Android + Windows)
 

@@ -674,13 +674,13 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 
 | Channel | Artifact | Note |
 | --- | --- | --- |
-| GitHub Releases | Signed APK (arm64 + universal), MSI, DMG | SHA-256 and attestations published |
-| F-Droid | Built by F-Droid; proposed: reproducible, publishing our signed APK (`Binaries:` + `AllowedAPKSigningKeys:`) | Source builds; FOSS AARs from Maven Central only; no Play Services (none on the classpath) |
-| Google Play | AAB with ABI splits (arm64) | Data Safety "no data collected"; Play App Signing with our existing key (proposed) |
+| GitHub Releases | APK signed locally from the reproducible CI build (arm64), MSI, DMG | SHA-256 and CI run id published (`docs/release-process.md`) |
+| F-Droid (**first store**, decided 2026-10-12) | Built by F-Droid from the tag, unsigned and reproducible; F-Droid publishes our signed APK (`Binaries:` + `AllowedAPKSigningKeys:`) | Source builds (Expo modules included); FOSS AARs from Maven Central only; no Play Services (none on the classpath) |
+| Google Play (**deferred to v1**) | AAB with ABI splits (arm64; `bundleRelease` + bundletool tested) | Account type, Play App Signing, IARC and Health declaration decided at v1; Data Safety "no data collected" |
 | App Store / TestFlight | iOS build | Apple Developer Program (annual fee); same account notarises macOS |
 | Windows | Tauri MSI/NSIS, winget | Without a code-signing certificate SmartScreen warns |
 
-**CI (GitHub Actions):** `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests, the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0) and, since Phase 1d, `android-release-guards`: expo prebuild, the draft-cards gate must fail, `assembleRelease` (debug-signed in CI, draft cards allowed for this check only), the release permission allowlist (`aapt2 dump permissions`) and the release JS bundle rebuild probe (`tools/release-guards`); since Phase 3a `desktop-windows` (libzim fetched and SHA-256 checked, UI build, `cargo fmt --check`, Vulkan SDK pinned by SHA-256 in `native/vulkan` (pruned, cached), `cargo clippy -D warnings` for the Vulkan and the CPU-only build, `cargo test`, a CPU-only build, mirror download test); since Phase 3b-0 `ios-build`, `ios-e2e` and `desktop-macos` on macOS runners (below). A `changes` job skips the heavy jobs when a change touches only `docs/**` or `*.md` (`verify` always runs; pushes to main are never cancelled); `verify` also runs `catalog check-fixtures` (every file the test catalogs, manifests and tests use is committed, with the catalog's size and SHA-256). Caches: Swatinem/rust-cache for the desktop crates and llama.cpp, Gradle User Home with the build cache, and ccache for the Android NDK builds (CMAKE_<LANG>_COMPILER_LAUNCHER). The desktop builds locally with `scripts/with-msvc.ps1` (MSVC environment; uses Microsoft's Windows SDK NuGet packages, portable Strawberry Perl and Ninja when no SDK is installed) and `npx tauri build` (unsigned MSI + NSIS). kiwix and llama.cpp artifacts cached by pinned version. Release keys in GitHub Environments with required approval; the catalog key never in CI. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
+**CI (GitHub Actions):** `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests, the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0) and, since Phase 1d, `android-release-guards`: expo prebuild, the draft-cards gate must fail, `assembleRelease -PskepiUnsigned=true` (unsigned since 2026-10-12, Developer Preview mode), the release permission allowlist (`aapt2 dump permissions`) and the release JS bundle rebuild probe (`tools/release-guards`); since Phase 3a `desktop-windows` (libzim fetched and SHA-256 checked, UI build, `cargo fmt --check`, Vulkan SDK pinned by SHA-256 in `native/vulkan` (pruned, cached), `cargo clippy -D warnings` for the Vulkan and the CPU-only build, `cargo test`, a CPU-only build, mirror download test); since Phase 3b-0 `ios-build`, `ios-e2e` and `desktop-macos` on macOS runners (below). A `changes` job skips the heavy jobs when a change touches only `docs/**` or `*.md` (`verify` always runs; pushes to main are never cancelled); `verify` also runs `catalog check-fixtures` (every file the test catalogs, manifests and tests use is committed, with the catalog's size and SHA-256). Caches: Swatinem/rust-cache for the desktop crates and llama.cpp, Gradle User Home with the build cache, and ccache for the Android NDK builds (CMAKE_<LANG>_COMPILER_LAUNCHER). The desktop builds locally with `scripts/with-msvc.ps1` (MSVC environment; uses Microsoft's Windows SDK NuGet packages, portable Strawberry Perl and Ninja when no SDK is installed) and `npx tauri build` (unsigned MSI + NSIS). kiwix and llama.cpp artifacts cached by pinned version. No signing key in CI: CI builds unsigned, and the maintainer signs the reproducible artifact locally (`docs/release-process.md`); the catalog key never in CI. `.github/workflows/android-repro.yml` builds the unsigned release twice (job `android-repro`). Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
 
 **Apple builds (Phase 3b-0, `docs/phase-3b0-report.md`).** No Mac is needed for development: every Apple-specific line compiles and runs in CI on GitHub's macOS runners (Apple silicon), unsigned, with no TestFlight or store work.
 
@@ -703,37 +703,55 @@ Pending a real iPhone or Mac: llama.rn with Metal and the GGUF model, GPS/compas
 
 **Distribution note:** sideloaded APKs trigger Google Play Protect prompts on install; Play Store and F-Droid are the user-facing channels.
 
-**Store distribution (proposed 2026-10-12, owner decides; `docs/store-readiness.md`).** Store texts live in
+**Store distribution (decided 2026-10-12; `docs/store-readiness.md`, `docs/release-process.md`).** F-Droid is the
+first store; Google Play is deferred to v1, when the account type (Organization for the Medical health
+features), Play App Signing, IARC and the Health declaration are decided. The release signing key never
+enters CI or the project's Gradle properties (unchanged). Store texts live in
 `fastlane/metadata/android/en-US/` (read by F-Droid and usable for Play); the public privacy policy is
 `docs/privacy-policy.md`.
 
-- **One certificate on every channel.** GitHub, F-Droid and Play installs carry the SKEPI release
+- **One certificate on every channel.** GitHub and F-Droid installs carry the SKEPI release
   certificate (the fingerprint in About and in the Station check): F-Droid through a reproducible build
-  that publishes our signed APK, Play through Play App Signing with the existing key uploaded (not a
-  Google-generated one). Users can then move between channels, and one certificate is registered for
-  Android developer verification.
+  that publishes our signed APK. For Play (v1) the proposal stays Play App Signing with the existing key
+  uploaded (not a Google-generated one). Users can then move between channels, and one certificate is
+  registered for Android developer verification.
+- **Release flow.** CI (`.github/workflows/android-repro.yml`, job `android-repro`) builds the unsigned
+  release twice on Linux, on two runners with different checkout paths and Gradle user homes, no build
+  cache and no ccache, and passes only when both APKs are byte-identical; it uploads the unsigned APK and
+  its SHA-256. The maintainer signs that artifact locally (`scripts/release/sign-release-apk.ps1`:
+  apksigner with the release key, then checks the certificate and that the signed APK holds the
+  artifact's entries byte for byte) and publishes it. Local signed builds stay for device testing.
 - **No `fdroid` flavor.** The release classpath has no Play Services, Firebase or other proprietary SDK,
-  so one build serves all channels. F-Droid needs two build switches instead: an explicit unsigned
-  release (`-PskepiUnsigned=true`; the default stays fail-closed) and Expo modules compiled from source
-  (`expo.autolinking.android.buildFromSource`) rather than the prebuilt AARs in `node_modules`.
-- **Reproducibility.** Release APKs are compared across clean checkouts in different paths before a
-  `Binaries:` target is published; anything path- or time-dependent is fixed in the build. First result
-  (2026-10-12): dex, resources and JS bundle identical; 18 natively compiled libraries differ (build-id,
-  absolute `__FILE__` paths, one link order). Proposed: `-Wl,--build-id=none` and `-ffile-prefix-map`
-  for every CMake build, published APKs built on Linux CI.
+  so one build serves all channels, with two switches: an explicit unsigned release
+  (`-PskepiUnsigned=true`, no signing config; the default stays fail-closed and the signed path is
+  unchanged; CI builds only unsigned) and Expo modules compiled from source in every build
+  (`expo.autolinking.android.buildFromSource: [".*"]`: the 15 modules that came as prebuilt AARs from
+  `node_modules` are now Gradle projects; the third-party dependency list is otherwise unchanged).
+- **Reproducibility.** Every CMake build of the app loads `apps/mobile/plugins/reproducible.cmake` as
+  `CMAKE_PROJECT_INCLUDE` (wired for every Android module by `withSkepiAndroid.js` through
+  `androidComponents.finalizeDsl`): `-Wl,--build-id=none` (after the NDK's `--build-id=sha1`, so it
+  wins) and `-ffile-prefix-map` for the checkout, the Gradle user home and the NDK; the app module sets the
+  same arguments in its own `build.gradle` (React Native evaluates `:app` early); Reanimated compiles
+  without ThinLTO (its object paths made the code order path-dependent); `reactNativeDevServerIp=localhost`
+  keeps the build host's IP out of `resources.arsc`. Bundle builds filter to arm64-v8a (ABI splits do not
+  apply to an AAB). The first comparison
+  (2026-10-12, before the fix) had 18 differing native libraries (build-id, absolute `__FILE__` paths);
+  results after the fix: `docs/store-readiness.md` §4.
 - **Play account and health declaration.** SKEPI declares Medical health features (medical reference,
   emergency and first aid), which Play ties to an Organization developer account; a personal account
   would also need the 12-tester, 14-day closed test.
-- **AI content reports.** Play's AI-Generated Content policy wants in-app reporting to the developer;
-  the proposal is a share-sheet hand-off of the existing problem report (the user sends it, the app
-  opens no connection), keeping "no network except user-initiated downloads".
+- **AI content reports.** "Report a problem with this answer" takes the user's text and hands the
+  report (question, what was shown, sources, app version, the user's text) to the system share sheet
+  (`Share.share`, an `ACTION_SEND` chooser): the user picks the app and sends it; SKEPI opens no
+  connection and needs no permission. Copy and save stay. This covers Play's AI-Generated Content policy
+  (in-app reporting) for v1 and keeps "no network except user-initiated downloads".
 
 **Store policies (risks)**
 
-- **Play, AI-Generated Content:** in-app reporting of problematic answers; a "Report" button prepares an issue or email for when online. The policy asks for reports that reach the developer from inside the app: open item (share-sheet hand-off proposed).
+- **Play, AI-Generated Content:** in-app reporting of problematic answers: "Report a problem with this answer" opens the system share sheet with the report and the user's text (done 2026-10-12; no network, no permission).
 - **Play, Health:** no diagnostic claims in the listing; the description states the app is not a medical device and does not diagnose, treat, cure or prevent any condition, and to consult a healthcare professional; health apps declaration to be completed as Medical, which points to an Organization account (owner decision).
 - **Play, target API and page size:** targetSdk 36 (required since 2026-08-31); all native libraries 16 KB aligned.
-- **Android developer verification:** required on certified devices in four countries since 2026-09-30, globally in 2027, also for GitHub and F-Droid installs; register `org.skepi.app` with its certificate.
+- **Android developer verification:** required on certified devices in four countries since 2026-09-30, globally in 2027, also for GitHub and F-Droid installs; register `org.skepi.app` with its certificate (owner action before 2027, roadmap).
 - **Android permissions:** `LocalOnlyHotspot` needs `NEARBY_WIFI_DEVICES` on Android 13+. No `REQUEST_INSTALL_PACKAGES` (shared APKs are installed via browser or file manager).
 - **Apple 1.4.1 (medical):** clear warnings and sources on all medical content.
 - **Apple 2.5.2 (downloaded code):** GGUF and ZIM are data; JavaScript inside ZIM stays off by default.
@@ -789,6 +807,8 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - **Post-preview hardening — see `docs/hardening-report.md`.** Generic Layer 1 rules from the set 3 backlog: Unicode normalisation (NFKC, format characters, confusables) before every structural check · no URLs or e-mail addresses in Layer 1 · quoted instructions to a model treated like direct ones · source phone numbers flagged on emergency intent. Done: held-out set 4 (2026-10-11) — 0 AI findings on eval/desktop/S23, 3 accepted Layer 1 findings, phone flags and over-removal checks pass.
    - **Phase 3b-0 · Apple builds in CI (no Mac, no signing) — see `docs/phase-3b0-report.md`.** CoreKiwix.xcframework pinned by SHA-256 · Swift binding (`SkepiZim`) with XCTests · sealed `WKWebView` viewer · Swift ports of hash, content store (local only), device profile and tools; transfer "not supported" · `ios-simulator` job (Simulator Release build, Swift tests, Maestro) · `desktop-macos` job (Metal, Keychain, unsigned app + dmg, idle egress) · bundle scans on both.
    - **Phase 3a · Windows desktop with Station mode — see `docs/phase-3a-report.md`.** Persistent build cache · deterministic GNSS in E2E (debug-only mock provider) · `apps/desktop` (Tauri 2, React over `@skepi/core`) · `crates/zim-ffi` (libzim 9.7.0, same as Android) · llama.cpp in-process with Vulkan · sealed viewer window · MapLibre GL JS over the `maps` protocol · SQLCipher + DPAPI · Rust ContentStore · Station mode · desktop retrieval parity 108/108 with the S23 · unsigned MSI/NSIS.
+   - **Store readiness (Android) — see `docs/store-readiness.md`, `docs/release-process.md`.** F-Droid first, Play deferred to v1 · unsigned release switch · Expo modules from source · reproducible native libraries and the `android-repro` CI job (two Linux builds, different paths, byte-identical) · local signing of the CI artifact · problem report to the share sheet · AAB tested with bundletool · store screenshots from Maestro · fdroiddata recipe (`docs/fdroid/org.skepi.app.yml`).
+   - **Owner action before 2027: Android developer verification** — register the package `org.skepi.app` and the SKEPI release certificate (`7d61c382…447e`), so GitHub and F-Droid installs keep working on certified devices once verification is global (2027).
    - Gate: store approvals · emergency cards reviewed by first-aid professionals · T1 targets measured on a real 4 GB device.
 5. **Later.** Precomputed embeddings for curated packs · NPU on Android · more locales.
 
@@ -823,12 +843,15 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Files from SAF | Copied into app-specific storage (fd-only breaks the Xapian index). |
 | PMTiles on iOS / React Native | Supported; one `file://` test on an iPhone remains. |
 | Model shortlist for rag-eval | T1: Qwen ~1.5–2B · T2: Qwen ~3–4B · T3: Qwen ~7–8B; Meltemi 7B (Apache-2.0) for the Greek set after v1. Krikri excluded (Llama 3.1 licence). |
-| Release signing | Dedicated keystore outside the repo; fingerprint published with the first public release. |
+| Release signing | Dedicated keystore outside the repo; fingerprint published with the first public release. Never in CI or the project's Gradle properties: CI builds unsigned and the maintainer signs the reproducible CI artifact locally (2026-10-12). |
+| Android distribution | F-Droid first (reproducible build, F-Droid publishes our signed APK); Google Play deferred to v1 with its account type, Play App Signing, IARC and Health declaration (2026-10-12). |
 | Emergency cards | Public-domain or permitted material only; review by at least 2 certified first-aid instructors; no release without review. |
 | Catalog hosting | Own domain CNAME'd to GitHub Pages, raw GitHub fallback in the app. |
 | Name | Project S.K.E.P.I. (Survival Knowledge & Emergency Pocket Intelligence). |
 
 **Open**
+
+- [ ] **Owner, before 2027:** Android developer verification (package `org.skepi.app` + release certificate registration).
 
 - [ ] Official trademark check for S.K.E.P.I. on EUIPO / TMview (GitHub and web are clear in our space).
 - [ ] A Mac or a real iPhone for what CI cannot run (Phase 3b-0 report, "pending"): device AI, sensors, signing, TestFlight.
