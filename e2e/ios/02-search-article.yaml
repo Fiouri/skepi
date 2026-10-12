@@ -12,19 +12,25 @@ env:
     visible:
       id: search-input
     timeout: 60000
-- tapOn:
-    id: search-input
-- inputText: ${SEARCH_QUERY}
-- extendedWaitUntil:
-    visible:
-      id: search-timing
-    timeout: 20000
-- tapOn:
-    id: search-fulltext
-- extendedWaitUntil:
-    visible:
-      text: "fulltext:.*"
-    timeout: 20000
+# Simulator typing can drop characters under load ("Wurification", run 38229617151): type, search and
+# check for at least one result; on a miss erase and type again once.
+- retry:
+    maxRetries: 1
+    commands:
+      - tapOn:
+          id: search-input
+      - eraseText: 80
+      - inputText: ${SEARCH_QUERY}
+      - extendedWaitUntil:
+          visible:
+            id: search-timing
+          timeout: 20000
+      - tapOn:
+          id: search-fulltext
+      - extendedWaitUntil:
+          visible:
+            text: "fulltext: [1-9].*"
+          timeout: 20000
 - takeScreenshot: e2e/out/ios/01-search
 - scrollUntilVisible:
     element:

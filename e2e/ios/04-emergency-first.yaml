@@ -12,16 +12,21 @@ env:
 - runFlow: app-ready.yaml
 - tapOn:
     id: tab-ask
-- tapOn:
-    id: ask-input
-- inputText: ${CPR_QUESTION}
-- hideKeyboard
-- tapOn:
-    id: ask-submit
-- extendedWaitUntil:
-    visible:
-      id: emergency-banner
-    timeout: 30000
+# Simulator typing can drop characters under load (run 38229617151): one erase-and-retype retry.
+- retry:
+    maxRetries: 1
+    commands:
+      - tapOn:
+          id: ask-input
+      - eraseText: 80
+      - inputText: ${CPR_QUESTION}
+      - hideKeyboard
+      - tapOn:
+          id: ask-submit
+      - extendedWaitUntil:
+          visible:
+            id: emergency-banner
+          timeout: 30000
 - assertVisible: "Emergency\\? Call 112"
 - assertVisible:
     id: inline-card-cpr
@@ -36,18 +41,22 @@ env:
     timeout: 60000
 - tapOn:
     id: ask-clear
-- tapOn:
-    id: ask-input
-- inputText: ${QUAKE_QUESTION}
-- hideKeyboard
-- tapOn:
-    id: ask-submit
-- extendedWaitUntil:
-    visible:
-      id: layer1
-    timeout: 60000
-- assertVisible:
-    id: emergency-banner
+- retry:
+    maxRetries: 1
+    commands:
+      - tapOn:
+          id: ask-input
+      - eraseText: 80
+      - inputText: ${QUAKE_QUESTION}
+      - hideKeyboard
+      - tapOn:
+          id: ask-submit
+      - extendedWaitUntil:
+          visible:
+            id: layer1
+          timeout: 60000
+      - assertVisible:
+          id: emergency-banner
 - assertVisible:
     id: layer1
     below:

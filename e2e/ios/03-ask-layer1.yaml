@@ -11,16 +11,21 @@ env:
 - runFlow: app-ready.yaml
 - tapOn:
     id: tab-ask
-- tapOn:
-    id: ask-input
-- inputText: ${ASK_QUESTION}
-- hideKeyboard
-- tapOn:
-    id: ask-submit
-- extendedWaitUntil:
-    visible:
-      id: layer1-passage-0
-    timeout: 30000
+# Simulator typing can drop characters under load (run 38229617151): one erase-and-retype retry.
+- retry:
+    maxRetries: 1
+    commands:
+      - tapOn:
+          id: ask-input
+      - eraseText: 80
+      - inputText: ${ASK_QUESTION}
+      - hideKeyboard
+      - tapOn:
+          id: ask-submit
+      - extendedWaitUntil:
+          visible:
+            id: layer1-passage-0
+          timeout: 30000
 - assertVisible: "Source excerpts — not verified advice"
 - extendedWaitUntil:
     visible:
