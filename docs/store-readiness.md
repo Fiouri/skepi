@@ -14,7 +14,10 @@ part; the release signing config is unchanged.
 
 **Part 2 result:** B1, B2, B3 and B6 are done (§1); the reproducible unsigned APK comes from the
 `android-repro` CI job; the fdroiddata recipe is updated and linted (§6); AAB and screenshots are done
-(§5).
+(§5). Verification at `bbd53be`: `pnpm verify` 46/46; Rust `fmt`, `clippy -D warnings`, `test` (local and
+CI `desktop-windows`); signed preview `assembleRelease` (certificate `7d61c382…447e`); Maestro on the S23
+in airplane mode 8/8 (problem report CHOOSER intent 1, SMS hand-off 1, 0 bytes over real interfaces,
+0 blocked WebView requests); `android-repro` green (run 38301432599).
 
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
