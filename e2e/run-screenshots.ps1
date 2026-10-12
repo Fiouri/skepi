@@ -45,9 +45,11 @@ Send-Demo @('-e', 'command', 'network', '-e', 'wifi', 'hide', '-e', 'mobile', 'h
 Send-Demo @('-e', 'command', 'notifications', '-e', 'visible', 'false')
 & adb -s $Serial shell cmd locale set-app-locales $AppId --locales en-US | Out-Null
 
+# Maestro writes takeScreenshot files under its test output directory.
+$testOut = Join-Path $PSScriptRoot ('out\screenshots-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 Push-Location $root
 try {
-  & $Maestro --device $Serial test -e "APP_ID=$AppId" --format junit --output (Join-Path $PSScriptRoot 'out\report-screenshots.xml') e2e/store-screenshots.yaml | Out-Host
+  & $Maestro --device $Serial test -e "APP_ID=$AppId" --format junit --output (Join-Path $PSScriptRoot 'out\report-screenshots.xml') --test-output-dir $testOut e2e/store-screenshots.yaml | Out-Host
   $exit = $LASTEXITCODE
 } finally {
   Pop-Location
@@ -59,8 +61,10 @@ if ($exit -ne 0) { throw "Maestro failed (exit $exit)" }
 
 Add-Type -AssemblyName System.Drawing
 foreach ($n in $names) {
+  $shot = Get-ChildItem -Recurse -File -Path $testOut -Filter "$n.png" | Select-Object -First 1
+  if (-not $shot) { throw "Maestro wrote no $n.png under $testOut" }
   $file = Join-Path $outDir "$n.png"
-  if (-not (Test-Path $file)) { throw "missing $file" }
+  Copy-Item -Force $shot.FullName $file
   $img = [System.Drawing.Image]::FromFile($file)
   try {
     if ($img.Width -ne $Width -or $img.Height -ne $Height) { throw "$n.png is $($img.Width)x$($img.Height), expected ${Width}x${Height}" }

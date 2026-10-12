@@ -1,14 +1,14 @@
 # Store screenshots (F-Droid / Play phoneScreenshots), Developer Preview release build on the
 # skepi-host emulator (1080x2400, 420 dpi) with provisioned packs, airplane mode, system UI demo mode
-# (clean status bar). Run: e2e/run-screenshots.ps1, which writes
+# (clean status bar). Run: e2e/run-screenshots.ps1, which copies the six screenshots to
 # fastlane/metadata/android/en-US/images/phoneScreenshots/{1..6}_*.png and checks the size.
 # Preview builds carry no emergency card steps; no screen here opens a card.
 appId: ${APP_ID}
 name: SKEPI store screenshots
 env:
   SEARCH_QUERY: Water purification
-  ASK_QUESTION: How do I purify water?
-  OUT: fastlane/metadata/android/en-US/images/phoneScreenshots
+  ASK_QUESTION: What is the capital of Australia?
+  OUT: store
 onFlowComplete:
   - setAirplaneMode: disabled
 ---
@@ -22,6 +22,11 @@ onFlowComplete:
     visible:
       id: home-emergency
     timeout: 30000
+# Readiness is computed after the packs are scanned.
+- extendedWaitUntil:
+    visible:
+      text: "You are ready"
+    timeout: 120000
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: ${OUT}/1_home
@@ -36,7 +41,8 @@ onFlowComplete:
     visible:
       id: search-result-0
     timeout: 20000
-- hideKeyboard
+# No hideKeyboard: the app closes the keyboard on full-text search, and hideKeyboard without a keyboard
+# presses Back (leaves the app).
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: ${OUT}/2_search
