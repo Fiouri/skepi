@@ -433,7 +433,7 @@ export const en: Messages = {
       'The Windows installers (MSI, NSIS) are not code-signed in this preview, so Windows SmartScreen warns. Check their SHA-256 against SHA256SUMS.txt of the release.',
     privacyTitle: 'Privacy',
     privacy:
-      'SKEPI has no accounts, analytics, ads or telemetry and works offline. It uses the network only when you ask: to download packs listed in the signed catalog, and to share packs on your local network. Questions, answers and problem reports stay on this device.',
+      'SKEPI has no accounts, analytics, ads or telemetry and works offline. It uses the network only when you ask: to download packs listed in the signed catalog, and to share packs on your local network. Questions, answers and problem reports stay on this device unless you send a report yourself.',
     savedReports: 'Saved problem reports',
     noSavedReports: 'No saved reports.',
   },
@@ -441,6 +441,8 @@ export const en: Messages = {
     button: 'Report a problem with this answer',
     title: 'Problem report',
     hint: 'Nothing is sent. Copy this text or save it, then send it yourself, for example as an issue at github.com/Fiouri/skepi/issues. It contains only the question, the answer, the cited sources and the app version.',
+    hintShare:
+      'SKEPI sends nothing itself. "Send…" opens the share menu of your phone: you choose the app (e-mail, messages, a browser for github.com/Fiouri/skepi/issues) and whether to send. You can also copy the text or save it for later. It contains only the question, the answer, the cited sources, the app version and what you write.',
     copy: 'Copy text',
     copied: 'Copied',
     save: 'Save for later',
@@ -453,5 +455,11 @@ export const en: Messages = {
     sources: 'Cited sources',
     version: 'App version',
     describe: 'What is wrong (write it here):',
+    userText: 'What is wrong',
+    inputLabel: 'What is wrong with this answer?',
+    inputPlaceholder: 'For example: offensive, wrong, or cites the wrong article',
+    share: 'Send…',
+    shared: 'Share menu opened. Nothing was sent by SKEPI.',
+    shareFailed: (error) => `Could not open the share menu: ${error}`,
   },
 };

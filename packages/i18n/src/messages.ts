@@ -403,7 +403,10 @@ export interface Messages {
   report: {
     button: string;
     title: string;
+    /** Desktop: copy or save. */
     hint: string;
+    /** Phones: the share sheet as well. */
+    hintShare: string;
     copy: string;
     copied: string;
     save: string;
@@ -416,5 +419,11 @@ export interface Messages {
     sources: string;
     version: string;
     describe: string;
+    userText: string;
+    inputLabel: string;
+    inputPlaceholder: string;
+    share: string;
+    shared: string;
+    shareFailed: (error: string) => string;
   };
 }

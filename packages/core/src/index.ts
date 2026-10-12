@@ -271,5 +271,5 @@ export {
   type TransferErrorCode,
   type TransferManifest,
 } from './transfer';
-export { problemReportText, type ProblemReportInput, type ProblemReportLabels, type ProblemReportSource } from './report';
+export { PROBLEM_REPORT_MAX_DESCRIPTION, problemReportShare, problemReportText, type ProblemReportInput, type ProblemReportLabels, type ProblemReportShare, type ProblemReportSource } from './report';
 export { ANDROID_RELEASE_SIGNING_SHA256 } from './release';

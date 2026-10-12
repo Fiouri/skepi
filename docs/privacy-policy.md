@@ -58,9 +58,10 @@ messaging app; SKEPI never sends them itself.
 ## Problem reports
 
 "Report a problem with this answer" prepares a text with the question, the answer shown, the cited
-sources and the app version. Nothing is sent. You can copy the text or save it on the device, and then
-decide yourself whether to send it to us (for example as a GitHub issue). We receive only what you
-choose to send, through the channel you choose.
+sources, the app version and what you write about the problem. SKEPI sends nothing itself. On Android,
+"Send…" opens your phone's share menu with that text: you choose the app (e-mail, messaging, a browser
+for GitHub issues) and whether to send. You can also copy the text or save it on the device. We receive
+only what you choose to send, through the channel you choose.
 
 ## Children
 

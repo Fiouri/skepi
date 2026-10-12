@@ -2,7 +2,7 @@
 .SYNOPSIS
   Runs the Maestro flows on the connected device in airplane mode and checks that the sealed
   WebView made zero network requests (blocked-request log must be empty).
-  1. e2e/ask-en.yaml    English UI: search, article, Layer 1 + automatic AI summary with citation, no source, map.
+  1. e2e/ask-en.yaml    English UI: search, article, Layer 1 + automatic AI summary with citation, problem report to the share sheet, no source, map.
   2. e2e/ask-t1.yaml    English UI, T1-simulation: Layer 1, then "Summarise with AI".
   3. e2e/medical.yaml   English UI: emergency number + Layer 1 first, unverified AI summary on tap.
   4. e2e/onboarding.yaml "Get prepared" offline with the installed packs; readiness indicator.
@@ -98,6 +98,7 @@ $bytesBefore = Get-UidBytes $uid
 $toolsUid = Get-AppUid $toolsPackage
 $toolsBytesBefore = $(if ($toolsUid -ne $uid) { Get-UidBytes $toolsUid } else { 0 })
 $script:smsIntents = 0
+$script:shareIntents = 0
 $flows = @(
   # tools.yaml first: with -SimulateGnss the test provider stopped receiving positions when tools.yaml ran
   # after other flows (cause not found; standalone and first-in-suite runs pass).
@@ -193,6 +194,8 @@ try {
       # SMS hand-off (tools.yaml): the app only started a VIEW sms: intent (data redacted in logcat).
       # Counted right away: later flows push it out of the log buffer.
       if ($location) { $script:smsIntents = @(& adb @adbArgs logcat -d | Select-String -Pattern 'START u0 \{act=android.intent.action.VIEW dat=sms:').Count }
+      # Problem report (ask-en.yaml): "Send…" only started the system share sheet (a CHOOSER intent).
+      if ($f.Flow -eq 'e2e/ask-en.yaml') { $script:shareIntents = @(& adb @adbArgs logcat -d | Select-String -Pattern 'START u0 \{act=android.intent.action.CHOOSER').Count }
     } finally {
       if ($battery) { Set-SimulatedBattery $false }
       if ($location -and $SimulateGnss) { Stop-TestGps }
@@ -221,7 +224,13 @@ Write-Host "Blocked WebView requests during E2E: $($blocked.Count)"
 Write-Host "ContentStore download requests during E2E: $($downloads.Count)"
 Write-Host "Bytes of UID $uid$(if ($toolsUid -ne $uid) { " + $toolsUid" }) over real interfaces during E2E: $egress"
 if ($toolsRan) { Write-Host "SMS hand-off intents (VIEW sms:): $script:smsIntents" }
+$askRan = @($results | Where-Object { $_.Flow -eq 'e2e/ask-en.yaml' }).Count -gt 0
+if ($askRan) { Write-Host "Problem report share intents (CHOOSER): $script:shareIntents" }
 $failed = @($results | Where-Object { $_.Exit -ne 0 })
+if ($askRan -and $failed.Count -eq 0 -and $script:shareIntents -lt 1) {
+  Write-Error 'ask-en.yaml: no CHOOSER intent was started (problem report share sheet).'
+  exit 6
+}
 if ($toolsRan -and $failed.Count -eq 0 -and $script:smsIntents -lt 1) {
   Write-Error 'tools.yaml: no VIEW sms: intent was started (SMS hand-off).'
   exit 5
