@@ -16,7 +16,8 @@
 #    through Bench -> "Run retrieval parity" (e2e/ios/parity.yaml); parity/device.json is compared with the
 #    stored S23, desktop and rag-eval runs (tools/rag-eval/parity-reference). Report: e2e/out/ios/parity/.
 #
-# SKEPI_SIM_UDID: use this Simulator (created by e2e/ios/simulator.sh, possibly still booting) instead of a new one.
+# SKEPI_SIM_UDID: use this Simulator (e.g. from e2e/ios/simulator.sh reuse) instead of a new one; it is shut down at
+# the end, not deleted.
 set -euo pipefail
 
 abs() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
@@ -36,14 +37,16 @@ mkdir -p "$out" "$cache"
 # --- Simulator -------------------------------------------------------------------------------
 if [ -n "${SKEPI_SIM_UDID:-}" ]; then
   udid="$SKEPI_SIM_UDID"
-  xcrun simctl boot "$udid" 2>/dev/null || true # already booted or booting
+  cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; }
 else
   udid="$("$here/simulator.sh" create skepi-e2e)"
-  xcrun simctl boot "$udid"
+  cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; xcrun simctl delete "$udid" >/dev/null 2>&1 || true; }
 fi
-cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; xcrun simctl delete "$udid" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
-xcrun simctl bootstatus "$udid" -b
+xcrun simctl boot "$udid" 2>/dev/null || true # already booted
+start=$(date +%s)
+xcrun simctl bootstatus "$udid" -b >/dev/null
+echo "Simulator booted in $(( $(date +%s) - start )) s"
 cd "$repo" # takeScreenshot paths in the flows are relative to the repository root
 failed=0
 passed=0
