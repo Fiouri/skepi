@@ -54,9 +54,32 @@ const withProperties = (config) =>
 // measurements (Bench → backend). Such a build is for measurements only and is never released.
 const GPU_EXPERIMENT = process.env.SKEPI_GPU_EXPERIMENT === '1';
 const LLAMA_EXCLUDED_VARIANTS = GPU_EXPERIMENT ? ['v8_2', 'v8_2_i8mm'] : ['v8_2', 'v8_2_i8mm', 'v8_2_dotprod_i8mm_hexagon_opencl'];
+const LLAMA_ALL_VARIANTS = ['', 'v8', 'v8_2', 'v8_2_dotprod', 'v8_2_i8mm', 'v8_2_dotprod_i8mm', 'v8_2_dotprod_i8mm_hexagon_opencl'];
 const PACKAGING_MARKER = '// skepi:llama-variants';
-const withLlamaVariants = (config) =>
-  withAppBuildGradle(config, (cfg) => {
+const TARGETS_MARKER = '// skepi:llama-targets';
+const withLlamaVariants = (config) => {
+  // Build only the packaged variants. The OpenCL/Hexagon one links the prebuilt libOpenCL.so stub from
+  // node_modules/llama.rn/bin, which F-Droid's scanner deletes (and which the release never ships).
+  config = withProjectBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(TARGETS_MARKER)) return cfg;
+    const targets = LLAMA_ALL_VARIANTS.filter((v) => !LLAMA_EXCLUDED_VARIANTS.includes(v))
+      .flatMap((v) => (v ? [`"rnllama_${v}"`, `"rnllama_jni_${v}"`] : ['"rnllama"', '"rnllama_jni"']))
+      .join(', ');
+    cfg.modResults.contents += `
+${TARGETS_MARKER}
+subprojects { p ->
+    if (p.name == 'llama.rn') {
+        p.plugins.withId('com.android.library') {
+            p.extensions.getByName('androidComponents').finalizeDsl { ext ->
+                ext.defaultConfig.externalNativeBuild.cmake.targets.addAll([${targets}])
+            }
+        }
+    }
+}
+`;
+    return cfg;
+  });
+  return withAppBuildGradle(config, (cfg) => {
     if (cfg.modResults.contents.includes(PACKAGING_MARKER)) return cfg;
     const excludes = LLAMA_EXCLUDED_VARIANTS.flatMap((v) => [
       `"**/librnllama_${v}.so"`,
@@ -78,6 +101,7 @@ tasks.configureEach { task ->
 `;
     return cfg;
   });
+};
 
 const PROGUARD_MARKER = '# skepi:keep-rules';
 const withKeepRules = (config) =>
