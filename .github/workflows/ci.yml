@@ -459,10 +459,10 @@ jobs:
       - name: Swift unit tests (SkepiZim; binding, catalog/hash, viewer sealing)
         run: |
           set -o pipefail
-          # Booting in parallel with the build or pnpm install saves nothing on these runners (the first boot
-          # is CPU- and disk-bound), and a just-booted Simulator slows a build: compile first, then boot (a
-          # device the image already has skips the first-boot migration), then run.
-          udid=$(e2e/ios/simulator.sh reuse skepi-tests)
+          # Compile first, then boot, then run: booting in parallel with the build or pnpm install saves nothing
+          # on these runners (the first boot is CPU- and disk-bound) and slows them; a device the image already
+          # has boots faster but takes as long to settle (measured in the follow-up runs, docs/phase-3b0-report.md).
+          udid=$(e2e/ios/simulator.sh create skepi-tests)
           tests=(-workspace apps/mobile/ios/SKEPI.xcworkspace -scheme SkepiZim-Unit-Tests -destination "id=$udid" -derivedDataPath "$DERIVED_DATA")
           rc=0
           xcodebuild "${tests[@]}" CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO build-for-testing > "$RUNNER_TEMP/xcodebuild-tests.log" 2>&1 || rc=$?
@@ -557,7 +557,7 @@ jobs:
           echo "MAESTRO=$HOME/.maestro-dist/maestro/bin/maestro" >> "$GITHUB_ENV"
       - name: Maestro flows and retrieval parity on the Simulator (provisioned packs, no AI on the Simulator)
         run: |
-          SKEPI_SIM_UDID=$(e2e/ios/simulator.sh reuse skepi-e2e) e2e/ios/run-ios-e2e.sh "$RUNNER_TEMP/apps/adhoc/SKEPI.app" "$RUNNER_TEMP/apps/unsigned/SKEPI.app"
+          e2e/ios/run-ios-e2e.sh "$RUNNER_TEMP/apps/adhoc/SKEPI.app" "$RUNNER_TEMP/apps/unsigned/SKEPI.app"
       - name: Retrieval parity report
         if: always()
         run: cat e2e/out/ios/parity/parity-reference.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "no parity report"

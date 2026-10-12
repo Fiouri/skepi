@@ -16,8 +16,8 @@
 #    through Bench -> "Run retrieval parity" (e2e/ios/parity.yaml); parity/device.json is compared with the
 #    stored S23, desktop and rag-eval runs (tools/rag-eval/parity-reference). Report: e2e/out/ios/parity/.
 #
-# SKEPI_SIM_UDID: use this Simulator (e.g. from e2e/ios/simulator.sh reuse) instead of a new one; it is shut down at
-# the end, not deleted.
+# A flow that fails because Maestro's iOS driver did not start or lost the device (not an assertion) runs once more;
+# both attempts are logged and kept.
 set -euo pipefail
 
 abs() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
@@ -31,35 +31,44 @@ cache="${SKEPI_CACHE_DIR:-$HOME/Library/Caches/skepi}"
 maestro="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 packs=(wikipedia_en_top_mini wikipedia_en_medicine_mini map-gr places-gr)
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+# The XCTest driver can need more than Maestro's default to start on a just-booted CI Simulator.
+export MAESTRO_DRIVER_STARTUP_TIMEOUT="${MAESTRO_DRIVER_STARTUP_TIMEOUT:-300000}"
 
 mkdir -p "$out" "$cache"
 
 # --- Simulator -------------------------------------------------------------------------------
-if [ -n "${SKEPI_SIM_UDID:-}" ]; then
-  udid="$SKEPI_SIM_UDID"
-  cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; }
-else
-  udid="$("$here/simulator.sh" create skepi-e2e)"
-  cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; xcrun simctl delete "$udid" >/dev/null 2>&1 || true; }
-fi
+udid="$("$here/simulator.sh" create skepi-e2e)"
+cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; xcrun simctl delete "$udid" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
-xcrun simctl boot "$udid" 2>/dev/null || true # already booted
+xcrun simctl boot "$udid"
 start=$(date +%s)
 xcrun simctl bootstatus "$udid" -b >/dev/null
 echo "Simulator booted in $(( $(date +%s) - start )) s"
 cd "$repo" # takeScreenshot paths in the flows are relative to the repository root
 failed=0
 passed=0
+maestro_test() { # <name> <flow>; output in $out/<name>.*
+  "$maestro" --device "$udid" test --format junit --output "$out/$1.junit.xml" --test-output-dir "$out/$1" "$2" 2>&1 | tee "$out/$1.log"
+}
 run_flow() {
   local flow="$1" name
   name="$(basename "$flow" .yaml)"
   echo "=== $name"
-  if "$maestro" --device "$udid" test --format junit --output "$out/$name.junit.xml" --test-output-dir "$out/$name" "$flow"; then
+  if maestro_test "$name" "$flow"; then
     passed=$((passed + 1))
-  else
-    failed=$((failed + 1))
-    xcrun simctl io "$udid" screenshot "$out/$name-failure.png" || true
+    return
   fi
+  if grep -q -E 'IOSDriverTimeoutException|DeviceUnreachableException|driver not ready in time' "$out/$name.log" "$out/$name.junit.xml" 2>/dev/null; then
+    echo "::warning::$name: Maestro driver failure (not an assertion); running the flow once more"
+    mv "$out/$name.log" "$out/$name.attempt1.log"
+    mv "$out/$name.junit.xml" "$out/$name.attempt1.junit.xml" 2>/dev/null || true
+    if maestro_test "$name" "$flow"; then
+      passed=$((passed + 1))
+      return
+    fi
+  fi
+  failed=$((failed + 1))
+  xcrun simctl io "$udid" screenshot "$out/$name-failure.png" || true
 }
 
 # --- 0. Unsigned build: the secure-storage failure path ---------------------------------------
