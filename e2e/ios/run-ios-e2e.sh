@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Maestro E2E on the iOS Simulator (Phase 3b-0, CI job ios-simulator; also runs on a local Mac).
+# Maestro E2E on the iOS Simulator (Phase 3b-0, CI job ios-e2e with the apps ios-build made; also runs on a local Mac).
 #
 #   e2e/ios/run-ios-e2e.sh <SKEPI.app, ad-hoc signed for the Simulator> [<SKEPI.app, unsigned>]
 #
@@ -12,6 +12,11 @@
 #    the app embeds (catalog/embedded/release); every file is verified before it is copied, and the app
 #    verifies it again at startup before opening it. Downloads are cached in $SKEPI_CACHE_DIR.
 # 3. Runs the flows in e2e/ios in order and writes JUnit reports and the list of skipped flows.
+# 4. Retrieval parity (no model: retrieval, passage selection, Layer 1): the 108 en golden-set queries go
+#    through Bench -> "Run retrieval parity" (e2e/ios/parity.yaml); parity/device.json is compared with the
+#    stored S23, desktop and rag-eval runs (tools/rag-eval/parity-reference). Report: e2e/out/ios/parity/.
+#
+# SKEPI_SIM_UDID: use this Simulator (created by e2e/ios/simulator.sh, possibly still booting) instead of a new one.
 set -euo pipefail
 
 abs() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
@@ -29,10 +34,15 @@ export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=tru
 mkdir -p "$out" "$cache"
 
 # --- Simulator -------------------------------------------------------------------------------
-udid="$("$here/simulator.sh" create skepi-e2e)"
+if [ -n "${SKEPI_SIM_UDID:-}" ]; then
+  udid="$SKEPI_SIM_UDID"
+  xcrun simctl boot "$udid" 2>/dev/null || true # already booted or booting
+else
+  udid="$("$here/simulator.sh" create skepi-e2e)"
+  xcrun simctl boot "$udid"
+fi
 cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; xcrun simctl delete "$udid" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
-xcrun simctl boot "$udid"
 xcrun simctl bootstatus "$udid" -b
 cd "$repo" # takeScreenshot paths in the flows are relative to the repository root
 failed=0
@@ -87,7 +97,7 @@ cat > "$out/skipped.md" <<'EOF'
 | tools.yaml (SOS torch, compass, GNSS fix, SMS hand-off) | Hardware: the Simulator has no torch, compass or GNSS receiver |
 | p2p-host / p2p-receive / station-receive | Not supported on iOS in Phase 3b-0 (no LocalOnlyHotspot; QR camera; P2P arrives later) |
 | download.yaml / onboarding-mirror.yaml | Downloads are not supported on iOS in Phase 3b-0 (packs are provisioned or imported) |
-| ask-en.yaml AI summary, ask-t1.yaml, medical.yaml AI part, bench-*.yaml, heldout.yaml, parity.yaml | Needs the GGUF model and llama.rn on a device (no model on the Simulator) |
+| ask-en.yaml AI summary, ask-t1.yaml, medical.yaml AI part, bench-*.yaml, heldout.yaml | Needs the GGUF model and llama.rn on a device (no model on the Simulator); retrieval parity needs no model and runs (e2e/ios/parity.yaml) |
 | blackout.yaml / energy.yaml | Battery simulation (dumpsys battery) and battery current are Android-only |
 | locale-el.yaml | Frozen locale, optional on Android as well |
 | airplane mode in every flow | Maestro cannot toggle it on iOS; this build has no network code path (downloads unsupported, no P2P) |
@@ -97,5 +107,22 @@ for flow in "$here"/0*.yaml; do
   run_flow "$flow"
 done
 echo "iOS flows: $passed passed, $failed failed (skipped with reasons: $out/skipped.md)"
-xcrun simctl spawn "$udid" log show --last 15m --predicate 'process == "SKEPI" AND (eventMessage CONTAINS "[skepi]" OR eventMessage CONTAINS "[ExpoZim]" OR subsystem == "com.facebook.react.log")' > "$out/app.log" 2>/dev/null || true
-[ "$failed" -eq 0 ]
+
+# --- 4. Retrieval parity with the S23, desktop and rag-eval runs ---------------------------------
+parity=FAIL
+rm -rf "$out/parity" "$content/parity"
+mkdir -p "$out/parity" "$content/parity"
+pnpm --filter @skepi/rag-eval exec tsx src/parity.ts --write-queries "$out/parity/queries.json"
+cp "$out/parity/queries.json" "$content/parity/queries.json"
+flows_failed=$failed
+run_flow "$here/parity.yaml"
+if [ "$failed" -eq "$flows_failed" ] && [ -f "$content/parity/device.json" ]; then
+  cp "$content/parity/device.json" "$out/parity/ios.json"
+  if pnpm --filter @skepi/rag-eval exec tsx src/parity.ts --device "$out/parity/ios.json" --reference --out "$out/parity"; then
+    parity=PASS
+  fi
+fi
+echo "iOS retrieval parity: $parity (report: $out/parity/parity-reference.md)"
+
+xcrun simctl spawn "$udid" log show --last 60m --predicate 'process == "SKEPI" AND (eventMessage CONTAINS "[skepi]" OR eventMessage CONTAINS "[ExpoZim]" OR subsystem == "com.facebook.react.log")' > "$out/app.log" 2>/dev/null || true
+[ "$failed" -eq 0 ] && [ "$parity" = PASS ]
