@@ -675,8 +675,8 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 | Channel | Artifact | Note |
 | --- | --- | --- |
 | GitHub Releases | Signed APK (arm64 + universal), MSI, DMG | SHA-256 and attestations published |
-| F-Droid | Built by F-Droid | Source builds, no prebuilt binaries, no Play Services |
-| Google Play | AAB with ABI splits | Data Safety "no data collected" |
+| F-Droid | Built by F-Droid; proposed: reproducible, publishing our signed APK (`Binaries:` + `AllowedAPKSigningKeys:`) | Source builds; FOSS AARs from Maven Central only; no Play Services (none on the classpath) |
+| Google Play | AAB with ABI splits (arm64) | Data Safety "no data collected"; Play App Signing with our existing key (proposed) |
 | App Store / TestFlight | iOS build | Apple Developer Program (annual fee); same account notarises macOS |
 | Windows | Tauri MSI/NSIS, winget | Without a code-signing certificate SmartScreen warns |
 
@@ -703,10 +703,37 @@ Pending a real iPhone or Mac: llama.rn with Metal and the GGUF model, GPS/compas
 
 **Distribution note:** sideloaded APKs trigger Google Play Protect prompts on install; Play Store and F-Droid are the user-facing channels.
 
+**Store distribution (proposed 2026-10-12, owner decides; `docs/store-readiness.md`).** Store texts live in
+`fastlane/metadata/android/en-US/` (read by F-Droid and usable for Play); the public privacy policy is
+`docs/privacy-policy.md`.
+
+- **One certificate on every channel.** GitHub, F-Droid and Play installs carry the SKEPI release
+  certificate (the fingerprint in About and in the Station check): F-Droid through a reproducible build
+  that publishes our signed APK, Play through Play App Signing with the existing key uploaded (not a
+  Google-generated one). Users can then move between channels, and one certificate is registered for
+  Android developer verification.
+- **No `fdroid` flavor.** The release classpath has no Play Services, Firebase or other proprietary SDK,
+  so one build serves all channels. F-Droid needs two build switches instead: an explicit unsigned
+  release (`-PskepiUnsigned=true`; the default stays fail-closed) and Expo modules compiled from source
+  (`expo.autolinking.android.buildFromSource`) rather than the prebuilt AARs in `node_modules`.
+- **Reproducibility.** Release APKs are compared across clean checkouts in different paths before a
+  `Binaries:` target is published; anything path- or time-dependent is fixed in the build. First result
+  (2026-10-12): dex, resources and JS bundle identical; 18 natively compiled libraries differ (build-id,
+  absolute `__FILE__` paths, one link order). Proposed: `-Wl,--build-id=none` and `-ffile-prefix-map`
+  for every CMake build, published APKs built on Linux CI.
+- **Play account and health declaration.** SKEPI declares Medical health features (medical reference,
+  emergency and first aid), which Play ties to an Organization developer account; a personal account
+  would also need the 12-tester, 14-day closed test.
+- **AI content reports.** Play's AI-Generated Content policy wants in-app reporting to the developer;
+  the proposal is a share-sheet hand-off of the existing problem report (the user sends it, the app
+  opens no connection), keeping "no network except user-initiated downloads".
+
 **Store policies (risks)**
 
-- **Play, AI-Generated Content:** in-app reporting of problematic answers; a "Report" button prepares an issue or email for when online.
-- **Play, Health:** no diagnostic claims in the listing; health apps declaration completed.
+- **Play, AI-Generated Content:** in-app reporting of problematic answers; a "Report" button prepares an issue or email for when online. The policy asks for reports that reach the developer from inside the app: open item (share-sheet hand-off proposed).
+- **Play, Health:** no diagnostic claims in the listing; the description states the app is not a medical device and does not diagnose, treat, cure or prevent any condition, and to consult a healthcare professional; health apps declaration to be completed as Medical, which points to an Organization account (owner decision).
+- **Play, target API and page size:** targetSdk 36 (required since 2026-08-31); all native libraries 16 KB aligned.
+- **Android developer verification:** required on certified devices in four countries since 2026-09-30, globally in 2027, also for GitHub and F-Droid installs; register `org.skepi.app` with its certificate.
 - **Android permissions:** `LocalOnlyHotspot` needs `NEARBY_WIFI_DEVICES` on Android 13+. No `REQUEST_INSTALL_PACKAGES` (shared APKs are installed via browser or file manager).
 - **Apple 1.4.1 (medical):** clear warnings and sources on all medical content.
 - **Apple 2.5.2 (downloaded code):** GGUF and ZIM are data; JavaScript inside ZIM stays off by default.

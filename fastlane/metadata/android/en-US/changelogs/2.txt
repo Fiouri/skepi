@@ -1,0 +1,3 @@
+0.1.0-preview, Developer Preview. Not for emergency use.
+
+First public build: offline encyclopedia search and reading, answers with source excerpts and an optional on-device AI summary (none for emergency questions), Greece map and places, emergency numbers, SOS torch, compass, GPS position, and sharing content between phones without the internet. Emergency card steps are under professional review and not included.
