@@ -48,6 +48,13 @@ if ($res -notmatch 'connected to') { throw "adb connect $Connect failed" }
 $state = ((& adb -s $Connect get-state) -join '').Trim()
 if ($state -ne 'device') { throw "$Connect is $state" }
 
+# Changing the phone's settings needs the shared device lock (scripts/device-lock.ps1).
+$deviceLock = $null
+if ($KeepWifiInAirplane -or $Restore) {
+  . (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts\device-lock.ps1')
+  $deviceLock = Enter-DeviceLock -Serial $Connect -Purpose 'e2e/adb-wireless.ps1'
+}
+try {
 if ($KeepWifiInAirplane) {
   $radios = ((& adb -s $Connect shell settings get global airplane_mode_radios) -join '').Trim()
   Set-Content -Encoding ASCII (Join-Path $PSScriptRoot 'out\airplane_mode_radios.txt') $radios
@@ -60,5 +67,8 @@ if ($Restore) {
   $radios = if (Test-Path $saved) { (Get-Content -Raw $saved).Trim() } else { 'cell,bluetooth,wifi,nfc,wimax' }
   & adb -s $Connect shell settings put global airplane_mode_radios $radios | Out-Null
   Write-Host "airplane_mode_radios restored: $radios"
+}
+} finally {
+  if ($deviceLock) { Exit-DeviceLock $deviceLock }
 }
 Write-Output $Connect

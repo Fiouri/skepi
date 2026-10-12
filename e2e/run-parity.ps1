@@ -22,6 +22,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Shared device lock (scripts/device-lock.ps1): waits while another project or session uses the
+# device and never stops their processes; released in the finally block at the end of this script.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts\device-lock.ps1')
+$deviceLocks = @(Enter-DeviceLock -Serial $Serial -Purpose 'e2e/run-parity.ps1')
+try {
+
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $PSScriptRoot 'out'
 New-Item -ItemType Directory -Force -Path $out | Out-Null
@@ -56,3 +62,6 @@ try {
 }
 if ($code -ne 0) { exit $code }
 Write-Host 'PARITY PASS'
+} finally {
+  $deviceLocks | ForEach-Object { Exit-DeviceLock $_ }
+}

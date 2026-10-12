@@ -21,6 +21,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Shared device lock (scripts/device-lock.ps1): waits while another project or session uses the
+# device and never stops their processes; released in the finally block at the end of this script.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts\device-lock.ps1')
+$deviceLocks = @(Enter-DeviceLock -Serial $Serial -Purpose 'e2e/run-download-e2e.ps1')
+try {
+
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $PSScriptRoot 'out'
 New-Item -ItemType Directory -Force -Path $out | Out-Null
@@ -100,3 +106,6 @@ if ($foreign.Count -gt 0 -or $withQuery.Count -gt 0) { Write-Error 'The app requ
 if ($requested.Count -eq 0 -or @($log).Count -eq 0) { Write-Error 'No download reached the mirror.'; exit 5 }
 if ($egress -ne 0) { Write-Error "The app's UID moved $egress bytes over a real network interface."; exit 6 }
 Write-Host 'DOWNLOAD E2E PASS (only the mirror host contacted)'
+} finally {
+  $deviceLocks | ForEach-Object { Exit-DeviceLock $_ }
+}

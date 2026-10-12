@@ -38,6 +38,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Shared device lock (scripts/device-lock.ps1): waits while another project or session uses the
+# device and never stops their processes; released in the finally block at the end of this script.
+. (Join-Path $PSScriptRoot 'device-lock.ps1')
+$deviceLocks = @(if (-not $DownloadOnly) { Enter-DeviceLock -Serial $Serial -Purpose 'scripts/provision.ps1' })
+try {
+
 $lockPath = Join-Path $PSScriptRoot 'content.lock.json'
 $lock = Get-Content -Raw -Encoding UTF8 $lockPath | ConvertFrom-Json
 $package = if ($AppId) { $AppId } else { $lock.package }
@@ -230,3 +236,6 @@ if (-not $WithCompareModel) {
 }
 Invoke-Adb shell am force-stop $package
 Write-Host "Provisioned $package ($($Packs -join ', '), icu=$([bool]$WithIcu)). Remote: $remoteRoot"
+} finally {
+  $deviceLocks | ForEach-Object { Exit-DeviceLock $_ }
+}

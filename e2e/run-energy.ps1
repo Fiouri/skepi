@@ -20,6 +20,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Shared device lock (scripts/device-lock.ps1): waits while another project or session uses the
+# device and never stops their processes; released in the finally block at the end of this script.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts\device-lock.ps1')
+$deviceLocks = @(Enter-DeviceLock -Serial $Serial -Purpose 'e2e/run-energy.ps1')
+try {
+
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $PSScriptRoot 'out'
 New-Item -ItemType Directory -Force -Path $out | Out-Null
@@ -56,3 +62,6 @@ $env:MSYS_NO_PATHCONV = '1'
 Adb pull "/sdcard/Android/data/$AppId/files/bench/energy-latest.json" (Join-Path $out 'energy-latest.json') | Out-Host
 if ($code -ne 0) { throw "energy flow failed ($code)" }
 Write-Host "ENERGY SAMPLES: $(Join-Path $out 'energy-latest.json')"
+} finally {
+  $deviceLocks | ForEach-Object { Exit-DeviceLock $_ }
+}

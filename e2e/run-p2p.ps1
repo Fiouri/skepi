@@ -35,6 +35,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Shared device lock (scripts/device-lock.ps1): waits while another project or session uses the
+# device and never stops their processes; released in the finally block at the end of this script.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts\device-lock.ps1')
+$deviceLocks = @(@($HostSerial, $ReceiverSerial) | Sort-Object | ForEach-Object { Enter-DeviceLock -Serial $_ -Purpose 'e2e/run-p2p.ps1' })
+try {
+
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $PSScriptRoot 'out'
 New-Item -ItemType Directory -Force -Path $out | Out-Null
@@ -142,3 +148,6 @@ try {
 foreach ($r in $results) { Write-Host "$($r.Flow): exit $($r.Exit)" }
 if (@($results | Where-Object { $_.Exit -ne 0 }).Count -gt 0) { Write-Error 'P2P E2E FAILED'; exit 1 }
 Write-Host 'P2P E2E PASS'
+} finally {
+  $deviceLocks | ForEach-Object { Exit-DeviceLock $_ }
+}
