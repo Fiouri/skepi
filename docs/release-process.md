@@ -24,6 +24,8 @@ maintainer: download artifact ──► scripts/release/sign-release-apk.ps1 (ap
 
 `-PskepiUnsigned` and `-PskepiDebugSign` are exclusive. Preview builds add `SKEPI_PREVIEW=1` and
 `-PskepiPreview=true` (no emergency card steps in the bundle).
+`-PskepiJdk21=true` (after `scripts/android/jdk21.sh`) builds with the JDK 21 toolchain and bytecode target
+17, as F-Droid's Debian buildserver must; published APKs are built this way (`docs/architecture.md`).
 
 Release builds compile everything native from source: llama.cpp (`rnllamaBuildFromSource`), React
 Native libraries, op-sqlite/SQLCipher and, since 2026-10-12, every Expo module
@@ -73,9 +75,11 @@ python3 scripts/ci/apk-compare.py contents skepi-<version>-arm64.apk skepi-<vers
 apksigner verify --print-certs skepi-<version>-arm64.apk   # Signer #1 certificate SHA-256 digest: 7d61c382…447e
 ```
 
-or rebuild the tag on Linux (`.github/workflows/android-repro.yml` lists the exact steps: Node 22, pnpm
-from `packageManager`, Temurin 17, `pnpm install --frozen-lockfile`, `expo prebuild`, `SKEPI_PREVIEW=1
-./gradlew assembleRelease -PskepiUnsigned=true -PskepiPreview=true`) and compare with `apk-compare.py same`.
+or rebuild the tag on Linux (`.github/workflows/android-repro.yml` lists the exact steps: Node 24.21.0,
+pnpm from `packageManager`, a JDK 21, `pnpm install --frozen-lockfile`, `bash scripts/android/jdk21.sh`,
+`expo prebuild`, `SKEPI_PREVIEW=1 ./gradlew assembleRelease -PskepiUnsigned=true -PskepiPreview=true
+-PskepiJdk21=true`) and compare with `apk-compare.py same`. The CI job `fdroid-build` does the same through
+`fdroid build` and the F-Droid recipe in F-Droid's buildserver container.
 
 ## 4. Not part of this flow
 

@@ -19,6 +19,11 @@ CI `desktop-windows`); signed preview `assembleRelease` (certificate `7d61c382�
 in airplane mode 8/8 (problem report CHOOSER intent 1, SMS hand-off 1, 0 bytes over real interfaces,
 0 blocked WebView requests); `android-repro` green (run 38301432599).
 
+**Part 3 result (2026-10-13):** `fdroid build` of the recipe runs in CI in F-Droid's buildserver container
+and produces the same bytes as `android-repro` (§6); published builds use the JDK 21 toolchain
+(`docs/architecture.md`, "Android JDK"); the Ask store screenshot comes from the S23 with the model; every
+SKEPI device script takes a shared per-device lock (open items, §5). Verification at `36d712d`: `pnpm verify` 46/46; Rust `fmt`, `clippy -D warnings`, `test` (local and CI); `android-repro` and `fdroid-build` green with the same SHA-256 `36599399…0069` (run 38319568319). Maestro on the S23 (signed preview build, airplane mode, under the device lock): every one of the 8 flows passed on this build, but no single run was clean: run 1 7/8 (blackout) and blackout alone then green, run 2 6/8 (ask-t1, blackout); each failure screenshot shows the Selis app, which another session brought to the foreground on the shared phone while SKEPI held the lock. Both runs: 0 bytes over real interfaces, 0 blocked WebView requests, problem-report CHOOSER 1, SMS hand-off 1.
+
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
 
@@ -48,11 +53,11 @@ No Google Play Services, Firebase, analytics, ads or other proprietary SDK was f
 | FOSS licence | ready | GPL-3.0-or-later (`LICENSE`); all runtime dependencies are FOSS (§3) |
 | No non-free dependencies (Play Services, Firebase, tracking, ads) | ready | Release runtime classpath audit (§3): none |
 | Binary dependencies from source or allowed repositories | ready | Expo modules from source (B2); the rest are freely licensed Maven Central / Google Maven AARs (§3). `fdroid scanner` on the unsigned APK: no known non-free classes, no extra signing blocks |
-| Prebuilt files in `node_modules` that the build does not use | ready with recipe | `scandelete`: `llama.rn/bin` (Qualcomm HTP + `libOpenCL.so`; the Gradle plugin disables `syncRNLlamaHtpAssets` and excludes the Hexagon variant), `@op-engineering/op-sqlite/android/src/main/{jniLibs,libsqlitevec,tursoLibs}` (libsql/turso/sqlite-vec, not packaged: SQLCipher mode). `scanignore`: `hermes-compiler` (Hermes is an allowed prebuilt). Install only what the Android build runs (`pnpm install --frozen-lockfile --filter @skepi/mobile... --filter @skepi/catalog-builder... --filter @skepi/release-guards... --filter @skepi/emergency-cards...`: Gradle runs the catalog, card and bundle checks with `tsx`) so `tools/rag-eval`'s `node-llama-cpp` binaries are never fetched; untested |
+| Prebuilt files in `node_modules` that the build does not use | ready (scanner run in CI) | `scandelete: node_modules` with the build-time tools and Gradle files the build needs scanignored (§6); the fdroid-build job runs the real scanner on every relevant change |
 | llama.cpp native code | ready | Compiled from source (`rnllamaBuildFromSource=true`); APK has only the 3 CPU variants built by CMake |
-| Toolchain on the Debian buildserver | ready with recipe | Node ≥ 22 required (`engines`); Debian trixie ships 20.19, forky ships 24.x (`apt-get install -t forky nodejs npm`, as other React Native recipes do); pnpm is not in Debian: `npm install -g pnpm@10.33.0`. JDK 17. NDK `27.1.12297006` and `27.3.13750724`; CMake from the SDK (the Windows-only CMake 3.31.6 rule does not run on Linux) |
+| Toolchain on the Debian buildserver | ready (built in CI) | Node from forky (24.21.0, `sudo:`), pnpm 10.33.0 from npm, OpenJDK 21 with `scripts/android/jdk21.sh` + `-PskepiJdk21=true`, NDK 27.1.12297006, CMake from the SDK; exercised by the fdroid-build job in F-Droid's buildserver container (§6) |
 | Unsigned release build | ready | `-PskepiUnsigned=true` (B1) |
-| Reproducible build (publish our signed APK via `Binaries:` + `AllowedAPKSigningKeys:`) | ready (buildserver untested) | Byte-identical across paths, Gradle homes and runners (§4). Open: the buildserver's JDK (§6) |
+| Reproducible build (publish our signed APK via `Binaries:` + `AllowedAPKSigningKeys:`) | ready (`fdroid build` gives the same bytes) | Byte-identical across paths, Gradle homes and runners (§4); `fdroid build` in the buildserver container compared with `android-repro` (§6) |
 | Anti-features | ready | None expected: no tracking, ads or non-free assets; content hosts (Kiwix, Hugging Face, GitHub) serve freely licensed files, and every pack can also come from import or P2P, so the app does not "depend entirely" on a non-free service (NonFreeNet). Disclose the download hosts in the submission |
 | Metadata | ready | `fastlane/metadata/android/en-US/` (title, short and full description, `changelogs/2.txt`, 6 phone screenshots); icon and feature graphic still to add (§5) |
 | Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`); a recipe pins the full commit hash |
@@ -162,44 +167,66 @@ comparison and `llvm-objcopy`/`llvm-readelf` from NDK 27.3 (diffoscope is not av
 ## 5. Still to prepare
 
 - Graphics: `fastlane/metadata/android/en-US/images/icon.png` (512×512) and `featureGraphic.png`
-  (1024×500). **Phone screenshots: done** (`fastlane/metadata/android/en-US/images/phoneScreenshots/1_home … 6_tools.png`, 1080×2400, from `e2e/store-screenshots.yaml` via `e2e/run-screenshots.ps1` on the `skepi-host` emulator: preview build installed from the AAB, airplane mode, demo-mode status bar. Card titles show "Draft", no card steps anywhere; Ask shows source excerpts (the 2 GB emulator runs no model, so its line "No GGUF model found" is visible; retake on a phone with the model for v1)).
+  (1024×500). **Phone screenshots: done** (`fastlane/metadata/android/en-US/images/phoneScreenshots/`: `1_home`, `2_search`, `3_article`, `5_map`, `6_tools` at 1080×2400 from `e2e/store-screenshots.yaml` on the `skepi-host` emulator (preview build installed from the AAB, airplane mode, demo-mode status bar); `4_ask_sources` at 1080×2340 from `e2e/store-screenshot-ask.yaml` on the S23 (release build, airplane mode, "How does a water filter work?": a Layer 1 source excerpt, then the labelled AI summary with its citation chip; Samsung ignores the demo-mode status bar, so the phone's own status icons show). Card titles show "Draft", no card steps anywhere.)
 - Privacy policy public URL (§2, Google Play; v1).
 - **AAB: done** (§2, Google Play).
 - A first test of the recipe on the F-Droid buildserver (§6).
 
-## 6. fdroiddata recipe (not submitted; linted, not run on the F-Droid buildserver)
+### Open items
+
+- **Shared-device incident (2026-10-12).** During the part 2 verification another Claude session (project
+  Selis) ran its Maestro suite on the same S23 at the same time. Every SKEPI flow but one failed with
+  "Maestro Android driver did not start up in time", and SKEPI's session then ran `am force-stop` on the
+  Maestro driver app (`dev.mobile.maestro`, `dev.mobile.maestro.test`) on the S23 while Selis's
+  `transfer.sh` was using it, which may have interrupted the Selis run. No Selis process was killed; the
+  SKEPI suite passed 8/8 once the phone was free. Since part 3 every SKEPI device script takes a per-device
+  lock (`scripts/device-lock.ps1`, `%LOCALAPPDATA%\device-locks\`) and refuses a device that another
+  process drives, and the owner's global instructions forbid stopping another session's app, Maestro or
+  process. On 2026-10-13 (01:22) a Selis Maestro run started on the S23 while SKEPI held the lock (Selis
+  does not take it yet) and SKEPI's screenshot run failed; SKEPI stopped nothing and waited for the phone.
+  Open: the Selis run of late 2026-10-12 should be checked (owner), and Selis's own scripts should take
+  the same lock (`device-lock.ps1 acquire/release`).
+
+## 6. fdroiddata recipe (not submitted; `fdroid build` in CI gives the published bytes)
 
 The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). It targets the first tag that
-contains B1–B3 (`v0.1.1-preview` / versionCode 3 are placeholders: set the real version, versionCode and
-tag when tagging); `v0.1.0-preview` cannot be built unsigned. Changes from part 1:
+contains part 3 (`v0.1.1-preview` / versionCode 3 are placeholders: set the real version, versionCode and
+tag when tagging); `v0.1.0-preview` cannot be built unsigned.
 
-- **Raw build** (`output:` with the Gradle call in `build:`, no `gradle: yes`): Metro reads
-  `SKEPI_PREVIEW=1` from the environment of the Gradle process, and fdroiddata has no field that sets an
-  environment variable for its own Gradle step. `-PskepiUnsigned=true` replaces the signing removal the
-  React Native template does with `sed`.
-- **No `buildFromSource` patch:** it is in `apps/mobile/package.json` (B2).
-- **Reproducible:** `Binaries:` points at the signed GitHub release asset, `AllowedAPKSigningKeys:` at the
-  SKEPI certificate. The buildserver's paths (`/home/vagrant/build/org.skepi.app`, its Gradle home and
-  NDK) are mapped away by `reproducible.cmake`.
+**Part 3: `fdroid build` in CI.** Job `fdroid-build` (`.github/workflows/android-repro.yml`,
+`scripts/ci/fdroid-build.sh`; on `workflow_dispatch` and on changes to `docs/fdroid/**`, the Android build
+inputs and the lockfiles) runs `fdroid build --test --refresh-scanner --on-server` of this recipe at the
+current commit inside `registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie`, the way fdroiddata's
+own CI job does (Debian trixie, OpenJDK 21, fdroidserver pinned to the commit fdroiddata uses, the build as
+user `vagrant`, the source checked out by `fdroid fetch_repo`). The CI copy of the recipe only swaps in the
+commit and the version from `app.json` and drops `Binaries:`; the job then compares the unsigned APK with
+`android-repro`'s artifact of the same run.
 
-Test status:
+What the buildserver run changed in the recipe and the build:
+
+| Finding | Change |
+| --- | --- |
+| `subdir: apps/mobile/android/app` fails before `init` ("Missing subdir"): fdroid checks the subdir right after the checkout, and `android/` is generated by `expo prebuild` | `subdir: apps/mobile`; `build:` runs Gradle in `android/`; `output:` relative to `apps/mobile` |
+| `pnpm install --filter …` installs the same 544 packages as a plain install (`nodeLinker: hoisted`) | plain `pnpm install --frozen-lockfile` |
+| The scanner (fdroidserver's `scan_source`, run locally on a clean checkout and then for real in CI) flags ~100 files in `node_modules`: Expo's unused `local-maven-repo` AARs, prebuilt binaries (dotslash, turbo, playwright, node-llama-cpp, esbuild, React Native's fbt packs), iOS xcframework archives, and `unknown maven repo` lines in four libraries' Gradle files | `scandelete: node_modules` (flagged files are deleted; the build uses none of them); `scanignore` for what the build runs or reads: Hermes's compiler, esbuild's Linux binary (tsx runs the catalog, card and bundle checks in Gradle) and the four Gradle files; `scandelete: tools/rag-eval/parity-reference` (eval data, gzip) |
+| MapLibre's `build.gradle` names `play-services-location` (only for its non-default Google location engine) | `prebuild` deletes that line |
+| The `ndk:` list is read as one string by the pinned fdroidserver | `ndk: 27.1.12297006`, the only NDK the build uses (every module takes the root `ndkVersion`) |
+| Debian trixie has no JDK 17; React Native and Expo request a JDK 17 toolchain | `scripts/android/jdk21.sh` + `-PskepiJdk21=true` (`docs/architecture.md`, "Android JDK"); `android-repro` builds the same way |
+| llama.rn's OpenCL/Hexagon variant links the prebuilt `libOpenCL.so` stub that `scandelete` removes | only the four packaged llama.rn variants are built (CMake `targets`) |
+| Node | forky's `nodejs` (24.21.0) on the buildserver; `android-repro` pins Node 24.21.0 |
+
+Results:
 
 | Check | Result |
 | --- | --- |
-| `fdroid lint org.skepi.app` (fdroidserver 2.4.5 from PyPI, on Windows, with fdroiddata's category names) | clean. `Categories` must be names from fdroiddata's `config/categories.yml` (`Reading`, `Science & Education` are) |
-| `fdroid rewritemeta` | only reorders `scanignore` before `scandelete` and wraps the build line (applied); it also writes the `ndk:` list as a quoted string, a rewritemeta quirk of 2.4.5 (`fdroid build` accepts a list) |
+| `fdroid lint` (fdroidserver 2.4.5, fdroiddata category names) | clean |
 | `fdroid scanner` on the unsigned APK | no known non-free classes, no extra signing blocks |
-| `fdroid build` on the buildserver image | **not run**: it needs Linux (a Debian VM or the `fdroidserver` Docker image); this machine has neither Docker nor WSL. The `android-repro` job runs the same steps on Ubuntu 24.04 (Node 22, pnpm 10.33.0, Temurin 17), not the Debian buildserver |
+| `fdroid build` in the buildserver container | passes at `36d712d` (run 38319568319, job `fdroid-build`): the scanner deletes 150 flagged files under `node_modules` and ignores the 8 listed; Gradle `BUILD SUCCESSFUL in 19m 23s` |
+| fdroid-build APK vs `android-repro` | **byte-identical**: `org.skepi.app_2.apk` and `android-repro`'s artifact of the same run both have SHA-256 `36599399dc9aa2bf36834309e2c05690e587b6d179ec4c1949419250c2bc0069`; run 38316630154 (`e7a4bed`, before llama.rn's unused variants stopped being built) gave the same hash |
 
-Open points for the first buildserver run (an F-Droid reviewer runs it on the merge request, or the
-owner with `fdroidserver` in Docker):
-
-- **JDK.** CI builds with Temurin 17; Debian trixie ships OpenJDK 21 (the fdroiddata React Native template
-  rewrites the React Native Gradle plugin's toolchain from 17 to 21). If the buildserver compiles with a
-  different JDK, the dex files may differ from ours and the reproducible check fails. Then align: either a
-  JDK 17 on the buildserver (`sudo:` install) or CI on the buildserver's JDK.
-- **Node from forky, pnpm from npm** (`sudo:`), and both NDKs (`ndk:` list).
-- `expo prebuild --clean` regenerates `android/` (the recipe's `subdir`) after `init`.
+Open points for the real submission: F-Droid reviewers may question the scanignored build tools
+(Hermes compiler, esbuild); esbuild can be built from source as a srclib if asked. The production
+buildserver may differ from the CI container in details the comparison would then show.
 
 ```yaml
 Categories:
@@ -220,33 +247,35 @@ Builds:
   - versionName: 0.1.1-preview
     versionCode: 3
     commit: v0.1.1-preview
-    subdir: apps/mobile/android/app
+    subdir: apps/mobile
     sudo:
+      - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list
       - apt-get update
       - apt-get install -y -t forky nodejs npm
       - npm install -g pnpm@10.33.0
     init:
-      - cd ../../../..
-      - pnpm install --frozen-lockfile --filter @skepi/mobile... --filter @skepi/catalog-builder...
-        --filter @skepi/release-guards... --filter @skepi/emergency-cards...
-    output: build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
-    prebuild:
       - cd ../..
+      - pnpm install --frozen-lockfile
+    output: android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+    prebuild:
+      - bash ../../scripts/android/jdk21.sh
+      - sed -i -e '/play-services-location/d' ../../node_modules/@maplibre/maplibre-react-native/android/build.gradle
       - npx expo prebuild --platform android --clean --no-install
     scanignore:
       - node_modules/hermes-compiler
+      - node_modules/@esbuild/linux-x64
+      - node_modules/@react-native-masked-view/masked-view/android/build.gradle
+      - node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - node_modules/react-native-safe-area-context/android/build.gradle
+      - node_modules/react-native-screens/android/build.gradle
     scandelete:
-      - node_modules/llama.rn/bin
-      - node_modules/@op-engineering/op-sqlite/android/src/main/jniLibs
-      - node_modules/@op-engineering/op-sqlite/android/src/main/libsqlitevec
-      - node_modules/@op-engineering/op-sqlite/android/src/main/tursoLibs
+      - node_modules
+      - tools/rag-eval/parity-reference
     build:
-      - cd ..
-      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true
+      - cd android
+      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true -PskepiJdk21=true
         --no-daemon
-    ndk:
-      - 27.1.12297006
-      - 27.3.13750724
+    ndk: 27.1.12297006
 
 AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e
 

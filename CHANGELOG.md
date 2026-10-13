@@ -31,11 +31,16 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 - Reproducible Android builds: CI builds the unsigned release twice on different runners and paths and
   checks they are byte-identical (`android-repro`); published APKs are that artifact, signed locally
   (`docs/release-process.md`). F-Droid is the first store (`docs/store-readiness.md`).
+- CI builds the F-Droid recipe with `fdroid build` in F-Droid's buildserver container (`fdroid-build`) and
+  checks it gives the same bytes as `android-repro`.
+- Device scripts share a per-device lock with other projects (`scripts/device-lock.ps1`).
 
 ### Changed
 - rag-eval held-out findings judge Layer 1 on what it shows (addresses removed) and note flagged numbers.
 - Android release builds compile every Expo module from source, carry no build-id and no build paths,
   and the AAB holds only arm64-v8a libraries. Reanimated is compiled without ThinLTO.
+- Published Android builds use the JDK 21 toolchain (bytecode target unchanged at 17) and Node 24, as on
+  F-Droid's Debian buildserver; only the packaged llama.rn variants are compiled.
 
 ## [0.1.0-preview] — Developer Preview (Android + Windows)
 
