@@ -1,6 +1,13 @@
-**Current:** Store readiness (Android, F-Droid first) — part 3 done; no tag, release or fdroiddata request yet
-**Next step:** owner: decide on the tag/release and the fdroiddata merge request; graphics (icon 512×512, featureGraphic 1024×500) still open (`docs/store-readiness.md` §5)
-**Last session:** 2026-10-16 — clean Maestro 8/8 on the S23 (airplane mode, device lock), Ask store screenshot retaken with the VPN off; two E2E flow fixes (`794f997`)
+**Current:** v0.1.1-preview — release prep done (`a974d92`, name shown as S.K.E.P.I.); no tag, release or fdroiddata request
+**Next step:** owner: tag `v0.1.1-preview`, sign the `android-repro` APK locally, publish (fill the SHA-256 table in `docs/release-notes/v0.1.1-preview.md`), open the fdroiddata MR with the tag's full commit hash
+**Last session:** 2026-10-16 — v0.1.1-preview prep: verify 46/46, Rust gates, signed preview build, tauri build, Maestro S23 8/8, CI green, android-repro = fdroid-build SHA-256 `13fdec22…fcdc` (run 38947609768)
+
+## v0.1.1-preview prep (closed 2026-10-16, not tagged)
+
+- Done: name decision recorded (Project S.K.E.P.I., no registration, rename risk accepted); visible name "S.K.E.P.I." in the Android label, desktop window/About, store texts, README, privacy policy; versions 0.1.1-preview / vc3; CHANGELOG, `changelogs/3.txt`, fdroiddata recipe, release-notes draft.
+- Verified: `pnpm verify` 46/46, Rust fmt/clippy/test, signed preview `assembleRelease`, `tauri build` (MSI + NSIS), Maestro S23 8/8 (airplane mode, device lock), CI run 38947609658 green, `android-repro` + `fdroid-build` same SHA-256 `13fdec22…fcdc` (run 38947609768).
+- Open risks: Windows installers keep the product name "SKEPI" (upgrade path); the MSI/NSIS upgrade over an installed 0.1.0 was not run; CI flakes this run (NDK download, iOS WKWebView test timeout) passed on rerun.
+- Device testing: S23 only.
 
 ## Store readiness part 3 (closed 2026-10-16)
 

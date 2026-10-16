@@ -35,6 +35,20 @@ and produces the same bytes as `android-repro` (§6); published builds use the J
 SKEPI device script takes a shared per-device lock (open items, §5). Verification at `36d712d`: `pnpm verify` 46/46; Rust `fmt`, `clippy -D warnings`, `test` (local and CI); `android-repro` and `fdroid-build` green with the same SHA-256 `36599399…0069` (run 38319568319). Maestro on the S23 (signed preview build, airplane mode, under the device lock): every one of the 8 flows passed on this build, but no single run was clean: run 1 7/8 (blackout) and blackout alone then green, run 2 6/8 (ask-t1, blackout); each failure screenshot shows the Selis app, which another session brought to the foreground on the shared phone while SKEPI held the lock. Both runs: 0 bytes over real interfaces, 0 blocked WebView requests, problem-report CHOOSER 1, SMS hand-off 1.
 **Clean run (2026-10-16, same preview build, flows at `794f997`):** Maestro on the S23 in airplane mode under the device lock, `run-e2e.ps1 -MockLocation`: 8/8 in one run, 0 blocked WebView requests, 0 bytes over real interfaces, SMS hand-off 1, problem-report CHOOSER 1. Two flow fixes on the way: the persisted T1-simulation switch, left on by the interrupted ask-t1 run of 2026-10-13, made ask-en wait for an automatic AI summary that T1 does not give (ask-en and store-screenshot-ask now turn it off first); ask-t1 could stop scrolling with "Summarise with AI" under the tab bar (now `centerElement`). Earlier runs that day were cut short by the phone dropping off USB (three times) and by a manual tap on the phone, not by app failures.
 
+**v0.1.1-preview prep (2026-10-16, `a974d92`; not tagged):** versionName `0.1.1-preview`, versionCode 3,
+desktop `0.1.1-preview`; the visible name is "S.K.E.P.I." (Android label, desktop window and About,
+store texts, privacy policy). The Windows installers keep the Tauri `productName` "SKEPI": it sets the
+installer file names, install folder, registry key and WiX upgrade code, so a change would install 0.1.1
+next to 0.1.0 instead of over it. Verification: `pnpm verify` 46/46; Rust `fmt`, `clippy -D warnings`
+(default and `--no-default-features`), `test`; signed preview `assembleRelease` (label "S.K.E.P.I.",
+certificate `7d61c382…447e`); `tauri build` MSI + NSIS (preview-cards guard PASS; upgrade code
+unchanged, an upgrade over an installed 0.1.0 was not run); Maestro on the S23 in airplane mode under the
+device lock 8/8 (0 blocked WebView requests, 0 bytes over real interfaces, SMS hand-off 1, CHOOSER 1); CI
+run 38947609658 green (ios-build rerun after a WKWebView test timeout); `android-repro` (a), (b) and
+`fdroid-build` byte-identical, SHA-256 `13fdec22987426743ec6aacaced71a341e0ccb23711c45c0f5fac509ef54fcdc`
+(run 38947609768, artifact `skepi-0.1.1-preview-vc3-a974d925a9dc-unsigned`; job (a) rerun after a corrupt
+NDK download). The published APK comes from the same jobs at the tag.
+
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
 
