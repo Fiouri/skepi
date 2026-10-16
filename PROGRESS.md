@@ -5,7 +5,7 @@
 ## v0.1.1-preview release (2026-10-17)
 
 - Done: GitHub pre-release https://github.com/Fiouri/skepi/releases/tag/v0.1.1-preview (signed APK, MSI, NSIS, `SHA256SUMS.txt`); release notes with hashes; recipe `commit:` = tag hash; fdroiddata MR text.
-- Verified: uploaded hashes re-downloaded and checked (APK `b3e35ed4…160e`, MSI `fe562fd9…6fb1b`, NSIS `78f5f56c…93a6`; unsigned `13fdec22…fcdc`); signed APK = unsigned entries + signature; S23 smoke test on the signed APK 8/8 (run 2; run 1 6/8 from a Maestro timeout and an adb server crash); Windows per-user upgrade one install, data kept.
+- Verified: uploaded hashes re-downloaded and checked (APK `b3e35ed4…160e`, MSI `fe562fd9…6fb1b`, NSIS `78f5f56c…93a6`; unsigned `13fdec22…fcdc`); signed APK = unsigned entries + signature; S23 smoke test on the signed APK 8/8 (run 2; run 1 6/8 from a Maestro timeout and an adb server crash); Windows per-user upgrade one install, data kept; after the recipe change `android-repro` + `fdroid-build` again `13fdec22…fcdc` (run 38973901393).
 - Open risks: MSI upgrade over 0.1.0 not tested (admin); the adb server on this PC stopped by itself several times on 2026-10-17 (cause unknown); F-Droid reviewers may question the scanignored Hermes compiler and esbuild.
 - Device testing: S23 + this Windows 11 PC only.
 

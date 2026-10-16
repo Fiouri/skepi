@@ -67,7 +67,9 @@ exe 0.1.1-preview in the same folder, the 7 data files of 0.1.0 (`app.db`, key, 
 unchanged, 0.1.1 starts with the window title "S.K.E.P.I.", one Start menu shortcut "SKEPI". The
 installer reused the folder of an earlier desktop E2E install (`HKCU\Software\SKEPI project\SKEPI`), as it
 would for a user's earlier install. MSI upgrade not tested (needs administrator rights). Recipe `commit:`
-is the tag's full hash; merge request text in `docs/fdroid/merge-request.md` (owner opens it).
+is the tag's full hash; merge request text in `docs/fdroid/merge-request.md` (owner opens it). After the
+recipe change, run 38973901393 (`e729f09`): `android-repro` (a), (b) and `fdroid-build` again
+`13fdec22…fcdc` (fdroid-build rerun after an apt download error from deb.debian.org).
 
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
