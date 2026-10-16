@@ -49,6 +49,26 @@ run 38947609658 green (ios-build rerun after a WKWebView test timeout); `android
 (run 38947609768, artifact `skepi-0.1.1-preview-vc3-a974d925a9dc-unsigned`; job (a) rerun after a corrupt
 NDK download). The published APK comes from the same jobs at the tag.
 
+**v0.1.1-preview released (2026-10-17):** GitHub pre-release
+<https://github.com/Fiouri/skepi/releases/tag/v0.1.1-preview>, tag on `a974d925a9dc`. The owner signed the
+`android-repro` artifact of run 38947609768 (unsigned `13fdec22…fcdc`) with `sign-release-apk.ps1`; signed
+APK `b3e35ed43fd6b29881e35a1d15a92fcd55468d64c091dbb0a5e7d9bf45ca160e` (v2, certificate `7d61c382…447e`,
+the unsigned APK's 1349 entries plus signature files only), MSI `fe562fd9…6fb1b`, NSIS `78f5f56c…93a6`
+(rebuilt from the tag's tree; installers are not reproducible, so their hashes differ from the prep build).
+Uploaded assets re-downloaded and checked against `SHA256SUMS.txt`
+(`docs/release-notes/v0.1.1-preview.SHA256SUMS.txt`). Smoke test: the signed APK installed with
+`adb install -r` over the installed release on the S23, then `run-e2e.ps1 -MockLocation` (airplane
+mode, device lock): run 1 6/8 (ask-en: Maestro's `scrollUntilVisible` timed out with `report-share` on
+screen, two slow hierarchy dumps in 10 s; places: the host's adb server died mid-flow, "Connection
+reset"), run 2 8/8 with 0 blocked WebView requests, 0 ContentStore downloads, 0 bytes over real
+interfaces, SMS hand-off 1, CHOOSER 1. Windows upgrade (per-user): the released 0.1.0-preview
+`setup.exe`, then the 0.1.1 `setup.exe` over it, both silent: one uninstall entry (HKCU, 0.1.1-preview),
+exe 0.1.1-preview in the same folder, the 7 data files of 0.1.0 (`app.db`, key, catalog, a marker)
+unchanged, 0.1.1 starts with the window title "S.K.E.P.I.", one Start menu shortcut "SKEPI". The
+installer reused the folder of an earlier desktop E2E install (`HKCU\Software\SKEPI project\SKEPI`), as it
+would for a user's earlier install. MSI upgrade not tested (needs administrator rights). Recipe `commit:`
+is the tag's full hash; merge request text in `docs/fdroid/merge-request.md` (owner opens it).
+
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
 
@@ -86,7 +106,7 @@ No Google Play Services, Firebase, analytics, ads or other proprietary SDK was f
 | Anti-features | ready | None expected: no tracking, ads or non-free assets; content hosts (Kiwix, Hugging Face, GitHub) serve freely licensed files, and every pack can also come from import or P2P, so the app does not "depend entirely" on a non-free service (NonFreeNet). Disclose the download hosts in the submission |
 | Metadata | ready | `fastlane/metadata/android/en-US/` (title "S.K.E.P.I. Offline Survival", short and full description, `changelogs/2.txt` and `3.txt`, 6 phone screenshots; none shows the product name, so the rename needed no new ones); icon and feature graphic still to add (§5) |
 | Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`); a recipe pins the full commit hash |
-| fdroiddata recipe | owner | `docs/fdroid/org.skepi.app.yml` (§6), `fdroid lint` clean; submission is an owner action (GitLab merge request) |
+| fdroiddata recipe | owner | `docs/fdroid/org.skepi.app.yml` (§6, `commit:` = the `v0.1.1-preview` tag), `fdroid lint` clean; merge request text `docs/fdroid/merge-request.md`; submission is an owner action (GitLab merge request) |
 
 ### Google Play (deferred to v1)
 
@@ -215,9 +235,9 @@ comparison and `llvm-objcopy`/`llvm-readelf` from NDK 27.3 (diffoscope is not av
 ## 6. fdroiddata recipe (not submitted; `fdroid build` in CI gives the published bytes)
 
 The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). It targets `v0.1.1-preview`,
-versionCode 3 (the version in `apps/mobile/app.json`); `v0.1.0-preview` cannot be built unsigned. `commit:`
-names the tag as a placeholder until the tag exists: replace it with the tag's full commit hash in the
-fdroiddata merge request.
+versionCode 3 (the version in `apps/mobile/app.json`); `v0.1.0-preview` cannot be built unsigned. `commit:` is
+the full hash of the `v0.1.1-preview` tag (`a974d925a9dc…`, tagged and released 2026-10-17); the merge
+request text is in `docs/fdroid/merge-request.md`.
 
 **Part 3: `fdroid build` in CI.** Job `fdroid-build` (`.github/workflows/android-repro.yml`,
 `scripts/ci/fdroid-build.sh`; on `workflow_dispatch` and on changes to `docs/fdroid/**`, the Android build
@@ -272,7 +292,7 @@ Binaries: https://github.com/Fiouri/skepi/releases/download/v%v/skepi-%v-arm64.a
 Builds:
   - versionName: 0.1.1-preview
     versionCode: 3
-    commit: v0.1.1-preview
+    commit: a974d925a9dc56a8ea4621e2854ab6cb46c55c74
     subdir: apps/mobile
     sudo:
       - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list

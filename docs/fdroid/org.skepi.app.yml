@@ -15,7 +15,7 @@ Binaries: https://github.com/Fiouri/skepi/releases/download/v%v/skepi-%v-arm64.a
 Builds:
   - versionName: 0.1.1-preview
     versionCode: 3
-    commit: v0.1.1-preview
+    commit: a974d925a9dc56a8ea4621e2854ab6cb46c55c74
     subdir: apps/mobile
     sudo:
       - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list

@@ -1,6 +1,13 @@
-**Current:** v0.1.1-preview — release prep done (`a974d92`, name shown as S.K.E.P.I.); no tag, release or fdroiddata request
-**Next step:** owner: tag `v0.1.1-preview`, sign the `android-repro` APK locally, publish (fill the SHA-256 table in `docs/release-notes/v0.1.1-preview.md`), open the fdroiddata MR with the tag's full commit hash
-**Last session:** 2026-10-16 — v0.1.1-preview prep: verify 46/46, Rust gates, signed preview build, tauri build, Maestro S23 8/8, CI green, android-repro = fdroid-build SHA-256 `13fdec22…fcdc` (run 38947609768)
+**Current:** v0.1.1-preview — released (GitHub pre-release, tag `a974d925a9dc`); fdroiddata merge request prepared, not opened
+**Next step:** owner: open the fdroiddata merge request on GitLab with `docs/fdroid/org.skepi.app.yml` and the text in `docs/fdroid/merge-request.md`
+**Last session:** 2026-10-17 — v0.1.1-preview published and hashes verified; S23 smoke test 8/8 on the signed APK (second run); Windows per-user upgrade 0.1.0→0.1.1 OK; MSI upgrade not tested
+
+## v0.1.1-preview release (2026-10-17)
+
+- Done: GitHub pre-release https://github.com/Fiouri/skepi/releases/tag/v0.1.1-preview (signed APK, MSI, NSIS, `SHA256SUMS.txt`); release notes with hashes; recipe `commit:` = tag hash; fdroiddata MR text.
+- Verified: uploaded hashes re-downloaded and checked (APK `b3e35ed4…160e`, MSI `fe562fd9…6fb1b`, NSIS `78f5f56c…93a6`; unsigned `13fdec22…fcdc`); signed APK = unsigned entries + signature; S23 smoke test on the signed APK 8/8 (run 2; run 1 6/8 from a Maestro timeout and an adb server crash); Windows per-user upgrade one install, data kept.
+- Open risks: MSI upgrade over 0.1.0 not tested (admin); the adb server on this PC stopped by itself several times on 2026-10-17 (cause unknown); F-Droid reviewers may question the scanignored Hermes compiler and esbuild.
+- Device testing: S23 + this Windows 11 PC only.
 
 ## v0.1.1-preview prep (closed 2026-10-16, not tagged)
 
