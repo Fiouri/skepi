@@ -5,6 +5,17 @@ coverage/
 .DS_Store
 .env*.local
 
+# Secrets (defence in depth: signing keys and credentials live outside the repository)
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.key.json
+.env
+.env.*
+# Test-only key of the local E2E mirror; debug builds trust its CA for 127.0.0.1 only (see its README).
+!e2e/mirror/certs/server.key
+
 # Provisioned content (large, never committed)
 .cache/
 *.zim
