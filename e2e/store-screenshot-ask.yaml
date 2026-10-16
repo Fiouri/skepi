@@ -14,6 +14,8 @@ onFlowComplete:
 - launchApp:
     stopApp: true
 - runFlow: app-ready.yaml
+# Automatic AI summary needs the device's own tier (an interrupted ask-t1 run may have left T1 simulation on).
+- runFlow: set-t1-off.yaml
 - tapOn:
     id: tab-ask
 - tapOn:

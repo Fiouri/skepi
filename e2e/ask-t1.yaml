@@ -42,6 +42,8 @@ onFlowComplete:
       id: ask-summarise
     direction: DOWN
     timeout: 20000
+    # Without centring the scroll can stop with the button under the tab bar ("Summarise with AI" not visible).
+    centerElement: true
 - assertVisible: "Summarise with AI"
 - assertNotVisible:
     id: ai-summary
