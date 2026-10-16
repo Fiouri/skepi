@@ -19,7 +19,7 @@ export function AboutScreen() {
   return (
     <div className="stack" data-testid="about-screen">
       <PreviewLabel />
-      <h1 data-testid="about-version">{`SKEPI · ${t.about.version(APP_VERSION)}`}</h1>
+      <h1 data-testid="about-version">{`S.K.E.P.I. · ${t.about.version(APP_VERSION)}`}</h1>
       <section className="stack" data-testid="about-licence">
         <h2>{t.about.licenceTitle}</h2>
         <p>{t.about.licence}</p>

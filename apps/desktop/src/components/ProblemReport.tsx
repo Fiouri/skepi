@@ -23,7 +23,7 @@ export function ProblemReport({ question, found, shown }: { question: string; fo
   }
   const text = problemReportText(
     {
-      appVersion: `SKEPI ${APP_VERSION} (Windows)`,
+      appVersion: `S.K.E.P.I. ${APP_VERSION} (Windows)`,
       question,
       layer1: found.layer1,
       aiSentences: shown,

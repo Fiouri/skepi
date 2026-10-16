@@ -96,8 +96,8 @@ export function App() {
 
   return (
     <div className="app" style={themeVars(theme)} data-theme={theme.name} data-status={status}>
-      <nav className="tabs" aria-label="SKEPI">
-        <div className="brand">SKEPI</div>
+      <nav className="tabs" aria-label="S.K.E.P.I.">
+        <div className="brand">S.K.E.P.I.</div>
         <button type="button" className="emergency" data-testid="emergency-button" onClick={() => { nav.openCard(null); }}>
           {t.home.emergency}
         </button>

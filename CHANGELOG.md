@@ -5,6 +5,11 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 
 ## [Unreleased]
 
+## [0.1.1-preview] — Developer Preview (Android + Windows)
+
+Second preview, for developers and testers. **Not for emergency use.** Emergency card steps are still
+under professional review and not included.
+
 ### Security
 - Unicode normalisation before every structural check of source text: NFKC, zero-width and other format
   characters ignored, look-alike letters (Cyrillic/Greek for Latin) folded — for detection only; shown
@@ -27,7 +32,7 @@ suffix. Phase reports in `docs/` have the details and the measurements.
   and the macOS desktop app (Metal, Keychain, unsigned app and dmg, egress check). Not released yet: no
   signing, no TestFlight.
 - Android: "Report a problem with this answer" takes your description and opens the phone's share menu
-  with the report ("Send…"); SKEPI itself still sends nothing and needs no new permission.
+  with the report ("Send…"); S.K.E.P.I. itself still sends nothing and needs no new permission.
 - Reproducible Android builds: CI builds the unsigned release twice on different runners and paths and
   checks they are byte-identical (`android-repro`); published APKs are that artifact, signed locally
   (`docs/release-process.md`). F-Droid is the first store (`docs/store-readiness.md`).
@@ -36,6 +41,11 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 - Device scripts share a per-device lock with other projects (`scripts/device-lock.ps1`).
 
 ### Changed
+- The product name is written **S.K.E.P.I.** (the initials of Survival Knowledge & Emergency Pocket
+  Intelligence) everywhere it is shown: Android launcher label, desktop window title, About screens,
+  problem reports, store texts and the privacy policy. Package names, file names and the signing key are
+  unchanged, so this version installs over 0.1.0-preview on both platforms; the Windows installers and
+  the Start menu entry keep "SKEPI" (Windows derives the install folder and the upgrade from it).
 - rag-eval held-out findings judge Layer 1 on what it shows (addresses removed) and note flagged numbers.
 - Android release builds compile every Expo module from source, carry no build-id and no build paths,
   and the AAB holds only arm64-v8a libraries. Reanimated is compiled without ThinLTO.

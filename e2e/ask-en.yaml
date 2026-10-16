@@ -149,7 +149,7 @@ onFlowComplete:
       id: report-status
     direction: DOWN
     timeout: 10000
-- assertVisible: "Share menu opened. Nothing was sent by SKEPI."
+- assertVisible: "Share menu opened. Nothing was sent by S.K.E.P.I."
 - tapOn:
     id: report-close
 

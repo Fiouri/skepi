@@ -12,6 +12,16 @@ part; the release signing config is unchanged.
 - **The signing key never enters CI or the project's Gradle properties** (unchanged). CI builds unsigned;
   the maintainer signs the reproducible CI artifact locally (`docs/release-process.md`).
 
+**Decision (owner, 2026-10-16): name.** The name stays and is always written **Project S.K.E.P.I.**
+(initials of Survival Knowledge & Emergency Pocket Intelligence); every store text and the app label say
+"S.K.E.P.I.". TMview (2026-10-16) has no "SKEPI"/"ΣΚΕΠΗ" mark; the closest is "SKEP'IA" (SKEZI SAS, FR;
+WIPO 1815336 + FR 5030813; EU incl. GR, and CH; classes 9 "AI software for data extraction, filtering and
+analysis" and 42; 2024–2034), then "SKEP" (QAD Inc., WIPO 660765, 9/42, 13 countries without GR, expired
+2026-09-12, in its grace period), "SKEPIA" (NEVS, SE only), "SKEPP"/"SKEPTIC"/"Skeptify" (EU, further
+away) and "SKEPIS" (US filing). No trademark registration is planned; a later rename is an accepted risk.
+Identifiers (`org.skepi.app`, the repository, crates, packages, file names, signing) stay as they are
+(`docs/architecture.md`, Decisions → Name).
+
 **Part 2 result:** B1, B2, B3 and B6 are done (§1); the reproducible unsigned APK comes from the
 `android-repro` CI job; the fdroiddata recipe is updated and linted (§6); AAB and screenshots are done
 (§5). Verification at `bbd53be`: `pnpm verify` 46/46; Rust `fmt`, `clippy -D warnings`, `test` (local and
@@ -60,8 +70,8 @@ No Google Play Services, Firebase, analytics, ads or other proprietary SDK was f
 | Unsigned release build | ready | `-PskepiUnsigned=true` (B1) |
 | Reproducible build (publish our signed APK via `Binaries:` + `AllowedAPKSigningKeys:`) | ready (`fdroid build` gives the same bytes) | Byte-identical across paths, Gradle homes and runners (§4); `fdroid build` in the buildserver container compared with `android-repro` (§6) |
 | Anti-features | ready | None expected: no tracking, ads or non-free assets; content hosts (Kiwix, Hugging Face, GitHub) serve freely licensed files, and every pack can also come from import or P2P, so the app does not "depend entirely" on a non-free service (NonFreeNet). Disclose the download hosts in the submission |
-| Metadata | ready | `fastlane/metadata/android/en-US/` (title, short and full description, `changelogs/2.txt`, 6 phone screenshots); icon and feature graphic still to add (§5) |
-| Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`); a recipe pins the full commit hash |
+| Metadata | ready | `fastlane/metadata/android/en-US/` (title "S.K.E.P.I. Offline Survival", short and full description, `changelogs/2.txt` and `3.txt`, 6 phone screenshots; none shows the product name, so the rename needed no new ones); icon and feature graphic still to add (§5) |
+| Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`); a recipe pins the full commit hash |
 | fdroiddata recipe | owner | `docs/fdroid/org.skepi.app.yml` (§6), `fdroid lint` clean; submission is an owner action (GitLab merge request) |
 
 ### Google Play (deferred to v1)
@@ -87,7 +97,7 @@ Kept for v1; only the AAB and B6 changed in part 2.
 | Content rating (IARC) | owner | Suggested answers in §9 |
 | Target audience | owner | Suggest 18+ for the Developer Preview (medical content, AI summaries; keeps the app out of the Families policy) |
 | Ads declaration | ready | No ads |
-| Store listing text | ready | `fastlane/metadata/android/en-US/` (title 30/30, short 80/80, full 3145/4000 characters); graphics still to add (§5) |
+| Store listing text | ready | `fastlane/metadata/android/en-US/` (title 27/30, short 80/80, full 3160/4000 characters); graphics still to add (§5) |
 | Developer verification | owner | B9 (roadmap, before 2027) |
 
 ## 3. Dependency audit (release runtime classpath)
@@ -190,9 +200,10 @@ comparison and `llvm-objcopy`/`llvm-readelf` from NDK 27.3 (diffoscope is not av
 
 ## 6. fdroiddata recipe (not submitted; `fdroid build` in CI gives the published bytes)
 
-The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). It targets the first tag that
-contains part 3 (`v0.1.1-preview` / versionCode 3 are placeholders: set the real version, versionCode and
-tag when tagging); `v0.1.0-preview` cannot be built unsigned.
+The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). It targets `v0.1.1-preview`,
+versionCode 3 (the version in `apps/mobile/app.json`); `v0.1.0-preview` cannot be built unsigned. `commit:`
+names the tag as a placeholder until the tag exists: replace it with the tag's full commit hash in the
+fdroiddata merge request.
 
 **Part 3: `fdroid build` in CI.** Job `fdroid-build` (`.github/workflows/android-repro.yml`,
 `scripts/ci/fdroid-build.sh`; on `workflow_dispatch` and on changes to `docs/fdroid/**`, the Android build
@@ -238,7 +249,7 @@ SourceCode: https://github.com/Fiouri/skepi
 IssueTracker: https://github.com/Fiouri/skepi/issues
 Changelog: https://github.com/Fiouri/skepi/blob/HEAD/CHANGELOG.md
 
-AutoName: SKEPI
+AutoName: S.K.E.P.I.
 
 RepoType: git
 Repo: https://github.com/Fiouri/skepi.git

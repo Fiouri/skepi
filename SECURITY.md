@@ -1,6 +1,6 @@
 # Security policy
 
-SKEPI is a Developer Preview (`v0.1.0-preview`). Security reports are welcome and handled privately.
+S.K.E.P.I. is a Developer Preview (`v0.1.1-preview`). Security reports are welcome and handled privately.
 
 ## Reporting a vulnerability
 

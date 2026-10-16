@@ -848,12 +848,12 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Android distribution | F-Droid first (reproducible build, F-Droid publishes our signed APK); Google Play deferred to v1 with its account type, Play App Signing, IARC and Health declaration (2026-10-12). |
 | Emergency cards | Public-domain or permitted material only; review by at least 2 certified first-aid instructors; no release without review. |
 | Catalog hosting | Own domain CNAME'd to GitHub Pages, raw GitHub fallback in the app. |
-| Name | Project S.K.E.P.I. (Survival Knowledge & Emergency Pocket Intelligence). |
+| Name | **Project S.K.E.P.I.** (Survival Knowledge & Emergency Pocket Intelligence), always written with the dots of the initials; users see "S.K.E.P.I." (Android label, desktop window, About screens, store texts, F-Droid `AutoName`, privacy policy). Identifiers stay `SKEPI`/`skepi`: `org.skepi.app`, `org.skepi.desktop`, the repository, crates, packages, file names, the Tauri `productName` (it names the Windows installers, install folder, registry key and WiX upgrade code, so changing it would install 0.1.1 next to 0.1.0) and the signing key. TMview search (2026-10-16): no "SKEPI" or "ΣΚΕΠΗ" mark. Closest: "SKEP'IA" (SKEZI SAS, FR; WIPO 1815336 + FR 5030813; EU incl. GR, and CH; classes 9 "AI software for data extraction, filtering and analysis" and 42 SaaS; registered 2024, until 2034); "SKEP" (QAD Inc., WIPO 660765, classes 9/42, 13 countries without GR, expired 2026-09-12, in its grace period); "SKEPIA" (NEVS, SE only); "SKEPP", "SKEPTIC", "Skeptify" (EU, further away); "SKEPIS" (US filing). No trademark registration planned; the risk that a rename is needed later is accepted (owner, 2026-10-16). |
 
 **Open**
 
 - [ ] **Owner, before 2027:** Android developer verification (package `org.skepi.app` + release certificate registration).
 
-- [ ] Official trademark check for S.K.E.P.I. on EUIPO / TMview (GitHub and web are clear in our space).
+- [x] Official trademark check for S.K.E.P.I. on EUIPO / TMview: done 2026-10-16, no conflicting "SKEPI"/"ΣΚΕΠΗ" mark; name kept, no registration (Decisions → Name).
 - [ ] A Mac or a real iPhone for what CI cannot run (Phase 3b-0 report, "pending"): device AI, sensors, signing, TestFlight.
 - [ ] A 4 GB Android device for T1 measurements.

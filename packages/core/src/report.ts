@@ -28,7 +28,7 @@ export interface ProblemReportSource {
 }
 
 export interface ProblemReportInput {
-  /** e.g. "SKEPI 0.1.0-preview (Android)". */
+  /** e.g. "S.K.E.P.I. 0.1.1-preview (Android)". */
   appVersion: string;
   question: string;
   layer1: Layer1Answer | null;

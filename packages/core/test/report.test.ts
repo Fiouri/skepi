@@ -3,7 +3,7 @@ import { buildLayer1 } from '../src/extractive';
 import { PROBLEM_REPORT_MAX_DESCRIPTION, problemReportShare, problemReportText } from '../src/report';
 
 const labels = {
-  title: 'SKEPI problem report',
+  title: 'S.K.E.P.I. problem report',
   question: 'Question',
   layer1: 'Source excerpts shown',
   ai: 'AI summary shown',
@@ -19,7 +19,7 @@ describe('problem report text', () => {
   it('holds the question, what was shown, the sources and the version, nothing else', () => {
     const text = problemReportText(
       {
-        appVersion: 'SKEPI 0.1.0-preview (Android)',
+        appVersion: 'S.K.E.P.I. 0.1.1-preview (Android)',
         question: 'What did lighthouse keepers do at night?',
         layer1: buildLayer1('What did lighthouse keepers do at night?', [source]),
         aiSentences: [{ text: 'Keepers trimmed the wicks every night.', source: 'S1' }],
@@ -27,7 +27,7 @@ describe('problem report text', () => {
       },
       labels,
     );
-    expect(text).toContain('App version: SKEPI 0.1.0-preview (Android)');
+    expect(text).toContain('App version: S.K.E.P.I. 0.1.1-preview (Android)');
     expect(text).toContain('What did lighthouse keepers do at night?');
     expect(text).toContain('[S1] Lighthouse keeping — Duties: Keepers trimmed the wicks nightly.');
     expect(text).toContain('- Keepers trimmed the wicks every night. [S1]');
@@ -38,7 +38,7 @@ describe('problem report text', () => {
   });
 
   it('says when no AI summary was shown', () => {
-    const text = problemReportText({ appVersion: 'SKEPI 0.1.0-preview (Windows)', question: 'q', layer1: null, aiSentences: [], sources: [] }, labels);
+    const text = problemReportText({ appVersion: 'S.K.E.P.I. 0.1.1-preview (Windows)', question: 'q', layer1: null, aiSentences: [], sources: [] }, labels);
     expect(text).toContain('No AI summary shown.');
   });
 
@@ -60,11 +60,11 @@ describe('problem report text', () => {
 
 describe('problem report share content', () => {
   it('has a subject with the app version and the full report as the message', () => {
-    const input = { appVersion: 'SKEPI 0.1.0-preview (Android)', question: 'Is this water safe?', layer1: null, aiSentences: [], sources: [], description: 'Offensive summary.' };
+    const input = { appVersion: 'S.K.E.P.I. 0.1.1-preview (Android)', question: 'Is this water safe?', layer1: null, aiSentences: [], sources: [], description: 'Offensive summary.' };
     const share = problemReportShare(input, labels);
-    expect(share.subject).toBe('SKEPI problem report (SKEPI 0.1.0-preview (Android))');
+    expect(share.subject).toBe('S.K.E.P.I. problem report (S.K.E.P.I. 0.1.1-preview (Android))');
     expect(share.message).toBe(problemReportText(input, labels));
-    expect(share.message).toContain('App version: SKEPI 0.1.0-preview (Android)');
+    expect(share.message).toContain('App version: S.K.E.P.I. 0.1.1-preview (Android)');
     expect(share.message).toContain('Offensive summary.');
   });
 });

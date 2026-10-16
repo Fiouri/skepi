@@ -35,7 +35,7 @@ export function ProblemReport({ question, retrieval, shown }: { question: string
   }
   const { subject, message: text } = problemReportShare(
     {
-      appVersion: `SKEPI ${Constants.expoConfig?.version ?? '?'} (Android)`,
+      appVersion: `S.K.E.P.I. ${Constants.expoConfig?.version ?? '?'} (Android)`,
       question,
       layer1: retrieval.layer1,
       aiSentences: shown,

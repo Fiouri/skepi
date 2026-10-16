@@ -2,25 +2,26 @@
   "expo": {
     "name": "SKEPI",
     "slug": "skepi",
-    "version": "0.1.0-preview",
+    "version": "0.1.1-preview",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "skepi",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "org.skepi.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "SKEPI shows your coordinates in Tools and on the offline map, only when you ask. Your location never leaves the device."
+        "CFBundleDisplayName": "S.K.E.P.I.",
+        "NSLocationWhenInUseUsageDescription": "S.K.E.P.I. shows your coordinates in Tools and on the offline map, only when you ask. Your location never leaves the device."
       }
     },
     "android": {
       "package": "org.skepi.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

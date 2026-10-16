@@ -1,6 +1,6 @@
 DEVELOPER PREVIEW. NOT FOR EMERGENCY USE. In an emergency, call your local emergency number.
 
-SKEPI (Survival Knowledge & Emergency Pocket Intelligence) is a free, open-source reference library that keeps working without a connection. Download content once, on Wi-Fi, and then read, search and ask questions with no mobile data, no account and no tracking.
+S.K.E.P.I. (Survival Knowledge & Emergency Pocket Intelligence) is a free, open-source reference library that keeps working without a connection. Download content once, on Wi-Fi, and then read, search and ask questions with no mobile data, no account and no tracking.
 
 WHAT IT DOES
 
@@ -8,12 +8,12 @@ WHAT IT DOES
 • Ask a question: the answer starts with source excerpts, copied word for word from the packs and labelled "not verified advice". An optional summary written by a small AI model on your phone follows; every sentence must match a cited excerpt, or it is not shown. Questions about emergencies get no AI summary.
 • Offline maps and places: a map of Greece from OpenStreetMap, with hospitals, pharmacies, shelters and water points, and place search.
 • Emergency tools: the emergency number for your country, SOS torch (Morse), compass and a one-shot GPS position.
-• Share without the internet: send content packs from phone to phone over Wi-Fi or a local hotspot, paired by QR code, or receive them from the SKEPI desktop app. Every file is checked against a digitally signed catalog before it opens.
+• Share without the internet: send content packs from phone to phone over Wi-Fi or a local hotspot, paired by QR code, or receive them from the S.K.E.P.I. desktop app. Every file is checked against a digitally signed catalog before it opens.
 
 IMPORTANT LIMITATIONS
 
 • Not for emergency use. The emergency cards ship without their steps ("Under professional review") until certified first-aid instructors have reviewed them; each card shows the emergency numbers.
-• SKEPI is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Always consult a healthcare professional for medical advice, diagnosis, or treatment.
+• S.K.E.P.I. is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Always consult a healthcare professional for medical advice, diagnosis, or treatment.
 • Source excerpts are shown as written in the packs, and AI summaries can be wrong. Check the cited source.
 • Content is downloaded after installation and is large (about 2 to 8 GB, depending on what you choose). It can also be received from another phone or a computer running SKEPI.
 • English only. Map pack: Greece only. Needs a 64-bit (arm64) phone with Android 7.0 or newer. Phones with less than about 3 GB of RAM get source excerpts without AI summaries.

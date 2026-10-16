@@ -40,7 +40,7 @@ export default function AboutScreen() {
     <View style={{ gap: 16, paddingBottom: 8 }}>
       <PreviewLabel />
       <Text style={styles.heading} accessibilityRole="header" testID="about-version">
-        {`SKEPI · ${t.about.version(version)}`}
+        {`S.K.E.P.I. · ${t.about.version(version)}`}
       </Text>
       {section(t.about.licenceTitle, `${t.about.licence}\n${t.about.sourceCode}`, 'about-licence')}
       {section(t.about.contentTitle, [t.about.wikipedia, t.about.maps, t.about.places, t.about.model, t.about.cardSources].join('\n\n'), 'about-content')}

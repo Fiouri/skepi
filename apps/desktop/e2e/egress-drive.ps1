@@ -14,7 +14,7 @@ $Scope = [System.Windows.Automation.TreeScope]
 
 function Get-MainWindow {
   $cond = New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, $AppPid)
-  foreach ($w in $A::RootElement.FindAll($Scope::Children, $cond)) { if ($w.Current.Name -eq 'SKEPI') { return $w } }
+  foreach ($w in $A::RootElement.FindAll($Scope::Children, $cond)) { if ($w.Current.Name -eq 'S.K.E.P.I.') { return $w } }
   return $null
 }
 

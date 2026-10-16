@@ -1,0 +1,3 @@
+0.1.1-preview, Developer Preview. Not for emergency use.
+
+Now written S.K.E.P.I. Safer source excerpts: links and e-mail addresses removed, hidden instructions to the AI filtered, phone numbers in sources flagged on emergency questions. "Report a problem" opens the share menu with your report; the app itself sends nothing. Reproducible build, identical to F-Droid's. Emergency card steps are still under professional review and not included.

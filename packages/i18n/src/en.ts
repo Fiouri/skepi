@@ -8,7 +8,7 @@ export const en: Messages = {
   startup: {
     secureStorageTitle: 'Secure storage unavailable',
     secureStorageBody:
-      "SKEPI keeps the key of its encrypted database in this device's secure storage, and it could not be read. Nothing was opened without encryption. Try again; if this keeps happening, restart the device.",
+      "S.K.E.P.I. keeps the key of its encrypted database in this device's secure storage, and it could not be read. Nothing was opened without encryption. Try again; if this keeps happening, restart the device.",
     code: (code) => `Error code: ${code}`,
     retry: 'Retry',
   },
@@ -145,7 +145,7 @@ export const en: Messages = {
     back: 'Back',
     disclaimerTitle: 'Before you start',
     disclaimerBody: [
-      'SKEPI provides educational content. It is not medical advice and does not replace professionals or emergency services.',
+      'S.K.E.P.I. provides educational content. It is not medical advice and does not replace professionals or emergency services.',
       'AI summaries can be wrong: always check the source. Emergency cards are drafts until reviewed by first-aid professionals.',
       'This free software comes with no warranty (GPL-3.0, sections 15–16).',
     ],
@@ -315,7 +315,7 @@ export const en: Messages = {
     modeHotspotHint: 'No router: this phone opens a local hotspot without internet.',
     hotspotUnsupported: 'A hotspot needs Android 8 or newer.',
     shareApp: 'Also share the app (APK)',
-    shareAppHint: 'A phone without SKEPI can download it from a local web page.',
+    shareAppHint: 'A phone without S.K.E.P.I. can download it from a local web page.',
     start: 'Start sharing',
     stop: 'Stop sharing',
     starting: 'Starting…',
@@ -325,7 +325,7 @@ export const en: Messages = {
     code: 'Pairing code (if the camera is not available)',
     hotspotCredentials: ({ ssid, psk }) => `Hotspot ${ssid} · password ${psk}`,
     apkTitle: 'Share the app',
-    apkHint: (url) => `On a phone without SKEPI, scan this code or open ${url} in a browser.`,
+    apkHint: (url) => `On a phone without S.K.E.P.I., scan this code or open ${url} in a browser.`,
     apkFingerprint: (sha) => `Signing certificate SHA-256: ${sha}`,
     permissionDenied: 'Permission denied: the hotspot or camera cannot be used.',
     scan: 'Scan the QR code',
@@ -384,12 +384,12 @@ export const en: Messages = {
       virtualAdapter: 'virtual adapter',
       firewallTitle: 'Windows Firewall',
       firewall:
-        'The first time Station mode starts, Windows asks whether SKEPI may accept connections. Allow it on private networks only. SKEPI then serves only the packs you selected, read-only and encrypted, to phones that scanned this session’s code; never your notes, settings or history.',
+        'The first time Station mode starts, Windows asks whether S.K.E.P.I. may accept connections. Allow it on private networks only. S.K.E.P.I. then serves only the packs you selected, read-only and encrypted, to phones that scanned this session’s code; never your notes, settings or history.',
       apk: 'Also offer the Android app on a local install page',
       chooseApk: 'Choose APK…',
       apkChosen: (name) => `APK: ${name}`,
-      apkOfficial: 'Signed with the published SKEPI release key',
-      apkUnofficial: 'NOT signed with the published SKEPI release key',
+      apkOfficial: 'Signed with the published S.K.E.P.I. release key',
+      apkUnofficial: 'NOT signed with the published S.K.E.P.I. release key',
       start: 'Start Station mode',
       stop: 'Stop Station mode',
       starting: 'Starting…',
@@ -406,12 +406,12 @@ export const en: Messages = {
     label: 'Developer preview — not for emergency use',
   },
   about: {
-    title: 'About SKEPI',
+    title: 'About S.K.E.P.I.',
     open: 'About',
     version: (v) => `Version ${v}`,
     licenceTitle: 'Licence',
     licence:
-      'SKEPI is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3 or (at your option) any later version (GPL-3.0-or-later). It comes with no warranty, to the extent permitted by law.',
+      'S.K.E.P.I. is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3 or (at your option) any later version (GPL-3.0-or-later). It comes with no warranty, to the extent permitted by law.',
     sourceCode: 'Source code: github.com/Fiouri/skepi',
     contentTitle: 'Content, data and model licences',
     wikipedia:
@@ -428,12 +428,12 @@ export const en: Messages = {
     filter: 'Filter components',
     signingTitle: 'Release signing',
     signingAndroid: (sha256) =>
-      `Android release builds are signed with the SKEPI release key. Certificate SHA-256: ${sha256}. Check it before installing an APK received from anywhere else.`,
+      `Android release builds are signed with the S.K.E.P.I. release key. Certificate SHA-256: ${sha256}. Check it before installing an APK received from anywhere else.`,
     signingDesktop:
       'The Windows installers (MSI, NSIS) are not code-signed in this preview, so Windows SmartScreen warns. Check their SHA-256 against SHA256SUMS.txt of the release.',
     privacyTitle: 'Privacy',
     privacy:
-      'SKEPI has no accounts, analytics, ads or telemetry and works offline. It uses the network only when you ask: to download packs listed in the signed catalog, and to share packs on your local network. Questions, answers and problem reports stay on this device unless you send a report yourself.',
+      'S.K.E.P.I. has no accounts, analytics, ads or telemetry and works offline. It uses the network only when you ask: to download packs listed in the signed catalog, and to share packs on your local network. Questions, answers and problem reports stay on this device unless you send a report yourself.',
     savedReports: 'Saved problem reports',
     noSavedReports: 'No saved reports.',
   },
@@ -442,7 +442,7 @@ export const en: Messages = {
     title: 'Problem report',
     hint: 'Nothing is sent. Copy this text or save it, then send it yourself, for example as an issue at github.com/Fiouri/skepi/issues. It contains only the question, the answer, the cited sources and the app version.',
     hintShare:
-      'SKEPI sends nothing itself. "Send…" opens the share menu of your phone: you choose the app (e-mail, messages, a browser for github.com/Fiouri/skepi/issues) and whether to send. You can also copy the text or save it for later. It contains only the question, the answer, the cited sources, the app version and what you write.',
+      'S.K.E.P.I. sends nothing itself. "Send…" opens the share menu of your phone: you choose the app (e-mail, messages, a browser for github.com/Fiouri/skepi/issues) and whether to send. You can also copy the text or save it for later. It contains only the question, the answer, the cited sources, the app version and what you write.',
     copy: 'Copy text',
     copied: 'Copied',
     save: 'Save for later',
@@ -459,7 +459,7 @@ export const en: Messages = {
     inputLabel: 'What is wrong with this answer?',
     inputPlaceholder: 'For example: offensive, wrong, or cites the wrong article',
     share: 'Send…',
-    shared: 'Share menu opened. Nothing was sent by SKEPI.',
+    shared: 'Share menu opened. Nothing was sent by S.K.E.P.I.',
     shareFailed: (error) => `Could not open the share menu: ${error}`,
   },
 };

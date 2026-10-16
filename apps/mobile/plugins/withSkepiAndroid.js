@@ -6,7 +6,8 @@
 // - Release signing with the dedicated keystore (plugins/withReleaseSigning.js).
 // - Reproducible native libraries (plugins/reproducible.cmake).
 // - Release gate for draft emergency cards (plugins/withEmergencyCards.js).
-// - Debug installs side-by-side with release: applicationId suffix ".dev", label "SKEPI Dev".
+// - Launcher label "S.K.E.P.I." (app.json `name` stays "SKEPI": it also names the Gradle root project).
+// - Debug installs side-by-side with release: applicationId suffix ".dev", label "S.K.E.P.I. Dev".
 const fs = require('fs');
 const path = require('path');
 const {
@@ -16,6 +17,7 @@ const {
   withDangerousMod,
   withGradleProperties,
   withProjectBuildGradle,
+  withStringsXml,
 } = require('expo/config-plugins');
 const withContentStore = require('./withContentStore');
 const withEmergencyCards = require('./withEmergencyCards');
@@ -121,10 +123,22 @@ ${rules}`);
     },
   ]);
 
-// Debug = org.skepi.app.dev / "SKEPI Dev", so a dev build never replaces (or needs the signature of)
+// The product name users see: written with the dots of its initials. Identifiers (package, project and
+// file names) keep "SKEPI".
+const APP_LABEL = 'S.K.E.P.I.';
+const withAppLabel = (config) =>
+  withStringsXml(config, (cfg) => {
+    cfg.modResults = AndroidConfig.Strings.setStringItem(
+      [AndroidConfig.Resources.buildResourceItem({ name: 'app_name', value: APP_LABEL })],
+      cfg.modResults,
+    );
+    return cfg;
+  });
+
+// Debug = org.skepi.app.dev / "S.K.E.P.I. Dev", so a dev build never replaces (or needs the signature of)
 // the release install. Release keeps the plain applicationId.
 const DEV_SUFFIX = '.dev';
-const DEV_LABEL = 'SKEPI Dev';
+const DEV_LABEL = `${APP_LABEL} Dev`;
 const DEV_MARKER = '// skepi:dev-variant';
 const withDevVariant = (config) => {
   config = withAppBuildGradle(config, (cfg) => {
@@ -353,10 +367,10 @@ const withWindowsCmake = (config) =>
   ]);
 
 module.exports = (config) =>
-  withThirdPartyNotices(withEmergencyCards(withContentStore(withJdk21Option(withReproducibleNative(withBundleInputs(withAndroidTestPackaging(withDevVariant(
+  withThirdPartyNotices(withEmergencyCards(withContentStore(withJdk21Option(withReproducibleNative(withBundleInputs(withAndroidTestPackaging(withAppLabel(withDevVariant(
     withReleaseSigning(
       withKeepRules(
         withWindowsCmake(withOfflineManifest(withMapAssets(withLlamaVariants(withAbiSplit(withProperties(config)))))),
       ),
     ),
-  ))))))));
+  )))))))));
