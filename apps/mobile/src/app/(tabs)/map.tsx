@@ -44,7 +44,8 @@ const POI_MIN_ZOOM = 10;
 const FOCUS_ZOOM = 15;
 /** "My location" zooms in to at least this level. */
 const LOCATE_ZOOM = 15;
-const LOCATION_BLUE = '#1d4ed8';
+/** Not a POI colour (police is #1d4ed8): the puck is a ringed dot with a halo, unlike the POI dots. */
+const LOCATION_BLUE = '#0a84ff';
 const LOCATION_GREY = '#6b7280';
 
 function offlineStyle(pmtilesPath: string): StyleSpecification {
@@ -377,12 +378,24 @@ export default function MapScreen() {
               filter={['==', ['get', 'kind'], 'accuracy']}
               paint={{ 'fill-color': puckState === 'live' ? LOCATION_BLUE : LOCATION_GREY, 'fill-opacity': 0.15, 'fill-outline-color': puckState === 'live' ? LOCATION_BLUE : LOCATION_GREY }}
             />
-            <Layer type="fill" id="skepi-location-cone" filter={['==', ['get', 'kind'], 'cone']} paint={{ 'fill-color': LOCATION_BLUE, 'fill-opacity': 0.4 }} />
+            <Layer type="fill" id="skepi-location-cone" filter={['==', ['get', 'kind'], 'cone']} paint={{ 'fill-color': LOCATION_BLUE, 'fill-opacity': 0.3 }} />
+            <Layer
+              type="circle"
+              id="skepi-location-halo"
+              filter={['==', ['get', 'kind'], 'puck']}
+              paint={{ 'circle-radius': 20, 'circle-color': puckState === 'live' ? LOCATION_BLUE : LOCATION_GREY, 'circle-opacity': 0.2 }}
+            />
+            <Layer
+              type="circle"
+              id="skepi-location-ring"
+              filter={['==', ['get', 'kind'], 'puck']}
+              paint={{ 'circle-radius': 11, 'circle-color': '#ffffff', 'circle-stroke-color': puckState === 'live' ? LOCATION_BLUE : LOCATION_GREY, 'circle-stroke-width': 3 }}
+            />
             <Layer
               type="circle"
               id="skepi-location-puck"
               filter={['==', ['get', 'kind'], 'puck']}
-              paint={{ 'circle-radius': 8, 'circle-color': puckState === 'live' ? LOCATION_BLUE : LOCATION_GREY, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 }}
+              paint={{ 'circle-radius': 6, 'circle-color': puckState === 'live' ? LOCATION_BLUE : LOCATION_GREY }}
             />
           </GeoJSONSource>
         )}
