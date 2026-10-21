@@ -84,7 +84,7 @@ test('ask: medical intent shows the number and Layer 1 only, never an AI summary
   expect((await record(page)).calls.some((c) => c.command === 'llm_generate' && (c.args.request as { maxTokens: number }).maxTokens > 1)).toBe(false);
 });
 
-test('emergency: numbers and IFRC cards without any pack', async ({ page }) => {
+test('emergency: numbers and cards (IFRC, Ready.gov) without any pack', async ({ page }) => {
   await page.getByTestId('emergency-button').click();
   await expect(page.getByTestId('emergency-numbers')).toContainText('112');
   await page.getByTestId('card-open-cpr').click();
@@ -92,7 +92,13 @@ test('emergency: numbers and IFRC cards without any pack', async ({ page }) => {
   await expect(page.getByTestId('card-step-5')).toContainText('Begin chest compressions without delay');
   await expect(page.getByTestId('card-citation')).toContainText('IFRC International First Aid, Resuscitation and Education Guidelines 2025');
   await expect(page.getByTestId('card-citation')).toContainText('pp. 161–162');
-  await expect(page.getByTestId('card-open-flood')).toHaveCount(0);
+  await expect(page.getByTestId('card-disclaimer')).toHaveCount(0);
+  await page.getByTestId('cards-back').click();
+  await page.getByTestId('card-open-flood').click();
+  await expect(page.getByTestId('card-call-first')).toHaveText('Call 112 first');
+  await expect(page.getByTestId('card-step-1')).toHaveText('Find safe shelter right away.');
+  await expect(page.getByTestId('card-citation')).toHaveText('Source: FEMA, Ready.gov. “Floods”, https://www.ready.gov/floods, retrieved 2026-10-21.');
+  await expect(page.getByTestId('card-disclaimer')).toContainText('does not imply that the Federal Emergency Management Agency or the U.S. Government endorses S.K.E.P.I.');
 });
 
 test('map: offline PMTiles through the maps protocol, emergency POIs and filters', async ({ page }) => {

@@ -1,0 +1,53 @@
+# Weekly drift check of the public-domain web sources of the emergency cards (CDC, FEMA Ready.gov;
+# decision 2026-10-21): re-fetches each page and compares its text with the committed snapshot
+# (tools/cards-source-check/snapshots/). The CDC asks reusers to check its pages for revisions. Never
+# blocks anything: on drift the job stays green, writes a warning annotation and opens (or comments on)
+# one issue labelled "cards-source-drift". The cards change only by a deliberate, reviewed commit.
+# Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
+name: Card sources drift
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Re-fetch the CDC and Ready.gov pages and compare them with the snapshots
+        id: drift
+        run: |
+          rc=0
+          node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts drift --report drift.md || rc=$?
+          cat drift.md >> "$GITHUB_STEP_SUMMARY"
+          echo "drifted=$([ "$rc" -eq 0 ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+      - name: Open or update the drift issue
+        if: steps.drift.outputs.drifted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          echo "::warning title=Emergency card sources drifted::A CDC or Ready.gov page changed since its snapshot; see the job summary."
+          printf '\n[Workflow run](%s)\n' "$RUN_URL" >> drift.md
+          gh label create cards-source-drift --color d93f0b --description "A web source of the emergency cards changed" 2>/dev/null || true
+          issue=$(gh issue list --label cards-source-drift --state open --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file drift.md
+          else
+            gh issue create --title "Emergency card sources changed (CDC / Ready.gov)" --label cards-source-drift --body-file drift.md
+          fi

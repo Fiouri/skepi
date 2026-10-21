@@ -6,7 +6,7 @@
 #                   catalog per configuration (Debug: test catalog + test keys + local mirror source;
 #                   Release: release catalog + release keys), and in Release:
 #                   - the release catalog must verify with the release keys (catalog-builder verify --release);
-#                   - the emergency-cards gate: every step IFRC-sourced and exactly the steps the last
+#                   - the emergency-cards gate: every step cited and exactly the steps the last
 #                     passed tools/cards-source-check verified (source-check.lock.json).
 #   cards-bundle    Release builds: the JS bundle holds no unsourced card text and every sourced step.
 #

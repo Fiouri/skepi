@@ -4,7 +4,7 @@
  * Folders: every .js, .bundle, .hbc file inside. Fails when
  * - no bundle file is found;
  * - any unsourced card text is in the bundles;
- * - sourced (IFRC) card steps are in the bundles but packages/emergency-cards/source-check.lock.json
+ * - sourced card steps are in the bundles but packages/emergency-cards/source-check.lock.json
  *   does not record a passed tools/cards-source-check of exactly these steps;
  * - with --expect-sourced (release builds): not every sourced step is found (the cards must ship; a step
  *   too short for a probe must be an exact whole string of the bundle).

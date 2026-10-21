@@ -1,5 +1,5 @@
 {
-  "description": "Card advice texts that have no IFRC source (the cards before 2026-10-21: US public-domain steps and their Greek translation). No bundle may contain any of them (tools/release-guards cards-bundle).",
+  "description": "Card advice texts without a verbatim source (the cards before 2026-10-21: adapted US public-domain steps and their Greek translation). No bundle may contain any of them (tools/release-guards cards-bundle). Three former texts that are verbatim Ready.gov sentences, now inside sourced steps, were removed on 2026-10-21.",
   "texts": [
     {
       "card": "cpr",
@@ -759,11 +759,6 @@
     {
       "card": "earthquake",
       "locale": "en",
-      "text": "Cover your head and neck with one arm and hand."
-    },
-    {
-      "card": "earthquake",
-      "locale": "en",
       "text": "Hold on until the shaking stops."
     },
     {
@@ -785,11 +780,6 @@
       "card": "earthquake",
       "locale": "en",
       "text": "Expect aftershocks: Drop, Cover and Hold On again. If you are in a damaged building, go outside and move away from it. Do not enter damaged buildings."
-    },
-    {
-      "card": "earthquake",
-      "locale": "en",
-      "text": "If you are trapped, send a text or bang on a pipe or wall."
     },
     {
       "card": "earthquake",
@@ -935,11 +925,6 @@
       "card": "flood",
       "locale": "en",
       "text": "Evacuate immediately if you are told to."
-    },
-    {
-      "card": "flood",
-      "locale": "en",
-      "text": "Stay off bridges over fast-moving water."
     },
     {
       "card": "flood",

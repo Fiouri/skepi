@@ -14,7 +14,7 @@ const PDF_TEXT = [
 const card = (steps: { text: string; section: string; page: number }[]): EmergencyCard => ({
   id: 'bleeding',
   topics: ['bleeding'],
-  steps: steps.map((s) => ({ text: s.text, cite: { section: s.section, page: s.page } })),
+  steps: steps.map((s) => ({ text: s.text, cite: { source: 'ifrc-2025' as const, section: s.section, page: s.page } })),
   labels: { en: { title: 't', keywords: ['k'] }, el: { title: 't', keywords: ['k'] } },
 });
 

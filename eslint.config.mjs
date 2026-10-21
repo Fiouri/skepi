@@ -76,8 +76,9 @@ export default tseslint.config(
   },
   {
     // Tooling (CI and dev machines, never in the app): the pinned IFRC guidelines PDF for the
-    // emergency-card source check, accepted only with its pinned SHA-256.
-    files: ['tools/cards-source-check/src/source.ts'],
+    // emergency-card source check, accepted only with its pinned SHA-256, and the CDC / Ready.gov pages
+    // (snapshot refresh and the weekly drift check).
+    files: ['tools/cards-source-check/src/source.ts', 'tools/cards-source-check/src/snapshot.ts'],
     rules: { 'no-restricted-globals': 'off' },
   },
   {

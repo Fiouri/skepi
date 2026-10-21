@@ -44,7 +44,10 @@ export function EmergencyNumbers({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** One card: "Call <number> first", the numbered IFRC steps (verbatim) and their citation. */
+/**
+ * One card: "Call <number> first", the numbered verbatim steps, their citation and, for CDC / Ready.gov
+ * text, the publisher's no-endorsement statement.
+ */
 export function CardView({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const numbers = useEmergencyNumbers();
@@ -67,6 +70,11 @@ export function CardView({ card }: { card: EmergencyCard }) {
       <p className="muted" data-testid="card-citation">
         {c.citation}
       </p>
+      {c.disclaimer !== null && (
+        <Banner tone="info" testId="card-disclaimer">
+          {c.disclaimer}
+        </Banner>
+      )}
     </article>
   );
 }

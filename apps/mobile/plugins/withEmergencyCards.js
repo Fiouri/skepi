@@ -1,8 +1,8 @@
 // Release gate for the bundled emergency cards (CNG: android/ is generated, wired here). Every release
 // build runs packages/emergency-cards/scripts/check-release.ts before compiling: it fails unless every
-// card step carries its IFRC citation and the steps are exactly the ones the last passed
+// card step carries its citation and the steps are exactly the ones the last passed
 // tools/cards-source-check verified (packages/emergency-cards/source-check.lock.json; CI re-runs that
-// check against the PDF). Right after the JS bundle is built, tools/release-guards cards-bundle checks
+// check against the IFRC PDF and the CDC / Ready.gov snapshots). Right after the JS bundle is built, tools/release-guards cards-bundle checks
 // it: no unsourced card text, and every sourced step present (decision 2026-10-21).
 // `-PskepiPreview=true` (Developer Preview, with SKEPI_PREVIEW=1 in the environment so that Metro bundles
 // the preview entry, apps/mobile/metro.config.js) only adds the "Developer preview" label.

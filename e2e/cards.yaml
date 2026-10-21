@@ -1,6 +1,7 @@
 # Emergency card flow (release build, airplane mode, English UI, country Greece):
 # home Emergency button -> numbers -> a card: "Call 112 first", the verbatim IFRC steps, the citation
-# (edition, section, pages) and read-aloud; unsourced topics (earthquake, fire, flood, water) have no card.
+# (edition, section, pages) and read-aloud; the earthquake (FEMA Ready.gov) and water (CDC) cards: verbatim
+# steps, citation (title, URL, retrieval date) and the no-endorsement statement.
 # An emergency question in Ask shows the number and the card before anything else; home search finds cards.
 appId: ${APP_ID}
 name: SKEPI emergency cards (offline)
@@ -58,16 +59,60 @@ onFlowComplete:
     text: "Source: IFRC International First Aid, Resuscitation and Education Guidelines 2025, .*pp\\. 161–162\\."
 - takeScreenshot: e2e/out/cards-02b-cpr-citation
 - back
-# No card for a topic without an IFRC passage
+# Public-domain cards: Ready.gov (earthquake) and CDC (water), cited with the endorsement disclaimer
 - scrollUntilVisible:
     element:
-      id: card-link-poisoning
+      id: card-link-earthquake
     direction: DOWN
     timeout: 20000
-- assertNotVisible:
+- tapOn:
     id: card-link-earthquake
-- assertNotVisible:
-    id: card-link-flood
+- extendedWaitUntil:
+    visible:
+      id: card-call-first
+    timeout: 10000
+- assertVisible: "Call 112 first"
+- assertVisible:
+    id: card-step-1
+    text: "If an earthquake happens, protect yourself right away\\."
+- scrollUntilVisible:
+    element:
+      id: card-disclaimer
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: card-citation
+    text: "Source: FEMA, Ready\\.gov\\. “Earthquakes”, https://www\\.ready\\.gov/earthquakes, retrieved 2026-10-21\\."
+- assertVisible:
+    id: card-disclaimer
+    text: ".*does not imply that the Federal Emergency Management Agency or the U\\.S\\. Government endorses S\\.K\\.E\\.P\\.I\\..*"
+- takeScreenshot: e2e/out/cards-02c-earthquake-citation
+- back
+- scrollUntilVisible:
+    element:
+      id: card-link-water-purification
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: card-link-water-purification
+- extendedWaitUntil:
+    visible:
+      id: card-step-1
+      text: "Use bottled, boiled, or treated water to avoid getting sick\\."
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: card-disclaimer
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: card-citation
+    text: "Source: CDC\\. “How to Make Water Safe in an Emergency”, https://www\\.cdc\\.gov/water-emergency/about/index\\.html, retrieved 2026-10-21\\."
+- assertVisible:
+    id: card-disclaimer
+    text: ".*does not imply endorsement by CDC, HHS or the United States Government.*available on the CDC website for no charge\\."
+- takeScreenshot: e2e/out/cards-02d-water-citation
+- back
 - back
 # Ask: number and card first
 - tapOn:
@@ -113,6 +158,10 @@ onFlowComplete:
     id: emergency-banner
 - assertVisible:
     id: layer1
+    below:
+      id: emergency-banner
+- assertVisible:
+    id: inline-card-earthquake
     below:
       id: emergency-banner
 - takeScreenshot: e2e/out/cards-05-number-before-layer1

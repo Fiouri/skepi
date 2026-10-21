@@ -85,13 +85,26 @@ function CallFirst() {
   );
 }
 
-/** "Source: IFRC … 2025, "<section>", p. <page>." under the steps (verbatim excerpts, cited). */
+/**
+ * The citation under the steps (verbatim excerpts, cited): "Source: IFRC … 2025, "<section>", p. <page>."
+ * or "Source: CDC. "<title>", <url>, retrieved <date>.", then for CDC / Ready.gov text the publisher's
+ * no-endorsement statement in body-size text (their reuse terms ask for it prominently).
+ */
 function Citation({ card }: { card: LocalizedCard }) {
   const styles = useStyles();
   return (
-    <Text style={styles.muted} selectable testID="card-citation">
-      {card.citation}
-    </Text>
+    <>
+      <Text style={styles.muted} selectable testID="card-citation">
+        {card.citation}
+      </Text>
+      {card.disclaimer !== null && (
+        <View style={styles.card}>
+          <Text style={styles.text} selectable testID="card-disclaimer">
+            {card.disclaimer}
+          </Text>
+        </View>
+      )}
+    </>
   );
 }
 
@@ -113,7 +126,7 @@ function ReadAloud({ card }: { card: LocalizedCard }) {
       return;
     }
     setSpeaking(true);
-    // The steps are English IFRC text in every locale.
+    // The steps are English source text in every locale.
     Speech.speak(speakable(card, t.cards.step), {
       language: 'en-US',
       rate: 0.9,
@@ -125,7 +138,7 @@ function ReadAloud({ card }: { card: LocalizedCard }) {
   return <Button testID="card-read-aloud" label={speaking ? t.cards.stopReading : t.cards.readAloud} onPress={toggle} />;
 }
 
-/** A whole card: "Call <number> first", numbered IFRC steps, the citation, read aloud. */
+/** A whole card: "Call <number> first", the numbered verbatim steps, the citation, read aloud. */
 export function CardView({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const styles = useStyles();

@@ -1,12 +1,15 @@
-import type { CardStep, EmergencyCard } from './schema';
+import type { CardStep, EmergencyCard, SourceId } from './schema';
 
 /**
- * The bundled cards. Every step is a verbatim excerpt (whole sentences) from the IFRC International
- * First Aid, Resuscitation and Education Guidelines 2025 at the cited printed page; the step numbers of
- * the source are not part of the excerpt. Changing a step means re-running tools/cards-source-check
+ * The bundled cards. Every step is a verbatim excerpt (whole sentences) of its source: the IFRC
+ * International First Aid, Resuscitation and Education Guidelines 2025 at the cited printed page, or a
+ * CDC / FEMA Ready.gov page under the cited heading (snapshot of the retrieval date). The step numbers
+ * of the source are not part of the excerpt; US-specific passages (911, US agencies and programmes) are
+ * left out, never edited. Changing a step means re-running tools/cards-source-check
  * (`pnpm --filter @skepi/cards-source-check check -- --write-lock`) and committing source-check.lock.json.
  */
-const step = (section: string, page: number, text: string): CardStep => ({ text, cite: { section, page } });
+const step = (section: string, page: number, text: string): CardStep => ({ text, cite: { source: 'ifrc-2025', section, page } });
+const web = (source: SourceId, section: string, text: string): CardStep => ({ text, cite: { source, section, page: null } });
 
 const CPR = 'Unresponsive and abnormal breathing (adolescent and adult)';
 export const cpr: EmergencyCard = {
@@ -268,5 +271,181 @@ export const poisoning: EmergencyCard = {
       keywords: ['poison', 'poisoning', 'poisoned', 'overdose', 'swallowed', 'toxic', 'fumes', 'carbon monoxide', 'pesticide', 'bleach'],
     },
     el: { title: 'Δηλητηρίαση', keywords: ['δηλητηριαση', 'δηλητηριο', 'υπερδοσολογια', 'τοξικο', 'αναθυμιασεις', 'μονοξειδιο', 'φυτοφαρμακο', 'χλωρινη'] },
+  },
+};
+
+const HOME_DURING = 'During a Fire';
+const WILD_DURING = 'Stay Safe During';
+const WILD_AFTER = 'Returning Home After a Wildfire';
+export const fire: EmergencyCard = {
+  id: 'fire',
+  topics: ['fire'],
+  steps: [
+    web('ready-home-fires', HOME_DURING, 'Drop down to the floor and crawl low, under any smoke to your exit. Heavy smoke and poisonous gases collect first along the ceiling.'),
+    web(
+      'ready-home-fires',
+      HOME_DURING,
+      'Before opening a door, feel the doorknob and door. If either is hot, or if there is smoke coming around the door, leave the door closed and use your second way out.',
+    ),
+    web('ready-home-fires', HOME_DURING, 'If you open a door, open it slowly. Be ready to shut it quickly if heavy smoke or fire is present.'),
+    web('ready-home-fires', HOME_DURING, 'If you can’t get out, close the door and cover vents and cracks around doors with cloth or tape to keep smoke out.'),
+    web(
+      'ready-home-fires',
+      HOME_DURING,
+      'If your clothes catch fire, stop, drop and roll – stop immediately, drop to the ground and cover your face with your hands. Roll over and over or back and forth until the fire is out. If you or someone else cannot stop, drop and roll, smother the flames with a blanket or towel.',
+    ),
+    web('ready-home-fires', HOME_DURING, 'If pets are trapped inside your home, tell firefighters right away.'),
+    web('ready-home-fires', 'After a Fire', 'Check with the fire department to make sure your residence is safe to enter.'),
+    web('ready-wildfires', WILD_DURING, 'Pay attention to emergency alerts and notifications for information and instructions.'),
+    web('ready-wildfires', WILD_DURING, 'Evacuate immediately if authorities tell you to do so.'),
+    web(
+      'ready-wildfires',
+      WILD_DURING,
+      'If you are not ordered to evacuate but smoky conditions exist, stay inside in a safe location or go to a community building where smoke levels are lower.',
+    ),
+    web('ready-wildfires', WILD_AFTER, 'Do not return home until authorities say it is safe to do so.'),
+    web(
+      'ready-wildfires',
+      WILD_AFTER,
+      'Avoid hot ash, charred trees, smoldering debris and live embers. The ground may contain heat pockets that can burn you or spark another fire.',
+    ),
+  ],
+  labels: {
+    en: {
+      title: 'Fire: at home and wildfire',
+      keywords: ['fire', 'house fire', 'smoke', 'flames', 'burning building', 'wildfire', 'forest fire'],
+    },
+    el: {
+      title: 'Φωτιά: στο σπίτι και δασική πυρκαγιά',
+      keywords: ['φωτια', 'πυρκαγια', 'φλογες', 'καιγεται', 'δασικη πυρκαγια'],
+    },
+  },
+};
+
+const EQ_DURING = 'During an Earthquake';
+const EQ_AFTER = 'After an Earthquake';
+export const earthquake: EmergencyCard = {
+  id: 'earthquake',
+  topics: ['earthquake'],
+  steps: [
+    web('ready-earthquakes', EQ_DURING, 'If an earthquake happens, protect yourself right away.'),
+    web('ready-earthquakes', EQ_DURING, 'If you are inside, stay and do not run outside; avoid doorways.'),
+    web('ready-earthquakes', '1. Drop (or Lock)', 'Drop where you are onto hands and knees.'),
+    web(
+      'ready-earthquakes',
+      '2. Cover',
+      'Cover your head and neck with one arm and hand. If a sturdy table or desk is nearby, crawl underneath it for shelter. If no shelter is nearby, crawl next to an interior wall (away from windows). Stay on your knees; bend over to protect vital organs.',
+    ),
+    web(
+      'ready-earthquakes',
+      '3. Hold On',
+      'Hold until the shaking stops. If under shelter, hold on with one hand and be ready to move with it when the shelter moves. If not under shelter, hold on to your head and neck with both arms and hands.',
+    ),
+    web('ready-earthquakes', EQ_DURING, 'If you are in bed, turn face down and cover your head and neck with a pillow.'),
+    web('ready-earthquakes', EQ_DURING, 'If you are in a car, pull over and stop. Set your parking brake.'),
+    web('ready-earthquakes', EQ_DURING, "If you're outside, stay there. Move to an open area away from buildings, trees, streetlights and power lines."),
+    web(
+      'ready-earthquakes',
+      EQ_AFTER,
+      'There can be serious hazards after an earthquake, such as damage to the building, leaking gas and water lines or downed power lines.',
+    ),
+    web('ready-earthquakes', EQ_AFTER, 'Expect aftershocks to follow the main shock of an earthquake. Be ready to Drop, Cover and Hold On if you feel an aftershock.'),
+    web('ready-earthquakes', EQ_AFTER, 'If you are in a damaged building, go outside and quickly move away from the building. Do not enter damaged buildings.'),
+    web(
+      'ready-earthquakes',
+      EQ_AFTER,
+      'If you are trapped, send a text or bang on a pipe or wall. Cover your mouth with your shirt for protection and instead of shouting, use a whistle.',
+    ),
+    web(
+      'ready-earthquakes',
+      EQ_AFTER,
+      'If you are in an area that may experience tsunamis, go inland or to higher ground immediately after the shaking stops. Avoid contact with floodwaters as they can contain chemicals, sewage and debris.',
+    ),
+    web('ready-earthquakes', EQ_AFTER, 'Use text messages to communicate.'),
+  ],
+  labels: {
+    en: { title: 'Earthquake', keywords: ['earthquake', 'quake', 'aftershock', 'drop cover hold'] },
+    el: { title: 'Σεισμός', keywords: ['σεισμος', 'σεισμου', 'μετασεισμος', 'πεσε καλυψου κρατησου'] },
+  },
+};
+
+const FLOOD_WARNING = 'If you are under a flood warning';
+const FLOOD_DURING = 'During a Flood';
+const FLOOD_AFTER = 'After a Flood';
+export const flood: EmergencyCard = {
+  id: 'flood',
+  topics: ['flood'],
+  steps: [
+    web('ready-floods', FLOOD_WARNING, 'Find safe shelter right away.'),
+    web('ready-floods', FLOOD_WARNING, 'Do not walk, swim or drive through flood waters. Turn Around, Don’t Drown!'),
+    web('ready-floods', FLOOD_WARNING, 'Remember, just six inches of moving water can knock you down, and one foot of moving water can sweep your vehicle away.'),
+    web(
+      'ready-floods',
+      FLOOD_DURING,
+      'Evacuate immediately, if told to do so. Never drive around barricades. Local responders use them to safely direct traffic out of flooded areas.',
+    ),
+    web('ready-floods', FLOOD_DURING, 'Stay off bridges over fast-moving water. Fast-moving water can wash bridges away without warning.'),
+    web('ready-floods', FLOOD_DURING, 'Stay inside your car if it is trapped in rapidly moving water. Get on the roof if water is rising inside the car.'),
+    web(
+      'ready-floods',
+      FLOOD_DURING,
+      'Get to the highest level if trapped in a building. Only get on the roof if necessary and once there, signal for help. Do not climb into a closed attic to avoid getting trapped by rising floodwater.',
+    ),
+    web('ready-floods', FLOOD_AFTER, 'Pay attention to authorities for information and instructions. Return home only when authorities say it is safe.'),
+    web(
+      'ready-floods',
+      FLOOD_AFTER,
+      'Be aware of the risk of electrocution. Do not touch electrical equipment if it is wet or if you are standing in water. Turn off the electricity to prevent electric shock if it is safe to do so.',
+    ),
+    web(
+      'ready-floods',
+      FLOOD_AFTER,
+      'Avoid wading in floodwater, which can be contaminated and contain dangerous debris. Underground or downed power lines can electrically charge the water.',
+    ),
+    web('ready-floods', FLOOD_AFTER, 'Use a generator or other gasoline-powered machinery ONLY outdoors and away from windows.'),
+  ],
+  labels: {
+    en: { title: 'Flood', keywords: ['flood', 'flooding', 'flash flood', 'rising water', 'flood water'] },
+    el: { title: 'Πλημμύρα', keywords: ['πλημμυρα', 'πλημμυρες', 'πλημμυρισε', 'χειμαρρος'] },
+  },
+};
+
+const BOILING = 'Steps for boiling water';
+const BLEACH = 'Steps for using bleach to disinfect water';
+export const waterPurification: EmergencyCard = {
+  id: 'water-purification',
+  topics: [],
+  steps: [
+    web('cdc-water', 'Key points', 'Use bottled, boiled, or treated water to avoid getting sick.'),
+    web('cdc-water', 'Overview', 'Follow recommendations from your health department for boiling or treating your water.'),
+    web(
+      'cdc-water',
+      'Water with fuel or toxic chemicals in it',
+      'You cannot make water containing fuel, toxic chemicals, or radioactive materials safe by boiling or disinfecting it.',
+    ),
+    web('cdc-water', 'Boil', 'Boiling is the best way to kill germs in water.'),
+    web('cdc-water', BOILING, 'If the water is cloudy, first filter it through a clean cloth, paper towel, or coffee filter. Another option is to let it settle.'),
+    web('cdc-water', BOILING, 'Bring clear water to a rolling boil for 1 minute (at elevations above 6,500 feet, boil for 3 minutes).'),
+    web('cdc-water', BOILING, 'Let the boiled water cool.'),
+    web('cdc-water', BOILING, 'Store the boiled water in clean, sanitized containers with tight covers.'),
+    web(
+      'cdc-water',
+      'Disinfect',
+      'You can kill most germs in water with chemical disinfectants, such as unscented household chlorine bleach, iodine, or chlorine dioxide tablets. However, disinfectants do not work as well as boiling for killing some germs, including the parasites Cryptosporidium and Giardia.',
+    ),
+    web('cdc-water', BLEACH, 'Follow the instructions on the bleach label for disinfecting drinking water.'),
+    web('cdc-water', BLEACH, 'Stir the bleach and water mixture well.'),
+    web('cdc-water', BLEACH, 'Let the water stand for at least 30 minutes before you drink it.'),
+    web('cdc-water', BLEACH, 'Store the disinfected water in clean, sanitized containers with tight covers.'),
+  ],
+  labels: {
+    en: {
+      title: 'Making water safe to drink',
+      keywords: ['water purification', 'purify water', 'drinking water', 'safe water', 'boil water', 'disinfect water', 'bleach water', 'treat water'],
+    },
+    el: {
+      title: 'Πόσιμο νερό: πώς γίνεται ασφαλές',
+      keywords: ['καθαρισμος νερου', 'ποσιμο νερο', 'βρασιμο νερου', 'απολυμανση νερου', 'χλωρινη νερο', 'ασφαλες νερο'],
+    },
   },
 };

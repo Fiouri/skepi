@@ -1,4 +1,4 @@
-import { IFRC_ATTRIBUTION, IFRC_GUIDELINES } from '@skepi/emergency-cards';
+import { CDC_DISCLAIMER, FEMA_DISCLAIMER, IFRC_ATTRIBUTION, IFRC_GUIDELINES, WEB_SOURCES } from '@skepi/emergency-cards';
 import type { Component } from './notices';
 
 /**
@@ -45,9 +45,15 @@ export const ASSETS: readonly Omit<Component, 'texts'>[] = [
   { ecosystem: 'native', name: 'Protomaps basemap style', version: '5.7.2', license: 'BSD-3-Clause (code), CC0-1.0 (visual design)', url: 'https://github.com/protomaps/basemaps' },
 ];
 
+const pages = (attribution: string): string =>
+  WEB_SOURCES.filter((w) => w.attribution === attribution)
+    .map((w) => `“${w.title}”, ${w.url} (retrieved ${w.accessed})`)
+    .join('; ');
+
 /**
  * Bundled content under its own terms, with the notice text shown in About: the emergency-card steps are
- * verbatim excerpts of the IFRC guidelines (non-commercial use, source acknowledged).
+ * verbatim excerpts of the IFRC guidelines (non-commercial use, source acknowledged) and of CDC and FEMA
+ * Ready.gov pages (US federal public domain; attribution, no alteration, no implied endorsement).
  */
 export const CONTENT: readonly { component: Omit<Component, 'texts'>; text: string }[] = [
   {
@@ -59,5 +65,25 @@ export const CONTENT: readonly { component: Omit<Component, 'texts'>; text: stri
       url: IFRC_GUIDELINES.url,
     },
     text: `${IFRC_ATTRIBUTION}\n\nThe IFRC would appreciate receiving details of its use. Requests for commercial reproduction should be directed to the IFRC at secretariat@ifrc.org.\n\nS.K.E.P.I. is free and non-commercial. The card steps are quoted word for word; each card cites the section and page. The IFRC does not endorse S.K.E.P.I.`,
+  },
+  {
+    component: {
+      ecosystem: 'native',
+      name: 'Emergency card text: CDC, How to Make Water Safe in an Emergency',
+      version: WEB_SOURCES.find((w) => w.id === 'cdc-water')?.accessed ?? '',
+      license: 'Public domain (U.S. Government work); CDC terms for the use of agency materials',
+      url: 'https://www.cdc.gov/other/agencymaterials.html',
+    },
+    text: `Source: CDC. ${pages('Source: CDC')}.\n\n${CDC_DISCLAIMER}\n\nTerms: https://www.cdc.gov/other/agencymaterials.html. The steps of the water card are quoted word for word, without change to their content; passages specific to the United States are left out. No CDC, HHS or U.S. Government logo is used.`,
+  },
+  {
+    component: {
+      ecosystem: 'native',
+      name: 'Emergency card text: FEMA Ready.gov (Earthquakes, Home Fires, Wildfires, Floods)',
+      version: WEB_SOURCES.find((w) => w.id === 'ready-floods')?.accessed ?? '',
+      license: 'Public domain (U.S. Government work); Ready.gov reprint terms of use',
+      url: 'https://www.ready.gov/publications',
+    },
+    text: `Source: FEMA, Ready.gov. ${pages('Source: FEMA, Ready.gov')}.\n\n${FEMA_DISCLAIMER}\n\nReprint terms: https://www.ready.gov/publications. The steps of the earthquake, fire and flood cards are quoted word for word; passages specific to the United States (such as calling 9-1-1, US agencies and programmes) are left out, never edited. No FEMA or U.S. Government logo is used.`,
   },
 ];

@@ -1,32 +1,52 @@
 import type { EmergencyTopic } from '@skepi/core';
 
 /**
- * Emergency cards (docs/architecture.md, "User safety"; decision 2026-10-21): every step is a verbatim
- * excerpt from the IFRC International First Aid, Resuscitation and Education Guidelines, with its
- * citation (edition, section, page). No paraphrase, no excerpts merged into new sentences, no
- * LLM-written text. tools/cards-source-check proves every step is an exact substring of the source at
- * the cited page. A topic with no IFRC passage stays unsourced and is never shipped (src/unsourced.ts).
- * Cards never pass through the LLM.
+ * Emergency cards (docs/architecture.md, "User safety"; decisions 2026-10-21): every step is a verbatim
+ * excerpt of a cited source: the IFRC International First Aid, Resuscitation and Education Guidelines
+ * (section, page) for first aid, US federal public-domain pages (CDC, FEMA Ready.gov; section, URL,
+ * retrieval date) for water and disasters. No paraphrase, no excerpts merged into new sentences, no
+ * LLM-written text, no quote edited to localise it. tools/cards-source-check proves every step is an
+ * exact substring of its source (the IFRC PDF page, or the committed snapshot of the web page). A topic
+ * with no suitable passage stays unsourced and is never shipped (src/unsourced.ts). Cards never pass
+ * through the LLM.
  */
 
 export const CARD_LOCALES = ['en', 'el'] as const;
 export type CardLocale = (typeof CARD_LOCALES)[number];
 
 /**
- * The language cards are shown in. The steps are English IFRC text; the Greek titles and search
+ * The language cards are shown in. The steps are English source text; the Greek titles and search
  * keywords stay for the frozen Greek locale (after v1), the steps are never translated.
  */
 export const CARD_DISPLAY_LOCALE: CardLocale = 'en';
 
-export const CARD_IDS = ['cpr', 'bleeding', 'choking', 'burns', 'fractures', 'hypothermia', 'heatstroke', 'poisoning'] as const;
+export const CARD_IDS = [
+  'cpr',
+  'bleeding',
+  'choking',
+  'burns',
+  'fractures',
+  'hypothermia',
+  'heatstroke',
+  'poisoning',
+  'fire',
+  'earthquake',
+  'flood',
+  'water-purification',
+] as const;
 export type CardId = (typeof CARD_IDS)[number];
 
-/** The published source document of every card step. */
-export interface CardSource {
+export const SOURCE_IDS = ['ifrc-2025', 'cdc-water', 'ready-earthquakes', 'ready-home-fires', 'ready-wildfires', 'ready-floods'] as const;
+export type SourceId = (typeof SOURCE_IDS)[number];
+
+/** A PDF source, never committed: tools/cards-source-check downloads it from `url` and checks `sha256`. */
+export interface PdfSource {
+  kind: 'pdf';
+  id: SourceId;
   title: string;
   edition: string;
   publisher: string;
-  /** Pinned download URL of the PDF (tools/cards-source-check). */
+  /** Pinned download URL of the PDF. */
   url: string;
   /** SHA-256 of the PDF at `url`. */
   sha256: string;
@@ -36,14 +56,46 @@ export interface CardSource {
   accessed: string;
 }
 
-/** Where in the source a step comes from: the topic (section) and the printed page number. */
+/**
+ * A public-domain web page (US federal government work). Its text is committed as a dated snapshot
+ * (tools/cards-source-check/snapshots/<id>.txt) that the source check compares the steps with; a weekly
+ * CI job re-fetches the page and reports drift.
+ */
+export interface WebSource {
+  kind: 'html';
+  id: SourceId;
+  /** The page title, as printed on the page. */
+  title: string;
+  publisher: string;
+  /** The attribution the publisher asks for, shown on every card from this source ("Source: CDC"). */
+  attribution: string;
+  url: string;
+  /** Retrieval date of the snapshot (YYYY-MM-DD). */
+  accessed: string;
+  /** SHA-256 of the fetched HTML (recorded in the snapshot header). */
+  htmlSha256: string;
+  /** SHA-256 of the snapshot text (the committed snapshot body, UTF-8). */
+  textSha256: string;
+  /** The publisher's reuse terms page. */
+  termsUrl: string;
+  /** The no-endorsement statement the reuse terms require, shown prominently on every card from it. */
+  disclaimer: string;
+}
+
+export type CardSource = PdfSource | WebSource;
+
+/**
+ * Where in the source a step comes from: the source, the topic (PDF) or heading (web page) it sits
+ * under, and the printed page number (PDF sources; null for web pages).
+ */
 export interface Citation {
+  source: SourceId;
   section: string;
-  page: number;
+  page: number | null;
 }
 
 export interface CardStep {
-  /** Verbatim excerpt (one or more whole sentences) from the source, at `cite.page`. */
+  /** Verbatim excerpt (one or more whole sentences) from the source, at `cite`. */
   text: string;
   cite: Citation;
 }
@@ -70,6 +122,8 @@ export interface LocalizedCard {
   locale: CardLocale;
   title: string;
   steps: readonly CardStep[];
-  /** "Source: <title> (<edition>), "<section>", p. <page>; …" */
+  /** "Source: IFRC <title> <edition>, "<section>", p. <page>; …" or "Source: CDC. "<title>", <url>, retrieved <date>." */
   citation: string;
+  /** The publisher's no-endorsement statement for web sources (shown prominently); null for IFRC cards. */
+  disclaimer: string | null;
 }

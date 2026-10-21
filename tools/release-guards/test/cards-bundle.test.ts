@@ -33,9 +33,9 @@ describe('cards bundle check', () => {
   const unsourced = unsourcedTexts();
   const sourced = sourcedTexts();
 
-  it('has the 202 unsourced texts and a searchable probe for every text', () => {
-    expect(unsourced).toHaveLength(202);
-    expect(sourced.length).toBeGreaterThan(50);
+  it('has the 199 unsourced texts and a searchable probe for every text', () => {
+    expect(unsourced).toHaveLength(199);
+    expect(sourced).toHaveLength(111);
     expect(unsourced.filter((t) => probeOf(t) === null)).toEqual([]);
     // Shorter than 16 characters: no probe; matched as an exact whole string instead.
     const short = sourced.filter((t) => probeOf(t) === null);
@@ -82,8 +82,13 @@ describe('cards bundle check', () => {
     expect(() => literalPatternsOf('say "stop"')).toThrow(/quotes/);
   });
 
-  it('no sourced step equals or contains an unsourced text (the two lists cannot be confused)', () => {
-    for (const s of sourced) for (const u of unsourced) expect(s.includes(u)).toBe(false);
+  it('no sourced step equals or contains an unsourced text or its probe (the two lists cannot be confused)', () => {
+    for (const s of sourced) {
+      for (const u of unsourced) {
+        expect(s.includes(u)).toBe(false);
+        expect(s.includes(probeOf(u) ?? u)).toBe(false);
+      }
+    }
   });
 
   it('finds text in UTF-8, in UTF-16LE (Hermes strings) and as \\u escapes (esbuild), also next to escapes', () => {

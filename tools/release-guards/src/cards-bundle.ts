@@ -1,10 +1,11 @@
 /**
  * Emergency-card text in the built bundles (the Android Hermes bundle, the iOS main.jsbundle, the
  * desktop's Vite assets):
- * - unsourced texts (the cards' former US public-domain steps and their Greek translation, which have
- *   no IFRC source; data/unsourced-card-texts.json) must never be in any bundle;
- * - sourced texts (the IFRC excerpts of @skepi/emergency-cards) may be in a bundle only when the
- *   committed source-check lock records a passed tools/cards-source-check of exactly those steps.
+ * - unsourced texts (the cards' former adapted US public-domain steps and their Greek translation, which
+ *   are no verbatim source text; data/unsourced-card-texts.json) must never be in any bundle;
+ * - sourced texts (the verbatim IFRC, CDC and Ready.gov excerpts of @skepi/emergency-cards) may be in a
+ *   bundle only when the committed source-check lock records a passed tools/cards-source-check of
+ *   exactly those steps.
  *
  * A text is searched as its longest piece without characters a bundler may escape (ASCII quotes,
  * backslash, line breaks), in UTF-8 (JavaScript), UTF-16LE (Hermes keeps non-ASCII strings as UTF-16)
@@ -19,13 +20,13 @@ interface UnsourcedFile {
   texts: { card: string; locale: string; text: string }[];
 }
 
-/** The card texts without an IFRC source (never shipped). */
+/** The former card texts without a verbatim source (never shipped). */
 export function unsourcedTexts(): string[] {
   const data = JSON.parse(readFileSync(new URL('../data/unsourced-card-texts.json', import.meta.url), 'utf8')) as UnsourcedFile;
   return data.texts.map((t) => t.text);
 }
 
-/** The IFRC excerpts the cards ship. */
+/** The verbatim source excerpts the cards ship. */
 export function sourcedTexts(): string[] {
   return CARDS.flatMap((c) => c.steps.map((s) => s.text));
 }

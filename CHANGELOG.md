@@ -9,9 +9,14 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 - Emergency cards: every step is now a verbatim excerpt from the IFRC International First Aid,
   Resuscitation and Education Guidelines 2025 with its citation (section, page), headed "Call 112 first"
   (the country's number). 8 cards ship (CPR, severe bleeding, choking, burns, fractures, hypothermia,
-  heatstroke, poisoning); earthquake, fire, flood and water purification have no IFRC passage and are no
-  longer shipped. The former US public-domain steps and their Greek translation are gone. A CI source
-  check proves every step against the pinned IFRC PDF.
+  heatstroke, poisoning). The former adapted US public-domain steps and their Greek translation are gone.
+  A CI source check proves every step against the pinned IFRC PDF.
+- Emergency cards for fire (home and wildfire), earthquake, flood and making water safe to drink are
+  back, now quoted word for word from US federal public-domain pages (FEMA Ready.gov, CDC) with their
+  citation (title, URL, retrieval date) and the agencies' no-endorsement statement; passages specific to
+  the United States (911, US agencies and programmes) are left out. 12 cards, 111 steps. The source
+  check verifies these steps against committed dated snapshots of the pages, and a weekly CI job reports
+  when a page changes.
 - Medical questions never get an AI summary (no "Show unverified AI summary" button any more): cards and
   source excerpts only, with "AI summaries are not available for medical questions."
 - One intended-purpose statement in the store description, About, README and privacy policy.
@@ -22,7 +27,8 @@ suffix. Phase reports in `docs/` have the details and the measurements.
   fix, and the coordinates under the map. Only while the map is open and the app is in front (slower in
   blackout mode); the position is never stored, logged or sent. Android and iOS; no new permission.
 - "AI-generated summary" line in every shared or copied problem report that contains an AI summary.
-- About → third-party notices: IFRC attribution and licence statement.
+- About → third-party notices: IFRC attribution and licence statement; CDC and FEMA Ready.gov sources
+  with their terms and no-endorsement statements.
 
 ## [0.1.1-preview] — Developer Preview (Android + Windows)
 

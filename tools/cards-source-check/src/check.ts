@@ -1,4 +1,4 @@
-import type { EmergencyCard } from '@skepi/emergency-cards';
+import { SOURCES, type EmergencyCard, type SourceId } from '@skepi/emergency-cards';
 
 /**
  * The comparison is exact after a normalisation of whitespace, hyphenation and quotes only:
@@ -78,13 +78,15 @@ export function pageIndexOf(pages: readonly string[], printed: number): number |
 export interface StepResult {
   card: string;
   step: number;
+  source: SourceId;
   section: string;
-  page: number;
+  /** Printed page (PDF sources); null for web pages. */
+  page: number | null;
   ok: boolean;
   problem: string | null;
 }
 
-/** Checks every step of every card against the extracted pages. */
+/** Checks every PDF-sourced step of every card against the extracted pages of the PDF. */
 export function checkCards(pages: readonly string[], cards: readonly EmergencyCard[]): StepResult[] {
   const normalized = new Map<number, string>();
   const pageText = (i: number): string => {
@@ -98,7 +100,12 @@ export function checkCards(pages: readonly string[], cards: readonly EmergencyCa
   const results: StepResult[] = [];
   for (const card of cards) {
     for (const [k, s] of card.steps.entries()) {
-      const base = { card: card.id, step: k + 1, section: s.cite.section, page: s.cite.page };
+      if (SOURCES[s.cite.source].kind !== 'pdf') continue;
+      const base = { card: card.id, step: k + 1, source: s.cite.source, section: s.cite.section, page: s.cite.page };
+      if (s.cite.page === null) {
+        results.push({ ...base, ok: false, problem: 'no cited page' });
+        continue;
+      }
       const index = pageIndexOf(pages, s.cite.page);
       if (index === null) {
         results.push({ ...base, ok: false, problem: `printed page ${String(s.cite.page)} not found in the PDF` });
@@ -116,6 +123,63 @@ export function checkCards(pages: readonly string[], cards: readonly EmergencyCa
         .filter((i) => i >= 0)
         .some((i) => includesExcerpt(pageText(i), section));
       results.push({ ...base, ok: named, problem: named ? null : `section "${s.cite.section}" is not named on page ${String(s.cite.page)} or the 5 pages before it` });
+    }
+  }
+  return results;
+}
+
+/** A heading line of a snapshot ("## Title"): its level and text; null for any other line. */
+function headingOf(line: string): { level: number; text: string } | null {
+  const m = line.match(/^(#{1,6}) (.*)$/u);
+  return m ? { level: (m[1] ?? '').length, text: m[2] ?? '' } : null;
+}
+
+/**
+ * Checks every step cited from a web page against the committed snapshot text (one block per line):
+ * the step must be an exact substring of one block (after the same whitespace and quote normalisation
+ * as the PDF check; a step never spans two blocks), and the cited section must be one of the headings
+ * that block sits under. `snapshots` maps a source id to its snapshot text.
+ */
+export function checkWebSteps(snapshots: ReadonlyMap<SourceId, string>, cards: readonly EmergencyCard[]): StepResult[] {
+  const blocks = new Map<SourceId, { text: string; headings: string[] }[]>();
+  const blocksOf = (id: SourceId): { text: string; headings: string[] }[] | null => {
+    const cached = blocks.get(id);
+    if (cached) return cached;
+    const text = snapshots.get(id);
+    if (text === undefined) return null;
+    const path: string[] = [];
+    const out: { text: string; headings: string[] }[] = [];
+    for (const line of text.split('\n')) {
+      const h = headingOf(line);
+      if (h) {
+        path.length = h.level - 1;
+        path[h.level - 1] = normalizeStep(h.text);
+        continue;
+      }
+      out.push({ text: normalizeStep(line.replace(/^- /u, '')), headings: path.filter((p) => p.length > 0) });
+    }
+    blocks.set(id, out);
+    return out;
+  };
+  const results: StepResult[] = [];
+  for (const card of cards) {
+    for (const [k, s] of card.steps.entries()) {
+      if (SOURCES[s.cite.source].kind !== 'html') continue;
+      const base = { card: card.id, step: k + 1, source: s.cite.source, section: s.cite.section, page: s.cite.page };
+      const page = blocksOf(s.cite.source);
+      if (page === null) {
+        results.push({ ...base, ok: false, problem: `no snapshot of ${s.cite.source}` });
+        continue;
+      }
+      const step = normalizeStep(s.text);
+      const found = page.filter((b) => b.text.includes(step));
+      if (found.length === 0) {
+        results.push({ ...base, ok: false, problem: `not an exact excerpt of one block of the ${s.cite.source} snapshot` });
+        continue;
+      }
+      const section = normalizeStep(s.cite.section);
+      const named = found.some((b) => b.headings.includes(section));
+      results.push({ ...base, ok: named, problem: named ? null : `not under the heading "${s.cite.section}" in the ${s.cite.source} snapshot` });
     }
   }
   return results;

@@ -4,12 +4,22 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CARDS } from './index';
-import type { EmergencyCard } from './schema';
-import { IFRC_GUIDELINES } from './sources';
+import type { CardSource, EmergencyCard } from './schema';
+import { SOURCES } from './sources';
+
+/** What pins a source: the PDF's URL and hash, or the web page's URL, retrieval date and hashes. */
+export interface LockedSource {
+  id: string;
+  url: string;
+  /** PDF: SHA-256 of the file. Web page: SHA-256 of the committed snapshot text. */
+  sha256: string;
+  /** PDF: the edition. Web page: the retrieval date of the snapshot. */
+  version: string;
+}
 
 export interface SourceCheckLock {
-  source: { url: string; sha256: string; edition: string };
-  /** SHA-256 over every card's steps and citations (`cardsDigest`). */
+  sources: LockedSource[];
+  /** SHA-256 over every card's steps and citations and the pinned sources (`cardsDigest`). */
   cardsDigest: string;
   cards: number;
   steps: number;
@@ -17,17 +27,30 @@ export interface SourceCheckLock {
 
 export const SOURCE_CHECK_LOCK = fileURLToPath(new URL('../source-check.lock.json', import.meta.url));
 
+function locked(source: CardSource): LockedSource {
+  return source.kind === 'pdf'
+    ? { id: source.id, url: source.url, sha256: source.sha256, version: source.edition }
+    : { id: source.id, url: source.url, sha256: source.textSha256, version: source.accessed };
+}
+
+/** The sources the cards cite, in the order of their first citation. */
+export function lockedSources(cards: readonly EmergencyCard[] = CARDS): LockedSource[] {
+  const ids: string[] = [];
+  for (const c of cards) for (const s of c.steps) if (!ids.includes(s.cite.source)) ids.push(s.cite.source);
+  return ids.map((id) => locked(SOURCES[id as keyof typeof SOURCES]));
+}
+
 export function cardsDigest(cards: readonly EmergencyCard[] = CARDS): string {
   const canonical = JSON.stringify({
-    source: { url: IFRC_GUIDELINES.url, sha256: IFRC_GUIDELINES.sha256, edition: IFRC_GUIDELINES.edition },
-    cards: cards.map((c) => ({ id: c.id, steps: c.steps.map((s) => [s.text, s.cite.section, s.cite.page]) })),
+    sources: lockedSources(cards),
+    cards: cards.map((c) => ({ id: c.id, steps: c.steps.map((s) => [s.text, s.cite.source, s.cite.section, s.cite.page]) })),
   });
   return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }
 
 export function expectedLock(cards: readonly EmergencyCard[] = CARDS): SourceCheckLock {
   return {
-    source: { url: IFRC_GUIDELINES.url, sha256: IFRC_GUIDELINES.sha256, edition: IFRC_GUIDELINES.edition },
+    sources: lockedSources(cards),
     cardsDigest: cardsDigest(cards),
     cards: cards.length,
     steps: cards.reduce((n, c) => n + c.steps.length, 0),
@@ -47,7 +70,7 @@ export function lockProblem(cards: readonly EmergencyCard[] = CARDS, path: strin
   const lock = readLock(path);
   if (lock === null) return `no source-check lock at ${path}`;
   const expected = expectedLock(cards);
-  if (lock.source.sha256 !== expected.source.sha256 || lock.source.url !== expected.source.url) return 'the lock was written for another source PDF';
+  if (JSON.stringify(lock.sources) !== JSON.stringify(expected.sources)) return 'the lock was written for other sources';
   if (lock.cardsDigest !== expected.cardsDigest) return 'the card steps differ from the last passed cards-source-check';
   return null;
 }

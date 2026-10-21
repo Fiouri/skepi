@@ -3,13 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "description": "Proves every emergency-card step is a verbatim excerpt of the IFRC guidelines PDF at the cited page (pinned URL and SHA-256, pdftotext).",
+  "description": "Proves every emergency-card step is a verbatim excerpt of its source: the IFRC guidelines PDF at the cited page (pinned URL and SHA-256, pdftotext) or the committed snapshot of a CDC / FEMA Ready.gov page under the cited heading; reports drift of the web pages.",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src test",
     "test": "vitest run",
-    "check": "tsx src/cli.ts"
+    "check": "tsx src/cli.ts",
+    "drift": "tsx src/cli.ts drift",
+    "snapshot": "tsx src/cli.ts snapshot"
   },
   "dependencies": {
     "@skepi/emergency-cards": "workspace:*"

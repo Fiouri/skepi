@@ -1,0 +1,41 @@
+# iOS Simulator: the earthquake card (FEMA Ready.gov, public domain) is headed "Call 112 first" and shows
+# the verbatim steps, the citation (title, URL, retrieval date) and the no-endorsement statement.
+appId: org.skepi.app
+name: SKEPI iOS public-domain emergency card
+---
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: home-emergency
+- extendedWaitUntil:
+    visible:
+      id: emergency-numbers
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: card-link-earthquake
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: card-link-earthquake
+- extendedWaitUntil:
+    visible:
+      id: card-call-first
+    timeout: 10000
+- assertVisible: "Call 112 first"
+- assertVisible:
+    id: card-step-1
+    text: "If an earthquake happens, protect yourself right away\\."
+- scrollUntilVisible:
+    element:
+      id: card-disclaimer
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: card-citation
+    text: "Source: FEMA, Ready\\.gov\\. “Earthquakes”, https://www\\.ready\\.gov/earthquakes, retrieved 2026-10-21\\."
+- assertVisible:
+    id: card-disclaimer
+    text: ".*does not imply that the Federal Emergency Management Agency or the U\\.S\\. Government endorses S\\.K\\.E\\.P\\.I\\..*"
+- takeScreenshot: e2e/out/ios/08b-card-public-domain

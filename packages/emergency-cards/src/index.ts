@@ -1,17 +1,31 @@
 import { createCardsApi } from './api';
-import { bleeding, burns, choking, cpr, fractures, heatstroke, hypothermia, poisoning } from './cards';
-import { CARD_IDS, CARD_LOCALES, type CardId, type EmergencyCard } from './schema';
+import { bleeding, burns, choking, cpr, earthquake, fire, flood, fractures, heatstroke, hypothermia, poisoning, waterPurification } from './cards';
+import { CARD_IDS, CARD_LOCALES, type CardId, type CardSource, type EmergencyCard } from './schema';
+import { SOURCES } from './sources';
 
 export * from './schema';
 export * from './numbers';
-export { IFRC_ATTRIBUTION, IFRC_GUIDELINES } from './sources';
-export { citationLine } from './api';
+export { CDC_DISCLAIMER, FEMA_DISCLAIMER, IFRC_ATTRIBUTION, IFRC_GUIDELINES, SOURCES, WEB_SOURCES } from './sources';
+export { citationLine, disclaimerOf } from './api';
 
 /** False: a full build. Developer Preview builds bundle `preview.ts` (same cards, preview label on). */
 export const PREVIEW_BUILD: boolean = false;
 
 /** Every bundled card (all sourced), in the order the Tools tab lists them. */
-export const CARDS: readonly EmergencyCard[] = [cpr, bleeding, choking, burns, fractures, hypothermia, heatstroke, poisoning];
+export const CARDS: readonly EmergencyCard[] = [
+  cpr,
+  bleeding,
+  choking,
+  burns,
+  fractures,
+  hypothermia,
+  heatstroke,
+  poisoning,
+  fire,
+  earthquake,
+  flood,
+  waterPurification,
+];
 
 const api = createCardsApi(CARDS);
 export const { cardById, localizeCard, cardsForTopics, findCards, cardsForQuestion } = api;
@@ -23,8 +37,9 @@ export interface CardProblem {
 
 /**
  * Structural checks every bundled card must pass (unit tests and the release gate): every step carries
- * a citation (section and printed page) and is a plain excerpt (no source step number, no line break).
- * That the text is verbatim at the cited page is proved by tools/cards-source-check.
+ * a citation (a known source, a section, and a printed page for PDF sources only) and is a plain excerpt
+ * (no source step number, no line break). That the text is verbatim at the cited place is proved by
+ * tools/cards-source-check.
  */
 export function validateCards(cards: readonly EmergencyCard[] = CARDS): CardProblem[] {
   const problems: CardProblem[] = [];
@@ -42,7 +57,11 @@ export function validateCards(cards: readonly EmergencyCard[] = CARDS): CardProb
       if (s.text !== s.text.trim() || /\s{2,}|[\n\r\t]/.test(s.text)) add(card.id, `${n}: whitespace must be single spaces`);
       if (/^\d+\.\s/.test(s.text)) add(card.id, `${n}: starts with a source step number`);
       if (s.cite.section.trim().length === 0) add(card.id, `${n}: no cited section`);
-      if (!Number.isInteger(s.cite.page) || s.cite.page < 1) add(card.id, `${n}: invalid cited page ${String(s.cite.page)}`);
+      const source = (SOURCES as Partial<Record<string, CardSource>>)[s.cite.source];
+      if (!source) add(card.id, `${n}: unknown source ${s.cite.source}`);
+      else if (source.kind === 'pdf' && (s.cite.page === null || !Number.isInteger(s.cite.page) || s.cite.page < 1)) {
+        add(card.id, `${n}: invalid cited page ${String(s.cite.page)}`);
+      } else if (source.kind === 'html' && s.cite.page !== null) add(card.id, `${n}: a web source has no page`);
     }
     for (const locale of CARD_LOCALES) {
       const labels = card.labels[locale];

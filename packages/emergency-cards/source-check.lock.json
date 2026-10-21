@@ -1,10 +1,43 @@
 {
-  "source": {
-    "url": "https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid,%20Resuscitation%20and%20Education%20Guidelines%202025.pdf",
-    "sha256": "eed67bdff38ca8a7628c7b01be5bcd23796601e0d85bb021dc301ec3f9ff8f1f",
-    "edition": "2025"
-  },
-  "cardsDigest": "f09ec8f621babcc488406c3c86c0c17648b2b49bb76f009048b1ed3a9e6cd29c",
-  "cards": 8,
-  "steps": 61
+  "sources": [
+    {
+      "id": "ifrc-2025",
+      "url": "https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid,%20Resuscitation%20and%20Education%20Guidelines%202025.pdf",
+      "sha256": "eed67bdff38ca8a7628c7b01be5bcd23796601e0d85bb021dc301ec3f9ff8f1f",
+      "version": "2025"
+    },
+    {
+      "id": "ready-home-fires",
+      "url": "https://www.ready.gov/home-fires",
+      "sha256": "341f594f3251611a7f9d8d49339d0878cd61b1049ce2356d83fcdc2422754808",
+      "version": "2026-10-21"
+    },
+    {
+      "id": "ready-wildfires",
+      "url": "https://www.ready.gov/wildfires",
+      "sha256": "317e1b8a71d54e368fe02cc50d1aadcf015f6ec7f149f33579c9194deeb9c4bf",
+      "version": "2026-10-21"
+    },
+    {
+      "id": "ready-earthquakes",
+      "url": "https://www.ready.gov/earthquakes",
+      "sha256": "be42ecf651b2844685322383886982f8d09d7f189e16dc04803f103620181776",
+      "version": "2026-10-21"
+    },
+    {
+      "id": "ready-floods",
+      "url": "https://www.ready.gov/floods",
+      "sha256": "4b65986d83ab059b25a13d76327d60f1eb8182fec2452b1fb644f208f616ef92",
+      "version": "2026-10-21"
+    },
+    {
+      "id": "cdc-water",
+      "url": "https://www.cdc.gov/water-emergency/about/index.html",
+      "sha256": "74920f9cb0218627b91b2791ed0fbc7f1712e7ef328a553a61d95aaf08da1b6e",
+      "version": "2026-10-21"
+    }
+  ],
+  "cardsDigest": "93cc612e11dc672de959f7fc5236a7ed90ddf8f9287befb8135739edf4b2665d",
+  "cards": 12,
+  "steps": 111
 }

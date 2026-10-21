@@ -1,6 +1,6 @@
 import { foldText, tokenize, type EmergencyTopic } from '@skepi/core';
-import { CARD_LOCALES, type CardLocale, type EmergencyCard, type LocalizedCard } from './schema';
-import { IFRC_GUIDELINES } from './sources';
+import { CARD_LOCALES, type CardLocale, type EmergencyCard, type LocalizedCard, type SourceId } from './schema';
+import { SOURCES } from './sources';
 
 /** The card functions the apps use, over one list of cards. */
 export interface CardsApi {
@@ -18,12 +18,46 @@ function pages(list: readonly number[]): string {
   return contiguous ? `pp. ${String(sorted[0])}–${String(sorted[sorted.length - 1])}` : `pp. ${sorted.join(', ')}`;
 }
 
-/** One line naming the source, edition, section(s) and printed page(s) of a card's steps. */
+function sourcesOf(card: EmergencyCard): SourceId[] {
+  const ids: SourceId[] = [];
+  for (const s of card.steps) if (!ids.includes(s.cite.source)) ids.push(s.cite.source);
+  return ids;
+}
+
+/**
+ * The citation of a card's steps: for the IFRC guidelines the edition, section(s) and printed page(s);
+ * for a web page the publisher's attribution, the page title, URL and retrieval date.
+ */
 export function citationLine(card: EmergencyCard): string {
-  const sections: string[] = [];
-  for (const s of card.steps) if (!sections.includes(s.cite.section)) sections.push(s.cite.section);
-  const parts = sections.map((section) => `“${section}”, ${pages(card.steps.filter((s) => s.cite.section === section).map((s) => s.cite.page))}`);
-  return `Source: IFRC ${IFRC_GUIDELINES.title} ${IFRC_GUIDELINES.edition}, ${parts.join('; ')}.`;
+  const groups = new Map<string, string[]>();
+  for (const id of sourcesOf(card)) {
+    const source = SOURCES[id];
+    const steps = card.steps.filter((s) => s.cite.source === id);
+    let label: string;
+    let part: string;
+    if (source.kind === 'pdf') {
+      const sections: string[] = [];
+      for (const s of steps) if (!sections.includes(s.cite.section)) sections.push(s.cite.section);
+      const cited = sections.map((section) => `“${section}”, ${pages(steps.filter((s) => s.cite.section === section).map((s) => s.cite.page ?? 0))}`);
+      label = 'Source: IFRC';
+      part = `${source.title} ${source.edition}, ${cited.join('; ')}`;
+    } else {
+      label = `${source.attribution}.`;
+      part = `“${source.title}”, ${source.url}, retrieved ${source.accessed}`;
+    }
+    groups.set(label, [...(groups.get(label) ?? []), part]);
+  }
+  return [...groups].map(([label, parts]) => `${label} ${parts.join('; ')}.`).join(' ');
+}
+
+/** The no-endorsement statement(s) of a card's web sources; null when every step is IFRC text. */
+export function disclaimerOf(card: EmergencyCard): string | null {
+  const out: string[] = [];
+  for (const id of sourcesOf(card)) {
+    const source = SOURCES[id];
+    if (source.kind === 'html' && !out.includes(source.disclaimer)) out.push(source.disclaimer);
+  }
+  return out.length > 0 ? out.join(' ') : null;
 }
 
 /**
@@ -65,6 +99,7 @@ export function createCardsApi(all: readonly EmergencyCard[]): CardsApi {
       title: card.labels[locale].title,
       steps: card.steps,
       citation: citationLine(card),
+      disclaimer: disclaimerOf(card),
     }),
     cardsForTopics,
     findCards,

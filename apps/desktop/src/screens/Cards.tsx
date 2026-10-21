@@ -4,7 +4,7 @@ import { ALL_CARDS, CardView, EmergencyNumbers } from '../components/Cards';
 import { Button } from '../components/ui';
 import { useMessages } from '../lib/i18n';
 
-/** Emergency numbers first, then the bundled cards (verbatim IFRC excerpts; no pack needed). */
+/** Emergency numbers first, then the bundled cards (verbatim IFRC, CDC and Ready.gov excerpts; no pack needed). */
 export function CardsScreen() {
   const t = useMessages();
   const cardId = useNav((s) => s.cardId);
