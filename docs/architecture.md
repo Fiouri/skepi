@@ -295,7 +295,16 @@ Maps are vector tiles in one PMTiles file per region, rendered by MapLibre direc
 | User places | Meeting points, water sources and notes in SQLite. Export to GeoJSON and share via P2P. |
 | Desktop | MapLibre GL JS in the webview; pmtiles JS reads through a custom Tauri protocol serving range requests from disk. |
 
-**Permissions and energy:** location "while in use" only, never background; the permission is asked only when the user presses "My location" (iOS: "while in use" from CoreLocation). GPS and compass run only while the map tab is focused and the app is in the foreground (the module also stops them on background): fixes every 1 s and compass readings at most every 200 ms; in blackout mode every 15 s and 1 s (decision 2026-10-21, replacing "update on tap"). The position is never stored, logged, shared or sent over P2P: it lives only in the map screen's memory; the release permission allowlist is unchanged (no new permission).
+**Permissions and energy:** location "while in use" only, never background; the permission is asked only when the user presses "My location" (iOS: "while in use" from CoreLocation). GPS and compass run only while the map tab is focused and the app is in the foreground (the module also stops them on background): fixes every 1 s and compass readings at most every 200 ms; in blackout mode every 15 s and 1 s (decision 2026-10-21, replacing "update on tap"). The position is never stored, logged, shared or sent over P2P: it lives only in the map screen's memory; the release permission allowlist is unchanged (no new permission). Measured unplugged on the S23 (2026-10-21, `e2e/run-map-energy.ps1`: wireless adb, 15 min per window, screen on at brightness 100/255, airplane mode with Wi-Fi kept for adb, GNSS fix held; data in [`energy/map-2026-10-21/`](energy/map-2026-10-21/)):
+
+| Map tab in front | Mean discharge current | Charge counter |
+| --- | --- | --- |
+| No location (permission denied) | 175 mA | 203 mAh/h |
+| Follow mode (fixes every 1 s, compass ≤ 5/s) | 292 mA | 333 mAh/h |
+| Blackout mode, no location | 166 mA | 174 mAh/h |
+| Blackout mode, follow (fixes every 15 s, compass ≤ 1/s) | 201 mA | 217 mAh/h |
+
+GNSS + compass cost: **+117 mA (+131 mAh/h, ≈ 3% of the 3,900 mAh battery per hour)** at the normal rate, **+35 mA (+44 mAh/h)** in blackout mode. The compass starts only once location updates run (no heading without a position).
 
 **Out of scope:** turn-by-turn navigation (Organic Maps and CoMaps already do it well).
 
@@ -536,7 +545,7 @@ One tap from the home screen (switch, persisted in app.db); suggested when the b
 
 - Pure-black theme (OLED, `packages/ui-tokens` `BLACKOUT`), no animations (navigation transitions off, no spinners), dark CSS injected into article HTML by the sealed viewer.
 - AI off by default: no automatic summary, the model is unloaded on entry; "Summarise with AI" on request. Layer 1 answers remain.
-- GPS and compass at a lower rate on the map only (fixes every 15 s, compass at most 1 per second; decision 2026-10-21) and on tap in Tools; no other periodic work in blackout mode.
+- GPS and compass at a lower rate on the map only (fixes every 15 s, compass at most 1 per second; decision 2026-10-21; measured +35–44 mAh/h on the S23 against +117–131 mAh/h at the normal rate) and on tap in Tools; no other periodic work in blackout mode.
 - A power-saving tips card (airplane mode, brightness, OS battery saver, close apps).
 - Costly buttons (AI summary, GPS fix, SOS torch per minute) show the median of the last measured costs on this device ("≈ 1% battery") once three samples exist. Samples (`energy_samples`) come from the battery charge counter (µAh) or the 1% level steps between the start and the end of the action; nothing is recorded while charging. Reference values are measured unplugged over wireless adb (`e2e/adb-wireless.ps1`, `e2e/run-energy.ps1`; Bench → clear/export samples).
 
@@ -839,7 +848,7 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | The IFRC PDF moves or changes | CI source check fails (download or SHA-256) | PDF cached in CI by its hash; a new edition is pinned deliberately (URL, hash, page citations re-checked) |
 | `pdftotext` output differs between versions (Poppler on CI, Xpdf in Git for Windows) | False failures of the source check | Normalisation of whitespace, hyphenation and quotes only; checked with Poppler 26.09 and Xpdf 4.06 (61/61) |
 | First GNSS fix offline is slow (no A-GPS) and indoors there may be none | The map shows no puck for minutes | "Waiting for GPS…" with the satellites in use and the advice to stay outdoors; the last fix stays as a grey puck; Tools' one-shot fix with a 3-minute timeout |
-| Continuous GPS and compass drain the battery | Less battery in a blackout | Map tab in front only, stops on background; 15 s fixes and 1 s compass in blackout mode; the energy cost of continuous tracking still needs an untethered measurement (owner) |
+| Continuous GPS and compass drain the battery | Less battery in a blackout | Map tab in front only, stops on background; 15 s fixes and 1 s compass in blackout mode; measured unplugged on the S23: +117–131 mAh/h at the normal rate (≈ 3% of the battery per hour), +35–44 mAh/h in blackout mode |
 | Apple rejects the app (GPL, 1.4.1, 2.5.2) | iOS lost | Internal TestFlight in Phase 2; public submission in Phase 3 after legal review |
 | Thermal throttling and battery drain | Useless in a real blackout | Guards, blackout mode, measured cost in the UI |
 | Catalog key theft | Malicious content with an official signature | Offline key, backup key, rotation procedure |

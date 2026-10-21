@@ -203,13 +203,15 @@ export default function MapScreen() {
       } catch (e) {
         const code = errorCode(e);
         setLocationStatus(code === 'ERR_GPS_DISABLED' ? 'gps-off' : 'permission');
+        return;
+      }
+      // The heading is drawn only with a position: no compass without location updates.
+      try {
+        if (ExpoEmergencyTools.compassAvailable()) ExpoEmergencyTools.startCompass(blackout ? HEADING_INTERVAL_MS_BLACKOUT : HEADING_INTERVAL_MS);
+      } catch {
+        setCompass(null);
       }
     })();
-    try {
-      if (ExpoEmergencyTools.compassAvailable()) ExpoEmergencyTools.startCompass(blackout ? HEADING_INTERVAL_MS_BLACKOUT : HEADING_INTERVAL_MS);
-    } catch {
-      setCompass(null);
-    }
     // The puck turns grey when no fix arrives for a while.
     const tick = setInterval(
       () => {

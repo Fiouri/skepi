@@ -1,0 +1,92 @@
+﻿{
+    "date":  "2026-10-21T16:48:50",
+    "device":  "SM-S911B",
+    "appVersion":  "0.1.1-preview",
+    "minutesPerRun":  15,
+    "intervalSeconds":  5,
+    "brightness":  100,
+    "runs":  [
+                 {
+                     "run":  "idle-normal",
+                     "mode":  "idle",
+                     "blackout":  false,
+                     "minutes":  15.4,
+                     "samples":  181,
+                     "meanDischargeMa":  175,
+                     "chargeCounterMahPerHour":  202.5,
+                     "levelBefore":  98,
+                     "levelAfter":  97,
+                     "temperatureBeforeC":  28.4,
+                     "temperatureAfterC":  25.9,
+                     "appInForeground":  true,
+                     "screenAtEnd":  [
+                                         "Location permission"
+                                     ]
+                 },
+                 {
+                     "run":  "follow-normal",
+                     "mode":  "follow",
+                     "blackout":  false,
+                     "minutes":  15.4,
+                     "samples":  181,
+                     "meanDischargeMa":  292.2,
+                     "chargeCounterMahPerHour":  333.1,
+                     "levelBefore":  96,
+                     "levelAfter":  94,
+                     "temperatureBeforeC":  26.5,
+                     "temperatureAfterC":  27.6,
+                     "appInForeground":  true,
+                     "screenAtEnd":  [
+                                         "Following you",
+                                         "You are here"
+                                     ]
+                 },
+                 {
+                     "run":  "follow-blackout",
+                     "mode":  "follow",
+                     "blackout":  true,
+                     "minutes":  15.4,
+                     "samples":  181,
+                     "meanDischargeMa":  201,
+                     "chargeCounterMahPerHour":  217.2,
+                     "levelBefore":  94,
+                     "levelAfter":  93,
+                     "temperatureBeforeC":  28.2,
+                     "temperatureAfterC":  25.9,
+                     "appInForeground":  true,
+                     "screenAtEnd":  [
+                                         "Following you",
+                                         "You are here"
+                                     ]
+                 },
+                 {
+                     "run":  "idle-blackout",
+                     "mode":  "idle",
+                     "blackout":  true,
+                     "minutes":  15.4,
+                     "samples":  181,
+                     "meanDischargeMa":  166.2,
+                     "chargeCounterMahPerHour":  173.6,
+                     "levelBefore":  92,
+                     "levelAfter":  91,
+                     "temperatureBeforeC":  26.5,
+                     "temperatureAfterC":  25,
+                     "appInForeground":  true,
+                     "screenAtEnd":  [
+                                         "Location permission"
+                                     ]
+                 }
+             ],
+    "gnssAndCompassCost":  [
+                               {
+                                   "variant":  "normal",
+                                   "followMinusIdleMa":  117.2,
+                                   "followMinusIdleChargeCounterMahPerHour":  130.6
+                               },
+                               {
+                                   "variant":  "blackout",
+                                   "followMinusIdleMa":  34.8,
+                                   "followMinusIdleChargeCounterMahPerHour":  43.6
+                               }
+                           ]
+}

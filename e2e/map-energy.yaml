@@ -1,0 +1,67 @@
+# Map battery cost (run by e2e/run-map-energy.ps1 over wireless adb, phone on battery, airplane mode
+# with Wi-Fi kept on for adb): puts the map tab in front in the state to measure and leaves the app
+# there; the runner then samples the battery for the measurement window.
+#   MODE=follow  location granted: GNSS fixes and compass run, "My location" pressed twice (follow mode)
+#   MODE=idle    location permission denied: no GNSS, no compass
+#   BLACKOUT=on|off
+# launchApp sets the location permission (Maestro grants every permission unless told otherwise).
+appId: ${APP_ID}
+name: SKEPI map energy setup
+---
+- launchApp:
+    stopApp: true
+    permissions:
+      location: "${MODE == 'follow' ? 'allow' : 'deny'}"
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-search
+- runFlow:
+    when:
+      true: ${BLACKOUT == 'on'}
+      visible:
+        id: blackout-off
+    commands:
+      - tapOn:
+          id: blackout-toggle
+- runFlow:
+    when:
+      true: ${BLACKOUT == 'off'}
+      visible:
+        id: blackout-on
+    commands:
+      - tapOn:
+          id: blackout-toggle
+- extendedWaitUntil:
+    visible:
+      id: "${BLACKOUT == 'on' ? 'blackout-on' : 'blackout-off'}"
+    timeout: 10000
+- tapOn:
+    id: tab-map
+- extendedWaitUntil:
+    visible:
+      id: map-status
+      text: "Map ready.*"
+    timeout: 60000
+- runFlow:
+    when:
+      true: ${MODE == 'follow'}
+    commands:
+      - assertNotVisible:
+          id: map-location-permission
+      - tapOn:
+          id: map-my-location
+      - tapOn:
+          id: map-my-location
+      - extendedWaitUntil:
+          visible: "Following you"
+          timeout: 5000
+- runFlow:
+    when:
+      true: ${MODE == 'idle'}
+    commands:
+      - assertVisible:
+          id: map-location-permission
+      - assertNotVisible:
+          id: map-waiting-gps
+      - assertNotVisible:
+          id: map-puck
