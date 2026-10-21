@@ -54,20 +54,27 @@ env:
           id: ask-submit
       - extendedWaitUntil:
           visible:
-            id: layer1
+            id: inline-card-earthquake
           timeout: 60000
       - assertVisible:
           id: emergency-banner
+# The number, then the earthquake card (Ready.gov), then Layer 1 further down (the card is long).
 - assertVisible:
-    id: layer1
+    id: inline-card-earthquake
     below:
       id: emergency-banner
-- takeScreenshot: e2e/out/ios/06-number-before-layer1
+- takeScreenshot: e2e/out/ios/06-number-and-card-first
 - extendedWaitUntil:
     visible:
       id: ask-phase
       text: "done"
     timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: layer1
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: e2e/out/ios/06b-layer1-after-the-card
 - scrollUntilVisible:
     element:
       id: summary-emergency
