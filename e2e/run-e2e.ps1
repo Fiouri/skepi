@@ -6,7 +6,7 @@
   2. e2e/ask-t1.yaml    English UI, T1-simulation: Layer 1, then "Summarise with AI".
   3. e2e/medical.yaml   English UI: emergency number + Layer 1 only, no AI summary (not even on tap).
   4. e2e/onboarding.yaml "Get prepared" offline with the installed packs; readiness indicator.
-  5. e2e/cards.yaml     Emergency button, numbers, an IFRC card with its citation; an emergency question shows number + card first.
+  5. e2e/cards.yaml     Emergency button, numbers, an IFRC card and the Ready.gov / CDC cards with citation and disclaimer; an emergency question shows number + card first.
   6. e2e/tools.yaml     SOS torch and screen, compass, GNSS fix, SMS hand-off (location permission granted here).
   6b. e2e/map-location.yaml (only with -MockLocation, debug build with map-gr) Live position on the map:
      puck, coordinates, "My location" centre/follow, panning leaves follow mode.
@@ -56,6 +56,17 @@ $env:MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED = 'true'
 
 $adbArgs = @()
 if ($Serial) { $adbArgs += @('-s', $Serial) }
+
+# The S23 drops off adb for a few seconds when Maestro closes its session (USB re-enumeration): wait
+# for it before the next flow, the restore steps and the egress checks instead of failing them.
+function Wait-Adb([int]$Seconds = 90) {
+  for ($i = 0; $i -lt $Seconds; $i += 1) {
+    # Windows PowerShell turns adb's "device not found" on stderr into an error under 'Stop'.
+    try { if (((& adb @adbArgs get-state 2>$null) -join '').Trim() -eq 'device') { return } } catch { }
+    Start-Sleep -Seconds 1
+  }
+  throw "the device is not back on adb after $Seconds s"
+}
 
 $package = $AppId
 if ($MockLocation -and $SimulateGnss) { throw '-MockLocation and -SimulateGnss are exclusive' }
@@ -201,6 +212,7 @@ try {
     if ($battery) { Set-SimulatedBattery $true }
     try {
       $results += [pscustomobject]@{ Flow = $f.Flow; App = $app; Exit = (Invoke-Flow $f.Flow $f.Report $app) }
+      Wait-Adb
       # SMS hand-off (tools.yaml): the app only started a VIEW sms: intent (data redacted in logcat).
       # Counted right away: later flows push it out of the log buffer.
       if ($f.Flow -eq 'e2e/tools.yaml') { $script:smsIntents = @(& adb @adbArgs logcat -d | Select-String -Pattern 'START u0 \{act=android.intent.action.VIEW dat=sms:').Count }
@@ -214,6 +226,7 @@ try {
     }
   }
 } finally {
+  Wait-Adb
   Set-SimulatedBattery $false
   if (-not $locationWasOn) { Set-Location $false }
   Set-AppLocale ''

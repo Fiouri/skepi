@@ -101,7 +101,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
-      # The desktop UI bundle (Developer Preview build): no unsourced card text, every IFRC-sourced step
+      # The desktop UI bundle (Developer Preview build): no unsourced card text, every sourced step
       # (shipped only with a passed source check, packages/emergency-cards/source-check.lock.json).
       - name: Desktop bundle card text (unsourced 0, sourced only when source-checked)
         run: |

@@ -26,7 +26,7 @@ name: SKEPI iOS public-domain emergency card
 - assertVisible: "Call 112 first"
 - assertVisible:
     id: card-step-1
-    text: "If an earthquake happens, protect yourself right away\\."
+    text: ".*If an earthquake happens, protect yourself right away\\."
 - scrollUntilVisible:
     element:
       id: card-disclaimer

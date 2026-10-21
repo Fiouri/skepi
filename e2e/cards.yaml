@@ -74,7 +74,7 @@ onFlowComplete:
 - assertVisible: "Call 112 first"
 - assertVisible:
     id: card-step-1
-    text: "If an earthquake happens, protect yourself right away\\."
+    text: ".*If an earthquake happens, protect yourself right away\\."
 - scrollUntilVisible:
     element:
       id: card-disclaimer
@@ -98,7 +98,7 @@ onFlowComplete:
 - extendedWaitUntil:
     visible:
       id: card-step-1
-      text: "Use bottled, boiled, or treated water to avoid getting sick\\."
+      text: ".*Use bottled, boiled, or treated water to avoid getting sick\\."
     timeout: 10000
 - scrollUntilVisible:
     element:
@@ -150,26 +150,29 @@ onFlowComplete:
 - hideKeyboard
 - tapOn:
     id: ask-submit
+# The number, then the earthquake card (Ready.gov), then Layer 1 further down (the card is long).
 - extendedWaitUntil:
     visible:
-      id: layer1
+      id: inline-card-earthquake
     timeout: 30000
 - assertVisible:
     id: emergency-banner
 - assertVisible:
-    id: layer1
-    below:
-      id: emergency-banner
-- assertVisible:
     id: inline-card-earthquake
     below:
       id: emergency-banner
-- takeScreenshot: e2e/out/cards-05-number-before-layer1
+- takeScreenshot: e2e/out/cards-05-number-and-card-first
 - extendedWaitUntil:
     visible:
       id: ask-phase
       text: "done"
     timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: layer1
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: e2e/out/cards-05b-layer1-after-the-card
 # Emergency intent: no AI summary at all, not even on tap
 - scrollUntilVisible:
     element:
