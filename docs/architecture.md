@@ -416,8 +416,10 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
   the cards without steps ("Under professional review"); since the IFRC decision every build mode ships
   the sourced steps (User safety). Every release build scans its bundle (`tools/release-guards`
   `cards-bundle`, UTF-8, UTF-16LE and `\uXXXX` escapes): no unsourced card text (the 202 former step
-  texts, `tools/release-guards/data/unsourced-card-texts.json`), every sourced step present, and sourced
-  steps only with a source-check lock that matches them. Android checks in Gradle right after the JS
+  texts, `tools/release-guards/data/unsourced-card-texts.json`), every sourced step present (61/61; a step
+  too short for a probe, such as "Access EMS.", must be a whole entry of the Hermes string table or a
+  whole JavaScript string literal, never a piece of a longer string), and sourced steps only with a
+  source-check lock that matches them. Android checks in Gradle right after the JS
   bundle (`skepiCheckCardsBundle`), iOS in a build phase, the desktop in CI.
 - **About.** Licence, content/data/model licences, release signing fingerprint
   (`ANDROID_RELEASE_SIGNING_SHA256` in `@skepi/core`, equal to the Station check in Rust), privacy, and

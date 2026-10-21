@@ -30,7 +30,8 @@ second after install. Cards never pass through the LLM.
 - `scripts/check-release.ts` runs in every release build (Android `skepiCheckEmergencyCards`, iOS build
   phase): structure (every step cited) and the lock digest. CI proves it fails on an altered step.
 - `tools/release-guards` `cards-bundle` scans the built bundles: no unsourced card text (the 202 former
-  texts), every sourced step present, and sourced steps only with a matching lock.
+  texts), every sourced step present (short steps such as "Access EMS." as an exact whole string: a Hermes
+  string-table entry or a JavaScript string literal), and sourced steps only with a matching lock.
 
 ## Emergency numbers
 

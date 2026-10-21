@@ -6,12 +6,13 @@
  * - any unsourced card text is in the bundles;
  * - sourced (IFRC) card steps are in the bundles but packages/emergency-cards/source-check.lock.json
  *   does not record a passed tools/cards-source-check of exactly these steps;
- * - with --expect-sourced (release builds): not every sourced step is found (the cards must ship).
+ * - with --expect-sourced (release builds): not every sourced step is found (the cards must ship; a step
+ *   too short for a probe must be an exact whole string of the bundle).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { lockProblem } from '@skepi/emergency-cards/digest';
-import { findTexts, probeOf, sourcedTexts, unsourcedTexts } from './cards-bundle';
+import { findTexts, sourcedTexts, unsourcedTexts } from './cards-bundle';
 
 const BUNDLE = /\.(js|bundle|hbc)$/;
 
@@ -39,7 +40,6 @@ const unsourced = unsourcedTexts();
 const sourced = sourcedTexts();
 const badHits = findTexts(bundles, unsourced);
 const goodHits = findTexts(bundles, sourced);
-const probedSourced = sourced.filter((t) => probeOf(t) !== null).length;
 let failed = false;
 for (const h of badHits) console.error(`unsourced card text in a bundle: "${h.slice(0, 80)}…"`);
 if (badHits.length > 0) {
@@ -51,13 +51,13 @@ if (goodHits.length > 0 && lock !== null) {
   console.error(`CARDS BUNDLE FAIL: ${String(goodHits.length)} sourced card steps shipped without a passed source check (${lock})`);
   failed = true;
 }
-if (expectSourced && goodHits.length < probedSourced) {
-  const missing = sourced.filter((t) => probeOf(t) !== null && !goodHits.includes(t));
+if (expectSourced && goodHits.length < sourced.length) {
+  const missing = sourced.filter((t) => !goodHits.includes(t));
   for (const m of missing.slice(0, 5)) console.error(`sourced step not found: "${m.slice(0, 80)}…"`);
-  console.error(`CARDS BUNDLE FAIL: ${String(goodHits.length)}/${String(probedSourced)} sourced card steps found (--expect-sourced)`);
+  console.error(`CARDS BUNDLE FAIL: ${String(goodHits.length)}/${String(sourced.length)} sourced card steps found (--expect-sourced)`);
   failed = true;
 }
 if (failed) process.exit(1);
 console.log(
-  `CARDS BUNDLE PASS: unsourced steps 0/${String(unsourced.length)}; sourced steps ${String(goodHits.length)}/${String(probedSourced)} (source check lock ${lock === null ? 'ok' : 'not needed'}) in ${String(paths.length)} bundle files`,
+  `CARDS BUNDLE PASS: unsourced steps 0/${String(unsourced.length)}; sourced steps ${String(goodHits.length)}/${String(sourced.length)} (source check lock ${lock === null ? 'ok' : 'not needed'}) in ${String(paths.length)} bundle files`,
 );

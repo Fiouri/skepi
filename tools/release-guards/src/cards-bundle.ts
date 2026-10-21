@@ -8,7 +8,9 @@
  *
  * A text is searched as its longest piece without characters a bundler may escape (ASCII quotes,
  * backslash, line breaks), in UTF-8 (JavaScript), UTF-16LE (Hermes keeps non-ASCII strings as UTF-16)
- * and with non-ASCII characters as \uXXXX escapes (esbuild's ASCII output).
+ * and with non-ASCII characters as \uXXXX escapes (esbuild's ASCII output). A text too short for such
+ * a probe (e.g. "Access EMS.") must match exactly: a whole entry of the Hermes string table, or a whole
+ * JavaScript string literal between matching quotes; never a piece of a longer string.
  */
 import { readFileSync } from 'node:fs';
 import { CARDS } from '@skepi/emergency-cards';
@@ -59,11 +61,87 @@ export function patternsOf(text: string): Buffer[] {
   return out;
 }
 
-/** The texts found in any of the bundles. */
+const HBC_MAGIC = 0x1f1903c103bc1fc6n;
+/** Hermes bytecode versions whose section layout hermesStrings knows (hermes-compiler of React Native 0.86: 98). */
+const HBC_VERSIONS: ReadonlySet<number> = new Set([98]);
+/** BytecodeFileHeader (128 bytes) and SmallFuncHeader (12 bytes) of these versions. */
+const HBC_HEADER_SIZE = 128;
+const HBC_FUNCTION_HEADER_SIZE = 12;
+
+/**
+ * The string table of a Hermes bytecode file, or null when the file is not Hermes bytecode. Sections
+ * follow the header in this order, each 4-byte aligned: function headers, string kinds, identifier
+ * hashes, the small string table, the overflow string table, the string storage. A small entry packs
+ * isUTF16 (bit 0), offset (23 bits) and length (8 bits; 255 = the offset indexes the overflow table).
+ * Entries may overlap in the storage (Hermes packs a string into the start or end of another), so only
+ * the table tells where a string begins and ends.
+ */
+export function hermesStrings(bytes: Uint8Array): string[] | null {
+  const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (buf.length < HBC_HEADER_SIZE || buf.readBigUInt64LE(0) !== HBC_MAGIC) return null;
+  const version = buf.readUInt32LE(8);
+  if (!HBC_VERSIONS.has(version)) {
+    throw new Error(`Hermes bytecode version ${String(version)} is not known to the card bundle scan (known: ${[...HBC_VERSIONS].join(', ')})`);
+  }
+  const u32 = (offset: number): number => buf.readUInt32LE(offset);
+  if (u32(0x20) !== buf.length) throw new Error('Hermes bytecode: the file length in the header does not match the file');
+  const functions = u32(0x28);
+  const kinds = u32(0x2c);
+  const identifiers = u32(0x30);
+  const count = u32(0x34);
+  const overflowCount = u32(0x38);
+  const storageSize = u32(0x3c);
+  const table = HBC_HEADER_SIZE + functions * HBC_FUNCTION_HEADER_SIZE + 4 * kinds + 4 * identifiers;
+  const overflowTable = table + 4 * count;
+  const storage = overflowTable + 8 * overflowCount;
+  if (storage + storageSize > buf.length) throw new Error('Hermes bytecode: the string storage runs past the end of the file');
+  const out: string[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const entry = u32(table + 4 * i);
+    const utf16 = (entry & 1) === 1;
+    let offset = (entry >>> 1) & 0x7fffff;
+    let length = entry >>> 24;
+    if (length === 255) {
+      if (offset >= overflowCount) throw new Error(`Hermes bytecode: string ${String(i)} points past the overflow table`);
+      length = u32(overflowTable + 8 * offset + 4);
+      offset = u32(overflowTable + 8 * offset);
+    }
+    const size = utf16 ? 2 * length : length;
+    if (offset + size > storageSize) throw new Error(`Hermes bytecode: string ${String(i)} runs past the string storage`);
+    out.push(buf.toString(utf16 ? 'utf16le' : 'latin1', storage + offset, storage + offset + size));
+  }
+  return out;
+}
+
+/** Characters that a bundler writes escaped inside a string literal (the literal match does not model escaping). */
+const LITERAL_ESCAPED = /["'`\\\n\r]/;
+
+/** The text as a whole JavaScript string literal between matching quotes, raw or with \uXXXX escapes. */
+export function literalPatternsOf(text: string): Buffer[] {
+  if (LITERAL_ESCAPED.test(text)) throw new Error(`no exact literal match for a text with quotes, backslashes or line breaks: "${text}"`);
+  const bodies = [text, escaped(text, false), escaped(text, true)].filter((b, i, all) => all.indexOf(b) === i);
+  return ['"', "'", '`'].flatMap((q) => bodies.map((b) => Buffer.from(`${q}${b}${q}`, 'utf8')));
+}
+
+interface Haystack {
+  bytes: Buffer;
+  /** The Hermes string table, or null for a JavaScript bundle. */
+  strings: ReadonlySet<string> | null;
+}
+
+/**
+ * The texts found in any of the bundles: by probe, or for a text too short for a probe, as an exact
+ * whole string (Hermes string table entry or JavaScript string literal).
+ */
 export function findTexts(bundles: readonly Uint8Array[], texts: readonly string[]): string[] {
-  const haystacks = bundles.map((b) => Buffer.from(b));
+  const haystacks: Haystack[] = bundles.map((b) => {
+    const strings = hermesStrings(b);
+    return { bytes: Buffer.from(b), strings: strings === null ? null : new Set(strings) };
+  });
   return texts.filter((t) => {
     const patterns = patternsOf(t);
-    return patterns.length > 0 && haystacks.some((h) => patterns.some((p) => h.includes(p)));
+    if (patterns.length > 0) return haystacks.some((h) => patterns.some((p) => h.bytes.includes(p)));
+    const literals = literalPatternsOf(t);
+    return haystacks.some((h) => (h.strings === null ? literals.some((p) => h.bytes.includes(p)) : h.strings.has(t)));
   });
 }
