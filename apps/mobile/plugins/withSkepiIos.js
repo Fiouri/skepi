@@ -4,9 +4,9 @@
 // - SkepiZim (modules/expo-zim/ios) with its XCTest spec, so `xcodebuild test -scheme SkepiZim-Unit-Tests`
 //   runs the binding, catalog/hash and viewer-sealing tests on a Simulator.
 // - Build phases (plugins/ios/skepi-xcode.sh): map assets and the embedded signed catalog per configuration,
-//   the release catalog check, the draft emergency-cards gate (Release) and, with SKEPI_PREVIEW=1, the scan
-//   of the built JS bundle for card advice text: the iOS counterparts of withContentStore.js and
-//   withEmergencyCards.js.
+//   the release catalog check, the emergency-cards gate (Release: every step IFRC-sourced and
+//   source-checked) and the scan of the built Release JS bundle for card text: the iOS counterparts of
+//   withContentStore.js and withEmergencyCards.js.
 const { withPodfile, withXcodeProject } = require('expo/config-plugins');
 
 const PODFILE_MARKER = '# skepi:ios';
@@ -28,7 +28,7 @@ ${text}`;
 
 const PHASES = [
   { name: '[SKEPI] Resources and release checks', mode: 'resources', first: true },
-  { name: '[SKEPI] Preview bundle check', mode: 'preview-bundle', first: false },
+  { name: '[SKEPI] Cards bundle check', mode: 'cards-bundle', first: false },
 ];
 
 const withIosBuildPhases = (config) =>

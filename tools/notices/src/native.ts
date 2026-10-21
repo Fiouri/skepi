@@ -1,3 +1,4 @@
+import { IFRC_ATTRIBUTION, IFRC_GUIDELINES } from '@skepi/emergency-cards';
 import type { Component } from './notices';
 
 /**
@@ -42,4 +43,21 @@ export const ASSETS: readonly Omit<Component, 'texts'>[] = [
   { ecosystem: 'native', name: 'Noto Sans map glyphs (protomaps/basemaps-assets)', version: '028c18f', license: 'OFL-1.1', url: 'https://github.com/protomaps/basemaps-assets' },
   { ecosystem: 'native', name: 'Map sprites (protomaps/basemaps-assets, from tangrams/icons)', version: '028c18f', license: 'MIT', url: 'https://github.com/tangrams/icons' },
   { ecosystem: 'native', name: 'Protomaps basemap style', version: '5.7.2', license: 'BSD-3-Clause (code), CC0-1.0 (visual design)', url: 'https://github.com/protomaps/basemaps' },
+];
+
+/**
+ * Bundled content under its own terms, with the notice text shown in About: the emergency-card steps are
+ * verbatim excerpts of the IFRC guidelines (non-commercial use, source acknowledged).
+ */
+export const CONTENT: readonly { component: Omit<Component, 'texts'>; text: string }[] = [
+  {
+    component: {
+      ecosystem: 'native',
+      name: `Emergency card text: IFRC ${IFRC_GUIDELINES.title} ${IFRC_GUIDELINES.edition}`,
+      version: IFRC_GUIDELINES.edition,
+      license: 'IFRC: non-commercial use, providing the source is acknowledged',
+      url: IFRC_GUIDELINES.url,
+    },
+    text: `${IFRC_ATTRIBUTION}\n\nThe IFRC would appreciate receiving details of its use. Requests for commercial reproduction should be directed to the IFRC at secretariat@ifrc.org.\n\nS.K.E.P.I. is free and non-commercial. The card steps are quoted word for word; each card cites the section and page. The IFRC does not endorse S.K.E.P.I.`,
+  },
 ];

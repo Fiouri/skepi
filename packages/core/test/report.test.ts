@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildLayer1 } from '../src/extractive';
-import { PROBLEM_REPORT_MAX_DESCRIPTION, problemReportShare, problemReportText } from '../src/report';
+import { AI_GENERATED_MARKER, PROBLEM_REPORT_MAX_DESCRIPTION, problemReportShare, problemReportText } from '../src/report';
 
 const labels = {
   title: 'S.K.E.P.I. problem report',
@@ -14,6 +14,29 @@ const labels = {
   userText: 'What is wrong',
 };
 const source = { id: 'S1', archiveId: 'arch-7', path: 'Lighthouse_keeping', title: 'Lighthouse keeping', heading: 'Duties', text: 'Keepers trimmed the wicks nightly. They logged passing ships.' };
+
+describe('AI-generated marker (AI Act Art. 50)', () => {
+  const input = {
+    appVersion: 'S.K.E.P.I. 0.1.2 (Android)',
+    question: 'What did lighthouse keepers do at night?',
+    layer1: buildLayer1('What did lighthouse keepers do at night?', [source]),
+    sources: [source],
+  };
+
+  it('a shared or copied report with an AI summary carries the plain marker line before it', () => {
+    const text = problemReportText({ ...input, aiSentences: [{ text: 'Keepers trimmed the wicks every night.', source: 'S1' }] }, labels);
+    const lines = text.split('\n');
+    expect(AI_GENERATED_MARKER).toBe('AI-generated summary');
+    expect(lines).toContain('AI-generated summary');
+    expect(lines.indexOf('AI-generated summary')).toBeLessThan(lines.indexOf('- Keepers trimmed the wicks every night. [S1]'));
+    const shared = problemReportShare({ ...input, aiSentences: [{ text: 'Keepers trimmed the wicks every night.', source: 'S1' }] }, labels);
+    expect(shared.message.split('\n')).toContain('AI-generated summary');
+  });
+
+  it('a report without an AI summary has no marker', () => {
+    expect(problemReportText({ ...input, aiSentences: [] }, labels)).not.toContain(AI_GENERATED_MARKER);
+  });
+});
 
 describe('problem report text', () => {
   it('holds the question, what was shown, the sources and the version, nothing else', () => {

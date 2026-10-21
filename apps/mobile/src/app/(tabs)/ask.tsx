@@ -2,6 +2,7 @@ import {
   retrieve,
   summarise,
   summaryAllowed,
+  summaryBlock,
   unbundledNumbers,
   type EmergencyMatch,
   type Layer1Passage,
@@ -143,10 +144,9 @@ export default function AskScreen() {
         },
       });
       setRetrieved(r);
-      // T2+: the AI summary follows Layer 1 automatically, except on medical intent and in blackout
-      // mode (tap only, with the measured cost). On emergency intent there is no AI summary at all
-      // (summaryAllowed).
-      if (summaryAllowed(r) && model && profile.summaryMode === 'auto' && !r.medical && !blackout) await runSummary(r, abort);
+      // T2+: the AI summary follows Layer 1 automatically, except in blackout mode (tap only, with the
+      // measured cost). On emergency and medical intent there is no AI summary at all (summaryAllowed).
+      if (summaryAllowed(r) && model && profile.summaryMode === 'auto' && !blackout) await runSummary(r, abort);
     });
   };
 
@@ -170,10 +170,10 @@ export default function AskScreen() {
   };
 
   const shownSentences = summary?.status === 'shown' ? (summary.validation?.kept ?? []) : streamed;
-  const unverified = (summary?.label ?? (medical ? 'unverified-ai-summary' : 'ai-summary')) === 'unverified-ai-summary';
   const canSummarise = retrieval !== null && summaryAllowed(retrieval) && model !== null && summary === null && !busy;
   const hasCards = asked.length > 0 && cardsForQuestion(asked, emergency?.topics ?? []).length > 0;
-  const onDemand = profile.summaryMode === 'on-demand' || medical !== null || blackout;
+  const onDemand = profile.summaryMode === 'on-demand' || blackout;
+  const blocked = retrieval?.status === 'ready' ? summaryBlock(retrieval) : null;
 
   return (
     <ContentGate>
@@ -280,7 +280,7 @@ export default function AskScreen() {
         {(phase === 'generating' || shownSentences.length > 0) && (
           <View style={styles.summary} testID="ai-summary">
             <Text style={styles.summaryLabel} testID="ai-label">
-              {unverified ? t.ask.unverifiedAiLabel : t.ask.aiLabel}
+              {t.ask.aiLabel}
             </Text>
             {phase === 'generating' && shownSentences.length === 0 && (
               <Text style={styles.muted} testID="answer-progress">
@@ -312,15 +312,18 @@ export default function AskScreen() {
           </Text>
         )}
 
-        {retrieval?.status === 'ready' && !summaryAllowed(retrieval) && (
+        {blocked === 'emergency' && (
           <Text style={styles.muted} testID="summary-emergency">
             {t.ask.noSummaryEmergency}
           </Text>
         )}
-
-        {canSummarise && onDemand && (
-          <Button testID="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} cost={aiCost} onPress={summariseOnDemand} />
+        {blocked === 'medical' && (
+          <Text style={styles.muted} testID="summary-medical">
+            {t.ask.noSummaryMedical}
+          </Text>
         )}
+
+        {canSummarise && onDemand && <Button testID="ask-summarise" label={t.ask.summarise} cost={aiCost} onPress={summariseOnDemand} />}
 
         {retrieval && !busy && <ProblemReport key={asked} question={asked} retrieval={retrieval} shown={shownSentences} />}
 

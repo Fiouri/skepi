@@ -31,7 +31,6 @@ export interface Messages {
     ready: string;
     notReady: string;
     cards: string;
-    cardsDraft: string;
     map: string;
     encyclopedia: string;
     ai: string;
@@ -50,19 +49,15 @@ export interface Messages {
     country: (name: string) => string;
     cards: string;
   };
+  /** Emergency cards: verbatim IFRC excerpts (the steps are package data, never UI strings). */
   cards: {
-    draftBanner: string;
+    /** Header of every card, with the general emergency number of the user's country. */
+    callFirst: (number: string) => string;
     steps: string;
-    whenToCall: string;
-    sources: string;
-    source: (p: { title: string; locator: string }) => string;
     readAloud: string;
     stopReading: string;
     open: string;
     step: (n: number) => string;
-    /** Developer Preview builds: cards ship without steps until professionally reviewed. */
-    underReview: string;
-    underReviewDetail: string;
   };
   blackout: {
     title: string;
@@ -229,16 +224,15 @@ export interface Messages {
     showPassage: string;
     hidePassage: string;
     summarise: string;
-    summariseMedical: string;
     writing: string;
     /** Fixed label on every AI answer. */
     aiLabel: string;
-    /** Fixed label on AI answers to medical questions. */
-    unverifiedAiLabel: string;
     summaryHidden: string;
     summaryNotCovered: string;
     /** Emergency intent: no AI summary is offered at all. */
     noSummaryEmergency: string;
+    /** Medical intent: no AI summary is offered at all (decision 2026-10-21). */
+    noSummaryMedical: string;
     /** Emergency intent: a Layer 1 sentence contains a phone number that is not a bundled one. */
     sourceNumberFlag: string;
     sources: string;
@@ -386,6 +380,9 @@ export interface Messages {
     places: string;
     model: string;
     cardSources: string;
+    /** Intended purpose, identical in the store texts, README, privacy policy and both About screens. */
+    purposeTitle: string;
+    purpose: string;
     noticesTitle: string;
     notices: (p: { components: number; npm: number; cargo: number; maven: number; native: number }) => string;
     showNotices: string;

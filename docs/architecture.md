@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`; Phase 3a (Windows desktop app with Tauri 2 and Station mode) — report `docs/phase-3a-report.md`; Phase 3b-0 (Apple builds in CI: iOS Simulator and macOS desktop, no Mac, no signing) — report `docs/phase-3b0-report.md`; **Developer Preview `v0.1.0-preview`** (Android + Windows; preview build mode, About, problem reports, held-out set 2 rules) — report `docs/preview-report.md`. This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`; Phase 3a (Windows desktop app with Tauri 2 and Station mode) — report `docs/phase-3a-report.md`; Phase 3b-0 (Apple builds in CI: iOS Simulator and macOS desktop, no Mac, no signing) — report `docs/phase-3b0-report.md`; **Developer Preview `v0.1.0-preview`** (Android + Windows; preview build mode, About, problem reports, held-out set 2 rules) — report `docs/preview-report.md`; **owner decisions 2026-10-21** (legal/compliance: IFRC-sourced emergency cards, no AI summary on medical intent, one intended-purpose statement, non-commercial rule, AI-generated marker; live location and heading on the map) — research: the owner's Project doc `legal-research.md` (to be copied to `docs/legal-research.md`). This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -20,7 +20,8 @@ An open-source, mobile-first app that provides Wikipedia, medical and survival k
 
 - Not a Docker server like NOMAD. Every device is self-sufficient.
 - No proprietary content format. We use ZIM, GGUF and PMTiles.
-- Not a medical device and no diagnosis. The AI is a search-and-summarise tool.
+- Not a medical device and no diagnosis. The AI is a search-and-summarise tool. The intended purpose, word for word in the store description, About screens, README and privacy policy (decision 2026-10-21): "S.K.E.P.I. is for general reference and education only. It is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Consult a healthcare professional for medical advice. In an emergency, call 112 or your local emergency number."
+- No commercial use of any kind: no paid features, ads, analytics or data collection; donations only, without consideration (decision 2026-10-21; Licences and legal).
 - No accounts, no cloud sync, no backend.
 
 **Design principles**
@@ -82,7 +83,7 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /contracts         TS interfaces: KnowledgeEngine, InferenceEngine, ContentStore, TransferService, DeviceProfile
   /db                SQL migrations + typed queries (shared mobile/desktop)
   /i18n              English strings; Greek kept but frozen until after v1 (developer flag); typed catalogs + locale resolution
-  /emergency-cards   Curated static emergency cards (typed data + per-step sources), English master (shown); Greek translation kept, not shown until reviewed; per-country emergency numbers; release check for draft cards; `preview` entry without step text (Developer Preview builds)
+  /emergency-cards   Emergency cards whose steps are verbatim excerpts of the IFRC International First Aid, Resuscitation and Education Guidelines 2025, each with its citation (section, printed page); `source-check.lock.json` (the steps the last passed source check verified); unsourced topics listed apart and never bundled; per-country emergency numbers; release gate; `preview` entry (same cards, preview label)
   /ui-tokens         Colours, type scale, touch targets, light and blackout themes (WCAG AA checked in tests)
 /modules
   /expo-zim          Kotlin + Swift binding over libkiwix/libzim, plus the native article viewer
@@ -101,7 +102,8 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
   /catalog-builder   Builds and signs catalog.json (keygen, pin, build, keylist, verify; key never in the repo or CI)
   /rag-eval          Answer evaluation against golden sets
   /bench             Benchmarks: tokens/s, latency, energy
-  /release-guards    CI checks on the Android release build: permission allowlist (aapt2), release JS bundle rebuild probe
+  /cards-source-check  Downloads the IFRC guidelines PDF (pinned URL + SHA-256, never committed), extracts it with pdftotext and fails unless every card step is an exact substring of the cited page (whitespace/hyphenation/quote normalisation only)
+  /release-guards    Release checks: permission allowlist (aapt2), release JS bundle rebuild probe, card text in the built bundles (`cards-bundle`), intended-purpose statement in the store texts
 /docs                Architecture, ADRs, threat model, SECURITY.md, phase reports
 ```
 
@@ -251,12 +253,12 @@ HTML is converted to text natively (jsoup on Android, SwiftSoup on iOS, scraper 
 Every answer comes in **two layers**, both built only from passages found on the device. All logic lives in `packages/core` and is identical on all platforms.
 
 - **Layer 1 — extractive answer (instant, no LLM).** The best passages from the sources, with the sentences that match the question highlighted, each with its source id and section anchor (`buildLayer1`). Always correct, because it is verbatim source text — with two exceptions (post-preview hardening): URLs and e-mail addresses are replaced by "[link removed]" (`redactLinks`, the rule AI sentences follow), and on emergency intent every sentence records its phone numbers (`findPhoneNumbers`) so the apps can flag the ones that are not a bundled number of the user's country. Shown before any model work starts; primary answer on T1 and in blackout mode. Target < 1 s on T1.
-- **Layer 2 — AI summary.** Streams below Layer 1 (`summarise`). Automatic on T2+, on demand ("Summarise with AI") on T1 and in T1-simulation, on tap only for medical intent. **Never on emergency intent** (`summaryAllowed`, every build): no summary and no button, only the number, the card and Layer 1.
+- **Layer 2 — AI summary.** Streams below Layer 1 (`summarise`). Automatic on T2+, on demand ("Summarise with AI") on T1 and in T1-simulation. **Never on emergency or medical intent** (`summaryAllowed` / `summaryBlock`, every build; medical since 2026-10-21, with no opt-in): no summary and no button, only the number, the cards and Layer 1, plus a one-line note.
 
 **Pipeline** (`retrieve` = steps 1–6 and Layer 1; `summarise` = steps 7–9)
 
 1. **Language:** detected deterministically from the script (no model).
-2. **Emergency and medical intercept:** fixed lexicons per language (English, Greek). An emergency match shows the emergency number and the card slot immediately; a medical match (doses, drugs, symptoms, diseases, treatment) shows the number and Layer 1 first and gates the AI summary behind a tap.
+2. **Emergency and medical intercept:** fixed lexicons per language (English, Greek). An emergency match shows the emergency number and the card slot immediately; a medical match (doses, drugs, symptoms, diseases, treatment) shows the number, the matching cards and Layer 1, and no AI summary ("AI summaries are not available for medical questions.").
 3. **Query rewrite (T2+ only, later phase):** the LLM with GBNF outputs `{ queries: { lang: string, terms: string[] }[], intent }`. Today every tier uses the question without stopwords.
 4. **Retrieval:** in each open pack, Xapian full-text with the conjunctive query plus single-keyword queries (always, not only when the conjunctive query is short) and title suggestions for all keywords and adjacent keyword pairs; all lists merged with reciprocal rank fusion over the **rank inside each archive** (never the position in an engine's concatenated multi-archive list; Phase 1c parity fix), packs in another language than the question offset by one full list, deterministic tie-breaks; top 8 articles. Folding maps the Greek final ς to σ for matching; queries restore ς because the ZIM index keeps it (Phase 1b fix: Greek single-word questions found nothing).
 5. **Passage selection:** sections are first cleaned of injected text (`sanitizeSourceText`: the Phase 1d **structural filter** — forged `<source>` blocks/tags, chat-template markup, JSON objects with role/system/assistant keys, role-prefixed lines, sentences addressed to the model/assistant/AI/summariser, each with the rest of its paragraph — plus the Phase 1b lexicon, and (Developer Preview) `<!-- … -->` spans written as text; (post-preview hardening) every check looks at a normalised copy of the text (`normalize.ts`: NFKC, format characters dropped, look-alike letters folded), and quoted or reported instructions addressed to a model count like direct ones; section text keeps one line per block element so paragraphs bound the removal; every `|` is a unit boundary and text between two `|` is a table cell, kept apart through sanitizing, chunking and validation and never highlighted alone in Layer 1), then cut into ~600-character chunks and ranked with BM25 plus a title bonus (the share of the article title's terms that the question contains), which keeps "What is DNA?" on the DNA article when every candidate mentions DNA. On T2+, optional rerank with a small multilingual embedding model (later).
@@ -269,9 +271,9 @@ Every answer comes in **two layers**, both built only from passages found on the
    - Relevance: the sentence must share at least one content term with the question.
    - Support: content **bigrams** of the sentence must be found as term pairs within one source sentence (title terms pair with everything), at a calibrated threshold (`MIN_BIGRAM_SUPPORT`), and the sentence's terms must form one connected graph over those pairs (coherence: no stitching of facts from different sentences).
    - An answer left with no supported sentence is hidden; Layer 1 stays.
-10. **Display:** every AI answer carries the fixed label "AI summary — check the source" ("Unverified AI summary — check the source" on medical intent). Each sentence carries a tappable `[S1]` chip that opens the article at the section. If source and answer languages differ, the chip says so and offers the original text (later).
+10. **Display:** every AI answer carries the fixed label "AI summary — check the source" (EU AI Act Art. 50: AI-generated text is visibly marked). Any text the user shares or copies out of the app that contains an AI summary (the problem report: share sheet, copy, save) carries the plain line "AI-generated summary" before it (`AI_GENERATED_MARKER`, `problemReportText`). Each sentence carries a tappable `[S1]` chip that opens the article at the section. If source and answer languages differ, the chip says so and offers the original text (later).
 
-**Medical intent:** the emergency number, the matching curated cards (intercept topics + card keywords) and Layer 1 are shown, in that order (Phase 1d). The AI summary is available only by tap and is labelled "Unverified AI summary — check the source".
+**Medical intent:** the emergency number, the matching cards (intercept topics + card keywords) and Layer 1 are shown, in that order (Phase 1d), with the note "AI summaries are not available for medical questions." There is no AI summary and no button (decision 2026-10-21, replacing the tap-to-show unverified summary): `summaryAllowed` is false, `summarise` refuses, `runRag` returns Layer 1; bench, rag-eval and the held-out runner follow the same gate.
 
 **Emergency intent** (`detectEmergency`, any topic): the number, the cards and Layer 1 only. `summaryAllowed` is false, `summarise` refuses, `runRag` returns Layer 1, and the Ask screens show "No AI summary in an emergency" with no summary button (decision 2026-10-10, Developer Preview, all builds — the rule below, not a filter for particular wording). Bench, rag-eval and the on-device held-out runner apply the same rule; rag-eval summary coverage counts only the answer items that may have a summary. A Layer 1 sentence with a phone number that is not a bundled number of the user's country carries a visible flag: "Number from a source — use the emergency number shown above" (post-preview hardening); the bundled numbers stay first.
 
@@ -409,23 +411,26 @@ Bluetooth is too slow for GB. Wi-Fi Direct and Multipeer were rejected because t
 
 - **Build mode.** `SKEPI_PREVIEW=1` (Android also `-PskepiPreview=true`, which fails fast without the
   variable) makes Metro (`apps/mobile/metro.config.js`) and Vite (`apps/desktop/vite.config.ts`) resolve
-  `@skepi/emergency-cards` to `src/preview.ts`: the same runtime API over cards with titles, intercept
-  topics, keywords and review status only (`preview-cards.generated.ts`, generated from the full cards
-  with a staleness test). Cards show "Under professional review" plus the emergency numbers; a permanent
-  "Developer preview — not for emergency use" label is on home and About (`PREVIEW_BUILD`). The built
-  bundles are scanned for every advice text of the full cards (`tools/release-guards` `preview-cards`,
-  UTF-8 and UTF-16LE): Android in Gradle right after the JS bundle, desktop in CI. Full builds keep the
-  draft gate (`skepiCheckEmergencyCards`).
+  `@skepi/emergency-cards` to `src/preview.ts`: the same cards, plus a permanent "Developer preview — not
+  for emergency use" label on home and About (`PREVIEW_BUILD`). Until 2026-10-21 preview builds shipped
+  the cards without steps ("Under professional review"); since the IFRC decision every build mode ships
+  the sourced steps (User safety). Every release build scans its bundle (`tools/release-guards`
+  `cards-bundle`, UTF-8, UTF-16LE and `\uXXXX` escapes): no unsourced card text (the 202 former step
+  texts, `tools/release-guards/data/unsourced-card-texts.json`), every sourced step present, and sourced
+  steps only with a source-check lock that matches them. Android checks in Gradle right after the JS
+  bundle (`skepiCheckCardsBundle`), iOS in a build phase, the desktop in CI.
 - **About.** Licence, content/data/model licences, release signing fingerprint
   (`ANDROID_RELEASE_SIGNING_SHA256` in `@skepi/core`, equal to the Station check in Rust), privacy, and
   third-party notices generated by `tools/notices` into `apps/*/src/generated/third-party-notices.json`:
   the app's run-time JavaScript dependency tree (resolved like Node; workspace packages and
   platform-specific binaries excluded), the Rust crates the Windows app links, the Android release
   runtime classpath with POM licences (`gradlew :app:skepiAndroidDependencies`), and native libraries
-  and assets not visible in package metadata (`tools/notices/src/native.ts`). CI checks the JavaScript
-  and Rust parts are current.
+  and assets not visible in package metadata (`tools/notices/src/native.ts`), and bundled content
+  under its own terms with its notice text (the IFRC attribution and licence statement for the card
+  text). CI checks the JavaScript and Rust parts are current.
 - **Problem reports.** `problemReportText` (`@skepi/core`): question, shown Layer 1 excerpts and AI
-  sentences, cited sources, app version — nothing else. Copy, or save (Android: `reports/` in the app
+  sentences (after the plain line "AI-generated summary" when there are any), cited sources, app
+  version — nothing else. Copy, or save (Android: `reports/` in the app
   folder; Windows: native save dialog through the narrow `report_save` command, `.txt`, ≤ 256 KiB). No
   network call.
 - **Post-preview hardening (generic Layer 1 rules, Unreleased; `docs/hardening-report.md`) — done.**
@@ -537,19 +542,21 @@ One tap from the home screen (switch, persisted in app.db); suggested when the b
 
 ## User safety (medical and survival content)
 
-In an emergency, first-aid instructions are never generated by the LLM. A 1–4B model will invent doses and steps. Critical content is static, sourced and human-reviewed; the AI only points to it.
+Non-negotiables (decision 2026-10-21, replacing "human-reviewed"): first-aid and medical text is never generated by the LLM — a 1–4B model will invent doses and steps. Emergency-card steps are **verbatim excerpts** from the IFRC International First Aid, Resuscitation and Education Guidelines (the latest edition the IFRC publishes: 2025), each with its citation (edition, section, printed page), proved word for word against the pinned PDF by `tools/cards-source-check`. No paraphrase, no excerpts merged into new sentences, no LLM-written text anywhere in the cards. A topic with no IFRC passage stays unsourced and is never shipped. The AI only points to sources and never summarises medical or emergency questions.
 
 **Emergency cards (`packages/emergency-cards`)**
 
-- Initial topics: CPR, bleeding, choking, burns, fractures, hypothermia, heatstroke, poisoning, water purification, earthquake, fire, flood.
-- Each card: numbered steps, "when to call for help", public-domain or openly licensed source, review date.
-- Written in English; shown in English only until reviewed (the Greek translation stays in the data and its tests; translations ship after v1). Every change needs review by people with first-aid training (CODEOWNERS on the folder) — the only folder with a mandatory external reviewer.
+- Sourced (shipped): CPR (adult), severe bleeding, choking (adult or child), burns, fractures/sprains/strains, hypothermia, heatstroke (severe hyperthermia), poisoning — 8 cards, 61 steps. Unsourced (no IFRC passage with first-aid steps for the public, never bundled; `src/unsourced.ts`): water purification, earthquake, fire, flood.
+- Each card: the header "Call <the country's general number> first" (112 in the EU) with a dial button, the numbered steps (IFRC excerpts, whole sentences, the source's own step numbers dropped) and one citation line ("Source: IFRC International First Aid, Resuscitation and Education Guidelines 2025, "<section>", pp. …"). Read aloud with the OS TTS.
+- Licence of the card text: "Copies of all or part of this study may be made for non-commercial use, providing the source is acknowledged." (© IFRC, Geneva, 2025). Attribution in each card's citation and in About → third-party notices; the IFRC is informed of the use (`docs/ifrc-notice-email.md`, sent by the owner).
+- Gates: `tools/cards-source-check` (CI, `android-release-guards` and `ios-build`: download from the pinned URL, SHA-256, `pdftotext`, every step an exact substring of the cited page after whitespace/hyphenation/quote normalisation only) writes or verifies `source-check.lock.json`; every release build runs `scripts/check-release.ts` (structure + lock digest) and scans the bundle (`cards-bundle`). CI proves the gate fails on an altered step.
+- English steps in every locale (the Greek UI keeps Greek titles and search words only); changes still need a CODEOWNERS review.
 - Bundled in the app, no pack dependency; available from the first second after install.
 
 **AI rules**
 
 - Emergency keywords show the card and the emergency number first, then Layer 1 source excerpts. No AI summary at all (`summaryAllowed`).
-- Medical intent: card + number + Layer 1 by default; AI summary only on tap, labelled unverified.
+- Medical intent: card + number + Layer 1 only, with "AI summaries are not available for medical questions." No AI summary at all, no opt-in (decision 2026-10-21).
 - Numbers with units must appear verbatim in the cited source, or the sentence is removed.
 - No doctor persona in the system prompt.
 
@@ -575,7 +582,7 @@ Two moments of use: **preparation** (online; the user chooses and downloads) and
 2. Automatic tier and free-space detection.
 3. Storage budget 2 / 8 / 32 GB → preset (`planPreset` in core): English defaults, the default model when the tier runs AI, then the locale's own packs (the largest that fits); capped by free space minus the OS reserve. Downloads go through ContentStore; installed packs are kept. Debug builds with the test catalog plan only test packs (local mirror).
 4. Disclaimer (educational content, not medical advice, no warranty) before the app opens.
-5. "You are ready" indicator on the home screen: cards ✓ (draft), regional map ✓, encyclopedia ✓, AI ✓ (or "not on this device" on T0). "Get prepared" can be run again from the Library.
+5. "You are ready" indicator on the home screen: cards ✓, regional map ✓, encyclopedia ✓, AI ✓ (or "not on this device" on T0). "Get prepared" can be run again from the Library.
 
 **Tools that work without packs**
 
@@ -680,7 +687,7 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 | App Store / TestFlight | iOS build | Apple Developer Program (annual fee); same account notarises macOS |
 | Windows | Tauri MSI/NSIS, winget | Without a code-signing certificate SmartScreen warns |
 
-**CI (GitHub Actions):** `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests, the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0) and, since Phase 1d, `android-release-guards`: expo prebuild, the draft-cards gate must fail, `assembleRelease -PskepiUnsigned=true` (unsigned since 2026-10-12, Developer Preview mode), the release permission allowlist (`aapt2 dump permissions`) and the release JS bundle rebuild probe (`tools/release-guards`); since Phase 3a `desktop-windows` (libzim fetched and SHA-256 checked, UI build, `cargo fmt --check`, Vulkan SDK pinned by SHA-256 in `native/vulkan` (pruned, cached), `cargo clippy -D warnings` for the Vulkan and the CPU-only build, `cargo test`, a CPU-only build, mirror download test); since Phase 3b-0 `ios-build`, `ios-e2e` and `desktop-macos` on macOS runners (below). A `changes` job skips the heavy jobs when a change touches only `docs/**` or `*.md` (`verify` always runs; pushes to main are never cancelled); `verify` also runs `catalog check-fixtures` (every file the test catalogs, manifests and tests use is committed, with the catalog's size and SHA-256). Caches: Swatinem/rust-cache for the desktop crates and llama.cpp, Gradle User Home with the build cache, and ccache for the Android NDK builds (CMAKE_<LANG>_COMPILER_LAUNCHER). The desktop builds locally with `scripts/with-msvc.ps1` (MSVC environment; uses Microsoft's Windows SDK NuGet packages, portable Strawberry Perl and Ninja when no SDK is installed) and `npx tauri build` (unsigned MSI + NSIS). kiwix and llama.cpp artifacts cached by pinned version. No signing key in CI: CI builds unsigned, and the maintainer signs the reproducible artifact locally (`docs/release-process.md`); the catalog key never in CI. `.github/workflows/android-repro.yml` builds the unsigned release twice (job `android-repro`) and runs `fdroid build` of the F-Droid recipe in F-Droid's buildserver container (job `fdroid-build`), which must give the same bytes. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
+**CI (GitHub Actions):** `.github/workflows/ci.yml` on Linux runs typecheck, lint, unit tests, the rag-eval smoke subset (fixture ZIMs + cached Qwen2.5-0.5B Q4_0) and, since Phase 1d, `android-release-guards`: the IFRC cards source check (`tools/cards-source-check`, Poppler `pdftotext`, PDF cached by its hash), expo prebuild, the cards gate must fail on an altered step, `assembleRelease -PskepiUnsigned=true` (unsigned since 2026-10-12, Developer Preview mode; Gradle scans the card text of the bundle), the release permission allowlist (`aapt2 dump permissions`) and the release JS bundle rebuild probe (`tools/release-guards`); since Phase 3a `desktop-windows` (libzim fetched and SHA-256 checked, UI build, `cargo fmt --check`, Vulkan SDK pinned by SHA-256 in `native/vulkan` (pruned, cached), `cargo clippy -D warnings` for the Vulkan and the CPU-only build, `cargo test`, a CPU-only build, mirror download test); since Phase 3b-0 `ios-build`, `ios-e2e` and `desktop-macos` on macOS runners (below). A `changes` job skips the heavy jobs when a change touches only `docs/**` or `*.md` (`verify` always runs; pushes to main are never cancelled); `verify` also runs `catalog check-fixtures` (every file the test catalogs, manifests and tests use is committed, with the catalog's size and SHA-256). Caches: Swatinem/rust-cache for the desktop crates and llama.cpp, Gradle User Home with the build cache, and ccache for the Android NDK builds (CMAKE_<LANG>_COMPILER_LAUNCHER). The desktop builds locally with `scripts/with-msvc.ps1` (MSVC environment; uses Microsoft's Windows SDK NuGet packages, portable Strawberry Perl and Ninja when no SDK is installed) and `npx tauri build` (unsigned MSI + NSIS). kiwix and llama.cpp artifacts cached by pinned version. No signing key in CI: CI builds unsigned, and the maintainer signs the reproducible artifact locally (`docs/release-process.md`); the catalog key never in CI. `.github/workflows/android-repro.yml` builds the unsigned release twice (job `android-repro`) and runs `fdroid build` of the F-Droid recipe in F-Droid's buildserver container (job `fdroid-build`), which must give the same bytes. Locally, Android releases build with `gradlew assembleRelease`; EAS only as a fallback. Debug builds install side-by-side as `org.skepi.app.dev` ("SKEPI Dev", debug key); release keeps `org.skepi.app`. `scripts/provision.ps1` and `e2e/run-e2e.ps1` take `-AppId` (release by default).
 
 **Apple builds (Phase 3b-0, `docs/phase-3b0-report.md`).** No Mac is needed for development: every Apple-specific line compiles and runs in CI on GitHub's macOS runners (Apple silicon), unsigned, with no TestFlight or store work.
 
@@ -691,7 +698,7 @@ App and catalog ship independently: the app uses semver, the catalog uses `seque
 | Inference | llama.rn compiled from source (`RNLLAMA_BUILD_FROM_SOURCE=1`, as on Android); no model on the Simulator | llama.cpp with Metal (`metal` feature; Vulkan stays on Windows) |
 | Native code | Swift modules: `expo-zim` (+ sealed `WKWebView` viewer: `WKURLSchemeHandler`, content rule list blocking every non-`zim:`/`data:` load, page JavaScript off, no script handlers, non-persistent data, CSP on every response), `expo-hash`, `expo-content-store` (local files, embedded catalog, import; **downloads not supported yet**), `expo-device-profile`, `expo-emergency-tools`; `expo-transfer` reports "not supported on this platform" (no LocalOnlyHotspot; Share/Receive hidden on iOS) | app.db key in the login Keychain (`security-framework`; the file holds only the item's account name), RAM/cores from `sysctl`, free disk from `statvfs`, Station addresses from `getifaddrs`, `zim://localhost` / `maps://localhost` origins (WKWebView form of the custom protocols) |
 | Run in CI | `ios-build`: XCTest on a Simulator (`SkepiZim-Unit-Tests`: binding on the rag-eval fixtures, catalog signatures from `catalog/verification-expectations.json` and fixture chunk hashes with the `expo-hash` core, viewer sealing on the Android sealing fixture). `ios-e2e`: Maestro flows on a Simulator with provisioned packs (`e2e/ios`) and the retrieval parity run against the stored S23, desktop and rag-eval runs | `cargo test` (Keychain, device probes, ZIM, catalog, Station TLS), idle egress of the built app and its WebKit processes (`apps/desktop/e2e/egress-macos.mjs`: `lsof` + `nettop`) |
-| Release guards | build phases: embedded catalog per configuration, release catalog verification, draft-cards gate (CI proves it fails), the built `main.jsbundle` scanned for card advice text (`SKEPI_PREVIEW=1`) | the Developer Preview UI bundle scanned before `tauri build` embeds it; the binary links only system libraries |
+| Release guards | the IFRC cards source check (Homebrew Poppler); build phases: embedded catalog per configuration, release catalog verification, cards gate (CI proves it fails on an altered step), the built `main.jsbundle` scanned for card text (`cards-bundle`) | the Developer Preview UI bundle scanned (`cards-bundle`) before `tauri build` embeds it; the binary links only system libraries |
 | Supply chain | CI asserts that libcurl and libmicrohttpd (in CoreKiwix, unused) are not linked into the app or the desktop binary | same |
 | Signing | None for the checked build (`CODE_SIGNING_ALLOWED=NO`). **CI only:** the copy Maestro installs is rebuilt with "Sign to Run Locally" (`CODE_SIGN_IDENTITY=-`, no team, certificate, provisioning profile or secret; `e2e/ios/simulator-ci.entitlements`: `application-identifier` + `keychain-access-groups`), because the Simulator's Keychain refuses an app without entitlements; such a build runs only in the Simulator and cannot be installed on a device. CI fails if it carries a team identity | None: `tauri build --no-sign` (the arm64 linker's ad-hoc signature only) |
 
@@ -749,7 +756,7 @@ enters CI or the project's Gradle properties (unchanged). Store texts live in
 **Store policies (risks)**
 
 - **Play, AI-Generated Content:** in-app reporting of problematic answers: "Report a problem with this answer" opens the system share sheet with the report and the user's text (done 2026-10-12; no network, no permission).
-- **Play, Health:** no diagnostic claims in the listing; the description states the app is not a medical device and does not diagnose, treat, cure or prevent any condition, and to consult a healthcare professional; health apps declaration to be completed as Medical, which points to an Organization account (owner decision).
+- **Play, Health:** no diagnostic claims in the listing; the description opens with the intended-purpose statement (not a medical device, does not diagnose, treat, cure or prevent any condition, consult a healthcare professional, call 112); health apps declaration to be completed as Medical, which points to an Organization account. Google Play stays deferred until an Organization account exists (owner decision 2026-10-21); the same app serves every channel.
 - **Play, target API and page size:** targetSdk 36 (required since 2026-08-31); all native libraries 16 KB aligned.
 - **Android developer verification:** required on certified devices in four countries since 2026-09-30, globally in 2027, also for GitHub and F-Droid installs; register `org.skepi.app` with its certificate (owner action before 2027, roadmap).
 - **Android permissions:** `LocalOnlyHotspot` needs `NEARBY_WIFI_DEVICES` on Android 13+. No `REQUEST_INSTALL_PACKAGES` (shared APKs are installed via browser or file manager).
@@ -770,13 +777,15 @@ The app is **GPL-3.0-or-later**, required because libzim is GPL-2.0-or-later and
 | Map data (OpenStreetMap) | ODbL | Visible "© OpenStreetMap contributors" on the map |
 | Wikipedia, Wikivoyage, WikiMed | CC BY-SA | Attribution on each article (in the ZIM) and on AI answers that use them |
 | AI models | Apache-2.0 or MIT only in the catalog | Free redistribution and P2P; models with special terms (e.g. Llama, Gemma) excluded |
-| Emergency cards | CC BY-SA 4.0 (ours) | Sources only public domain or openly licensed |
+| Emergency card steps | IFRC guidelines 2025: "Copies of all or part of this study may be made for non-commercial use, providing the source is acknowledged." | Verbatim only, citation per card, IFRC attribution in About; non-commercial use only (F-Droid may tag `NonFreeAssets` from the next version) |
 
 **Legal risks**
 
 - **GPL and the App Store:** a grey area; Apple's terms have been considered GPL-incompatible in the past. Kiwix ships on the App Store, but this needs review before the public iOS submission.
 - **Trademarks:** no "Wikipedia", "Kiwix" or "NOMAD" in the name or icon; descriptive use only ("reads ZIM files").
-- **Disclaimer:** in onboarding and About — educational content, not medical advice, no warranty (GPL §15–16).
+- **Disclaimer:** in onboarding and About — educational content, not medical advice, no warranty (GPL §15–16); the intended-purpose statement (Vision) in About, the store description, README and privacy policy.
+- **Non-commercial rule (decision 2026-10-21; also in `CONTRIBUTING.md`):** no paid features, ads, analytics or data collection; donations only, without consideration (no perks, features or priority in return). This keeps S.K.E.P.I. free and open-source software supplied outside a commercial activity, the exclusion in the Product Liability Directive (EU) 2024/2853 and the Cyber Resilience Act (EU) 2024/2847, and within the IFRC's non-commercial licence for the card text.
+- **AI Act Art. 50 (transparency):** AI summaries stay visibly labelled ("AI summary — check the source"), and any text shared or copied out of the app that contains one carries the plain line "AI-generated summary" (`AI_GENERATED_MARKER`; unit-tested).
 - **Content redistribution:** mirrors are the official sources (Kiwix, Hugging Face, Protomaps). Our own mirror, if any, keeps each pack's licence and attribution.
 
 ## Roadmap
@@ -809,7 +818,8 @@ Each phase starts only after the previous gate passes. Dates are set after Phase
    - **Phase 3a · Windows desktop with Station mode — see `docs/phase-3a-report.md`.** Persistent build cache · deterministic GNSS in E2E (debug-only mock provider) · `apps/desktop` (Tauri 2, React over `@skepi/core`) · `crates/zim-ffi` (libzim 9.7.0, same as Android) · llama.cpp in-process with Vulkan · sealed viewer window · MapLibre GL JS over the `maps` protocol · SQLCipher + DPAPI · Rust ContentStore · Station mode · desktop retrieval parity 108/108 with the S23 · unsigned MSI/NSIS.
    - **Store readiness (Android) — see `docs/store-readiness.md`, `docs/release-process.md`.** F-Droid first, Play deferred to v1 · unsigned release switch · Expo modules from source · reproducible native libraries and the `android-repro` CI job (two Linux builds, different paths, byte-identical) · local signing of the CI artifact · problem report to the share sheet · AAB tested with bundletool · store screenshots from Maestro · fdroiddata recipe (`docs/fdroid/org.skepi.app.yml`).
    - **Owner action before 2027: Android developer verification** — register the package `org.skepi.app` and the SKEPI release certificate (`7d61c382…447e`), so GitHub and F-Droid installs keep working on certified devices once verification is global (2027).
-   - Gate: store approvals · emergency cards reviewed by first-aid professionals · T1 targets measured on a real 4 GB device.
+   - **Owner decisions 2026-10-21 (legal/compliance).** Emergency cards are verbatim IFRC guideline excerpts with citations and a CI source check (replacing human review) · no AI summary on medical intent · one intended-purpose statement everywhere · non-commercial rule · "AI-generated summary" marker on shared text · Google Play deferred until an Organization account exists.
+   - Gate: store approvals · emergency cards IFRC-sourced and source-checked (decision 2026-10-21) · T1 targets measured on a real 4 GB device.
 5. **Later.** Precomputed embeddings for curated packs · NPU on Android · more locales.
 
 ## Risks and open questions
@@ -822,7 +832,10 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | AI latency on low-end phones | Unusable AI on T1 | Layer 1 first; AI summary on demand on T1; Q4_0; char budgets; GPU/NPU experiment; English-first content (≈4× fewer tokens than Greek) |
 | T1 targets unmeasured | Surprises on cheap phones | T1-simulation mode now; real 4 GB device before public release |
 | Own viewer code replaces a library | Security regressions | Instrumentation tests as a Phase 1 gate; separate iOS implementation in Phase 2 |
-| A wrong medical answer causes harm | Physical harm, reputation | Static cards, numeric rule, mandatory sources, AI summary opt-in on medical intent |
+| A wrong medical answer causes harm | Physical harm, reputation | Cards are verbatim IFRC text proved against the PDF; no AI summary on medical or emergency intent; numeric rule, mandatory sources; intended-purpose statement everywhere |
+| IFRC card text: non-commercial licence | F-Droid may tag `NonFreeAssets`; any commercial use would breach it | Non-commercial rule recorded (architecture, CONTRIBUTING); attribution in every card and About; the IFRC informed (`docs/ifrc-notice-email.md`); note in `docs/fdroid/merge-request.md` for the next version |
+| The IFRC PDF moves or changes | CI source check fails (download or SHA-256) | PDF cached in CI by its hash; a new edition is pinned deliberately (URL, hash, page citations re-checked) |
+| `pdftotext` output differs between versions (Poppler on CI, Xpdf in Git for Windows) | False failures of the source check | Normalisation of whitespace, hyphenation and quotes only; checked with Poppler 26.09 and Xpdf 4.06 (61/61) |
 | Apple rejects the app (GPL, 1.4.1, 2.5.2) | iOS lost | Internal TestFlight in Phase 2; public submission in Phase 3 after legal review |
 | Thermal throttling and battery drain | Useless in a real blackout | Guards, blackout mode, measured cost in the UI |
 | Catalog key theft | Malicious content with an official signature | Offline key, backup key, rotation procedure |
@@ -845,8 +858,12 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Model shortlist for rag-eval | T1: Qwen ~1.5–2B · T2: Qwen ~3–4B · T3: Qwen ~7–8B; Meltemi 7B (Apache-2.0) for the Greek set after v1. Krikri excluded (Llama 3.1 licence). |
 | Release signing | Dedicated keystore outside the repo; fingerprint published with the first public release. Never in CI or the project's Gradle properties: CI builds unsigned and the maintainer signs the reproducible CI artifact locally (2026-10-12). |
 | Android JDK | Published APKs are built with the JDK 21 toolchain (2026-10-13): F-Droid's buildserver (Debian trixie) has only OpenJDK 21, and the published APK must equal F-Droid's build byte for byte. `scripts/android/jdk21.sh` switches the JDK 17 toolchain requests of React Native's Gradle plugin and Expo's core plugin to 21 (as the fdroiddata React Native template does) and `-PskepiJdk21=true` keeps every bytecode target at 17; `android-repro` (Temurin 21, Node 24.21.0 as in Debian forky) and the F-Droid recipe build this way. Local and `android-release-guards` builds stay on JDK 17. |
-| Android distribution | F-Droid first (reproducible build, F-Droid publishes our signed APK); Google Play deferred to v1 with its account type, Play App Signing, IARC and Health declaration (2026-10-12). |
-| Emergency cards | Public-domain or permitted material only; review by at least 2 certified first-aid instructors; no release without review. |
+| Android distribution | F-Droid first (reproducible build, F-Droid publishes our signed APK); Google Play deferred to v1 with its account type, Play App Signing, IARC and Health declaration (2026-10-12), and until an Organization account exists (2026-10-21). One app for every channel. |
+| Emergency cards | Verbatim excerpts from the IFRC International First Aid, Resuscitation and Education Guidelines (latest edition: 2025), with citation (edition, section, page) and the IFRC licence ("Copies of all or part of this study may be made for non-commercial use, providing the source is acknowledged."); `tools/cards-source-check` in CI proves every shipped step is an exact substring of the cited page; topics without an IFRC passage are never shipped; no paraphrase, merging or LLM text (2026-10-21, replaces the review by 2 first-aid instructors). |
+| Medical intent | No AI summary at all (no opt-in): cards + Layer 1 excerpts + "AI summaries are not available for medical questions." (2026-10-21). |
+| Intended purpose | One statement, word for word, in the store description (first paragraph), About (both apps), README and privacy policy; a test keeps them equal (2026-10-21). |
+| Non-commercial | No paid features, ads, analytics or data collection; donations only without consideration (keeps the PLD 2024/2853 and CRA open-source exclusions; 2026-10-21). |
+| AI-generated text | Visible label on every AI summary; shared or copied text with an AI summary carries "AI-generated summary" (AI Act Art. 50; 2026-10-21). |
 | Catalog hosting | Own domain CNAME'd to GitHub Pages, raw GitHub fallback in the app. |
 | Name | **Project S.K.E.P.I.** (Survival Knowledge & Emergency Pocket Intelligence), always written with the dots of the initials; users see "S.K.E.P.I." (Android label, desktop window, About screens, store texts, F-Droid `AutoName`, privacy policy). Identifiers stay `SKEPI`/`skepi`: `org.skepi.app`, `org.skepi.desktop`, the repository, crates, packages, file names, the Tauri `productName` (it names the Windows installers, install folder, registry key and WiX upgrade code, so changing it would install 0.1.1 next to 0.1.0) and the signing key. TMview search (2026-10-16): no "SKEPI" or "ΣΚΕΠΗ" mark. Closest: "SKEP'IA" (SKEZI SAS, FR; WIPO 1815336 + FR 5030813; EU incl. GR, and CH; classes 9 "AI software for data extraction, filtering and analysis" and 42 SaaS; registered 2024, until 2034); "SKEP" (QAD Inc., WIPO 660765, classes 9/42, 13 countries without GR, expired 2026-09-12, in its grace period); "SKEPIA" (NEVS, SE only); "SKEPP", "SKEPTIC", "Skeptify" (EU, further away); "SKEPIS" (US filing). No trademark registration planned; the risk that a rename is needed later is accepted (owner, 2026-10-16). |
 

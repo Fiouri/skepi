@@ -101,9 +101,8 @@ describe('catalogs', () => {
 
   it('AI answer labels are the fixed architecture wording', () => {
     expect(en.ask.aiLabel).toBe('AI summary — check the source');
-    expect(en.ask.unverifiedAiLabel).toBe('Unverified AI summary — check the source');
     expect(el.ask.aiLabel).toBe('Σύνοψη AI — έλεγξε την πηγή');
-    expect(el.ask.unverifiedAiLabel).toBe('Μη επαληθευμένη σύνοψη AI — έλεγξε την πηγή');
+    expect(en.ask.noSummaryMedical).toBe('AI summaries are not available for medical questions.');
   });
 
   it('formats source chips with and without a section', () => {

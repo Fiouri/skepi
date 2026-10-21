@@ -3,8 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * Desktop UI flows against the mocked native commands (src/lib/mock.ts): search, sealed viewer
- * requests, Layer 1 + AI summary with verified citations, medical and emergency rules, cards with the
- * draft banner, map with POIs, Library downloads/consent, Station mode, external links as text.
+ * requests, Layer 1 + AI summary with verified citations, medical and emergency rules (no AI summary), IFRC
+ * cards with their citation, map with POIs, Library downloads/consent, Station mode, external links as text.
  */
 
 interface Recorded {
@@ -72,22 +72,27 @@ test('ask: no source means no generation', async ({ page }) => {
   expect((await record(page)).calls.some((c) => c.command === 'llm_generate' && (c.args.request as { maxTokens: number }).maxTokens > 1)).toBe(false);
 });
 
-test('ask: medical intent shows the number first and the AI summary only on request', async ({ page }) => {
+test('ask: medical intent shows the number and Layer 1 only, never an AI summary', async ({ page }) => {
   await page.getByTestId('tab-ask').click();
   await page.getByTestId('ask-input').fill('How long should I boil water to kill disease?');
   await page.getByTestId('ask-submit').click();
   await expect(page.getByTestId('layer1')).toBeVisible();
   await expect(page.getByTestId('medical-notice')).toBeVisible();
+  await expect(page.getByTestId('summary-medical')).toHaveText('AI summaries are not available for medical questions.');
   await expect(page.getByTestId('ai-summary')).toHaveCount(0);
-  await page.getByTestId('ask-summarise').click();
-  await expect(page.getByTestId('ai-label')).toHaveText('Unverified AI summary — check the source');
+  await expect(page.getByTestId('ask-summarise')).toHaveCount(0);
+  expect((await record(page)).calls.some((c) => c.command === 'llm_generate' && (c.args.request as { maxTokens: number }).maxTokens > 1)).toBe(false);
 });
 
-test('emergency: numbers and draft cards without any pack', async ({ page }) => {
+test('emergency: numbers and IFRC cards without any pack', async ({ page }) => {
   await page.getByTestId('emergency-button').click();
   await expect(page.getByTestId('emergency-numbers')).toContainText('112');
   await page.getByTestId('card-open-cpr').click();
-  await expect(page.getByTestId('card-draft-banner')).toBeVisible();
+  await expect(page.getByTestId('card-call-first')).toHaveText('Call 112 first');
+  await expect(page.getByTestId('card-step-5')).toContainText('Begin chest compressions without delay');
+  await expect(page.getByTestId('card-citation')).toContainText('IFRC International First Aid, Resuscitation and Education Guidelines 2025');
+  await expect(page.getByTestId('card-citation')).toContainText('pp. 161–162');
+  await expect(page.getByTestId('card-open-flood')).toHaveCount(0);
 });
 
 test('map: offline PMTiles through the maps protocol, emergency POIs and filters', async ({ page }) => {
@@ -153,7 +158,9 @@ test('report a problem: question, shown answer, sources and version only; copy a
   const text = await page.getByTestId('report-text').inputValue();
   expect(text).toContain('What is the capital of Australia?');
   expect(text).toContain('Canberra is the capital city of Australia. [S1]');
-  expect(text).toMatch(/App version: SKEPI \d+\.\d+\.\d+(-preview)? \(Windows\)/);
+  expect(text).toMatch(/App version: S\.K\.E\.P\.I\. \d+\.\d+\.\d+(-preview)? \(Windows\)/);
+  // AI Act Art. 50: copied or saved text with an AI summary carries the plain marker line.
+  expect(text.split('\n')).toContain('AI-generated summary');
   expect(text).toContain('Cited sources:');
   expect(text).not.toMatch(/archive|\d{4}-\d{2}-\d{2}|tier=|gpu/i);
   await page.getByTestId('report-copy').click();

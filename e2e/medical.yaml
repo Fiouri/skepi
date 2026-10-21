@@ -1,5 +1,5 @@
-# Medical flow: the emergency number and Layer 1 come first; the AI summary only on tap, labelled
-# "Unverified AI summary — check the source" (also on T2, where summaries are otherwise automatic).
+# Medical flow: the emergency number and Layer 1 only; never an AI summary, not even on tap (decision
+# 2026-10-21), with the one-line note "AI summaries are not available for medical questions."
 appId: ${APP_ID}
 name: SKEPI medical flow (offline)
 env:
@@ -39,24 +39,12 @@ onFlowComplete:
     timeout: 15000
 - scrollUntilVisible:
     element:
-      id: ask-summarise
+      id: summary-medical
     direction: DOWN
     timeout: 20000
-- assertVisible: "Show unverified AI summary"
+- assertVisible: "AI summaries are not available for medical questions."
+- assertNotVisible:
+    id: ask-summarise
 - assertNotVisible:
     id: ai-summary
-- takeScreenshot: e2e/out/med-01-layer1
-- tapOn:
-    id: ask-summarise
-- extendedWaitUntil:
-    visible:
-      id: ask-phase
-      text: "done"
-    timeout: 180000
-- scrollUntilVisible:
-    element:
-      id: ai-label
-    direction: DOWN
-    timeout: 20000
-- assertVisible: "Unverified AI summary — check the source"
-- takeScreenshot: e2e/out/med-02-unverified-summary
+- takeScreenshot: e2e/out/med-01-layer1-no-ai

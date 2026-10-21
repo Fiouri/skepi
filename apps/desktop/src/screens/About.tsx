@@ -20,6 +20,10 @@ export function AboutScreen() {
     <div className="stack" data-testid="about-screen">
       <PreviewLabel />
       <h1 data-testid="about-version">{`S.K.E.P.I. · ${t.about.version(APP_VERSION)}`}</h1>
+      <section className="stack" data-testid="about-purpose">
+        <h2>{t.about.purposeTitle}</h2>
+        <p>{t.about.purpose}</p>
+      </section>
       <section className="stack" data-testid="about-licence">
         <h2>{t.about.licenceTitle}</h2>
         <p>{t.about.licence}</p>

@@ -5,9 +5,12 @@ library (Wikipedia via Kiwix ZIM packs), offline vector maps (PMTiles) with emer
 search, and an on-device AI assistant that answers only from the local sources, with citations. For
 Android phones and Windows computers; a computer can share packs with nearby phones (Station mode).
 
-> **Status: Developer Preview `v0.1.1-preview` — not for emergency use.** For developers and testers.
-> The emergency cards ship without their steps ("Under professional review") until certified first-aid
-> instructors have reviewed them; each card shows the emergency numbers. English only. Tested on a
+> **Intended purpose.** S.K.E.P.I. is for general reference and education only. It is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Consult a healthcare professional for medical advice. In an emergency, call 112 or your local emergency number.
+
+> **Status: Developer Preview — not for emergency use.** For developers and testers. The emergency
+> cards are verbatim excerpts from the IFRC International First Aid, Resuscitation and Education
+> Guidelines 2025, each step with its section and page (since 2026-10-21; `v0.1.1-preview` shipped them
+> without steps). English only. Tested on a
 > Samsung Galaxy S23 (Android 16) and on Windows 11 x64 only. Design and reports:
 > [`docs/architecture.md`](docs/architecture.md), [`docs/preview-report.md`](docs/preview-report.md),
 > [`docs/threat-model.md`](docs/threat-model.md).
@@ -21,8 +24,8 @@ Android phones and Windows computers; a computer can share packs with nearby pho
   whose every sentence must be supported by a cited excerpt, or it is not shown.
 - **Maps and places**: Greece map pack (OpenStreetMap), hospitals, pharmacies, shelters and water
   points, place search.
-- **Emergency**: the number for your country first, a permanent Emergency button, SOS torch (Morse),
-  compass, one-shot GPS position.
+- **Emergency**: the number for your country first, a permanent Emergency button, first aid cards
+  quoted from the IFRC guidelines, SOS torch (Morse), compass, your position and heading on the map.
 - **Share without the internet**: phone to phone (Wi-Fi or hotspot) and computer to phones (Station
   mode); every chunk is checked against the signed catalog.
 

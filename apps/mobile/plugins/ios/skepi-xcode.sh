@@ -6,14 +6,14 @@
 #                   catalog per configuration (Debug: test catalog + test keys + local mirror source;
 #                   Release: release catalog + release keys), and in Release:
 #                   - the release catalog must verify with the release keys (catalog-builder verify --release);
-#                   - the draft emergency-cards gate: fails with draft cards, unless SKEPI_PREVIEW=1 (preview
-#                     cards, no step text) or SKEPI_ALLOW_DRAFT_CARDS=1 (internal testing builds only).
-#   preview-bundle  SKEPI_PREVIEW=1 Release builds: the JS bundle must hold no card advice text.
+#                   - the emergency-cards gate: every step IFRC-sourced and exactly the steps the last
+#                     passed tools/cards-source-check verified (source-check.lock.json).
+#   cards-bundle    Release builds: the JS bundle holds no unsourced card text and every sourced step.
 #
-# CI also runs `resources` directly with CONFIGURATION=Release to prove the draft gate fails.
+# CI also runs `resources` directly with CONFIGURATION=Release on altered cards to prove the gate fails.
 set -euo pipefail
 
-mode="${1:?usage: skepi-xcode.sh resources|preview-bundle}"
+mode="${1:?usage: skepi-xcode.sh resources|cards-bundle}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../../../.." && pwd)"
 
@@ -34,14 +34,7 @@ case "$mode" in
     if $release; then
       echo "SKEPI: release catalog must verify with the release keys"
       tsx tools/catalog-builder/src/cli.ts verify --release --dir catalog/embedded/release --pinned catalog/keys/release.json
-      cards=()
-      if [[ "${SKEPI_PREVIEW:-}" == "1" ]]; then
-        cards+=(--preview)
-      elif [[ "${SKEPI_ALLOW_DRAFT_CARDS:-}" == "1" ]]; then
-        echo "warning: SKEPI WARNING: SKEPI_ALLOW_DRAFT_CARDS=1, DRAFT emergency cards may be bundled. Internal testing build only."
-        cards+=(--allow-draft)
-      fi
-      tsx packages/emergency-cards/scripts/check-release.ts ${cards[@]+"${cards[@]}"}
+      tsx packages/emergency-cards/scripts/check-release.ts
       embedded=release keys=release.json sources=""
     else
       embedded=debug keys=test.json sources=debug.json
@@ -55,10 +48,10 @@ case "$mode" in
     if [[ -n "$sources" ]]; then cp "$repo/catalog/sources/$sources" "$dest/catalog/sources.json"; fi
     echo "SKEPI: embedded catalog $embedded (keys $keys) and map assets -> $dest"
     ;;
-  preview-bundle)
-    if $release && [[ "${SKEPI_PREVIEW:-}" == "1" ]]; then
+  cards-bundle)
+    if $release; then
       # Where React Native's "Bundle React Native code and images" phase writes it (react-native-xcode.sh).
-      tsx tools/release-guards/src/preview-cards-cli.ts "${CONFIGURATION_BUILD_DIR:-$TARGET_BUILD_DIR}/$UNLOCALIZED_RESOURCES_FOLDER_PATH/main.jsbundle"
+      tsx tools/release-guards/src/cards-bundle-cli.ts --expect-sourced "${CONFIGURATION_BUILD_DIR:-$TARGET_BUILD_DIR}/$UNLOCALIZED_RESOURCES_FOLDER_PATH/main.jsbundle"
     fi
     ;;
   *)

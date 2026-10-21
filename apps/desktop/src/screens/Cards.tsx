@@ -4,7 +4,7 @@ import { ALL_CARDS, CardView, EmergencyNumbers } from '../components/Cards';
 import { Button } from '../components/ui';
 import { useMessages } from '../lib/i18n';
 
-/** Emergency numbers first, then the bundled cards (no pack needed; drafts carry a banner). */
+/** Emergency numbers first, then the bundled cards (verbatim IFRC excerpts; no pack needed). */
 export function CardsScreen() {
   const t = useMessages();
   const cardId = useNav((s) => s.cardId);
@@ -45,7 +45,7 @@ export function CardsScreen() {
                 openCard(l.id);
               }}
             >
-              {l.title} {l.draft && <span className="unverified">{t.readiness.cardsDraft}</span>}
+              {l.title}
             </button>
           );
         })}

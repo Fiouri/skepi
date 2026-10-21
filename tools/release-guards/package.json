@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "description": "CI guards on the Android release build: permission allowlist (aapt2) and release JS bundle rebuild probe",
+  "description": "Release guards: permission allowlist (aapt2), release JS bundle rebuild probe, emergency-card text in the built bundles",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -11,7 +11,7 @@
     "test": "vitest run",
     "permissions": "tsx src/permissions-cli.ts",
     "bundle-probe": "tsx src/bundle-probe-cli.ts",
-    "preview-cards": "tsx src/preview-cards-cli.ts"
+    "cards-bundle": "tsx src/cards-bundle-cli.ts"
   },
   "devDependencies": {
     "@types/node": "22.19.1",
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@skepi/core": "workspace:*",
-    "@skepi/emergency-cards": "workspace:*"
+    "@skepi/emergency-cards": "workspace:*",
+    "@skepi/i18n": "workspace:*"
   }
 }

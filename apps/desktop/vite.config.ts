@@ -27,9 +27,9 @@ function e2eMaps(): Plugin {
 }
 
 /**
- * Developer Preview builds (SKEPI_PREVIEW=1): `@skepi/emergency-cards` resolves to its preview entry,
- * whose cards carry no step text (packages/emergency-cards/src/preview.ts); tools/release-guards checks
- * the built assets (`preview-cards` check).
+ * Developer Preview builds (SKEPI_PREVIEW=1): `@skepi/emergency-cards` resolves to its preview entry (the
+ * same IFRC-sourced cards plus the "Developer preview" label; packages/emergency-cards/src/preview.ts).
+ * CI checks the built assets with tools/release-guards `cards-bundle`.
  */
 const PREVIEW = process.env.SKEPI_PREVIEW === '1';
 /** The version shown on the About screen and in problem reports: the one the installers carry. */

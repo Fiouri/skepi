@@ -1,31 +1,29 @@
 import { foldText, tokenize, type EmergencyTopic } from '@skepi/core';
-import { CARD_LOCALES, type CardLocale, type CardStepSpec, type EmergencyCard, type LocalizedCard } from './schema';
-import { SOURCES } from './sources';
+import { CARD_LOCALES, type CardLocale, type EmergencyCard, type LocalizedCard } from './schema';
+import { IFRC_GUIDELINES } from './sources';
 
-/**
- * The card functions the apps use, over one list of cards: the full cards (`index.ts`) or the
- * Developer Preview cards without any step text (`preview.ts`, chosen by the bundler).
- */
+/** The card functions the apps use, over one list of cards. */
 export interface CardsApi {
   cardById: (id: string) => EmergencyCard | null;
-  draftCards: (cards?: readonly EmergencyCard[]) => EmergencyCard[];
   localizeCard: (card: EmergencyCard, locale: CardLocale) => LocalizedCard;
   cardsForTopics: (topics: readonly EmergencyTopic[]) => EmergencyCard[];
   findCards: (text: string) => EmergencyCard[];
   cardsForQuestion: (question: string, topics: readonly EmergencyTopic[]) => EmergencyCard[];
 }
 
-export function isDraft(card: EmergencyCard): boolean {
-  return card.review.status !== 'reviewed';
+function pages(list: readonly number[]): string {
+  const sorted = [...new Set(list)].sort((a, b) => a - b);
+  if (sorted.length === 1) return `p. ${String(sorted[0])}`;
+  const contiguous = sorted.every((p, i) => i === 0 || p === (sorted[i - 1] ?? p) + 1);
+  return contiguous ? `pp. ${String(sorted[0])}–${String(sorted[sorted.length - 1])}` : `pp. ${sorted.join(', ')}`;
 }
 
-const SOURCE_BY_ID = new Map(SOURCES.map((s) => [s.id, s]));
-
-function resolveRefs(spec: CardStepSpec): LocalizedCard['whenToCallForHelp']['refs'] {
-  return spec.refs.map((r) => {
-    const s = SOURCE_BY_ID.get(r.source);
-    return { ...r, title: s?.title ?? r.source, url: s?.url ?? '' };
-  });
+/** One line naming the source, edition, section(s) and printed page(s) of a card's steps. */
+export function citationLine(card: EmergencyCard): string {
+  const sections: string[] = [];
+  for (const s of card.steps) if (!sections.includes(s.cite.section)) sections.push(s.cite.section);
+  const parts = sections.map((section) => `“${section}”, ${pages(card.steps.filter((s) => s.cite.section === section).map((s) => s.cite.page))}`);
+  return `Source: IFRC ${IFRC_GUIDELINES.title} ${IFRC_GUIDELINES.edition}, ${parts.join('; ')}.`;
 }
 
 /**
@@ -57,23 +55,17 @@ export function createCardsApi(all: readonly EmergencyCard[]): CardsApi {
   const findCards = (text: string): EmergencyCard[] => {
     const tokens = tokenize(foldText(text));
     if (tokens.length === 0) return [];
-    return all.filter((c) => CARD_LOCALES.some((l) => c.locales[l].keywords.some((k) => keywordMatches(tokens, k))));
+    return all.filter((c) => CARD_LOCALES.some((l) => c.labels[l].keywords.some((k) => keywordMatches(tokens, k))));
   };
   return {
     cardById: (id) => byId.get(id) ?? null,
-    draftCards: (cards = all) => cards.filter(isDraft),
-    localizeCard: (card, locale) => {
-      const text = card.locales[locale];
-      return {
-        id: card.id,
-        locale,
-        title: text.title,
-        steps: card.steps.map((spec, i) => ({ text: text.steps[i] ?? '', refs: resolveRefs(spec) })),
-        whenToCallForHelp: { text: text.whenToCallForHelp, refs: resolveRefs(card.whenToCallForHelp) },
-        draft: isDraft(card),
-        review: card.review,
-      };
-    },
+    localizeCard: (card, locale) => ({
+      id: card.id,
+      locale,
+      title: card.labels[locale].title,
+      steps: card.steps,
+      citation: citationLine(card),
+    }),
     cardsForTopics,
     findCards,
     /** Cards to show first for a question: intercept topics, then keyword matches, without duplicates. */

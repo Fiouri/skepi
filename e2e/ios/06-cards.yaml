@@ -1,0 +1,38 @@
+# iOS Simulator: the CPR card is headed "Call 112 first" and shows the verbatim IFRC steps and their
+# citation (the built bundle holds no unsourced card text and every sourced step: checked at build time).
+appId: org.skepi.app
+name: SKEPI iOS emergency cards
+---
+- launchApp:
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: home-emergency
+- extendedWaitUntil:
+    visible:
+      id: emergency-numbers
+    timeout: 10000
+- assertVisible: "Call 112"
+- scrollUntilVisible:
+    element:
+      id: card-link-cpr
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: card-link-cpr
+- extendedWaitUntil:
+    visible:
+      id: card-call-first
+    timeout: 10000
+- assertVisible: "Call 112 first"
+- assertVisible:
+    id: card-step-1
+- takeScreenshot: e2e/out/ios/08-card
+- scrollUntilVisible:
+    element:
+      id: card-citation
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: card-citation
+    text: "Source: IFRC International First Aid, Resuscitation and Education Guidelines 2025, .*"

@@ -9,7 +9,9 @@ import type {
 } from '@skepi/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import type { Chunk } from '../src/chunk';
-import { planQueries, planSuggestions, rankChunks, retrieve, runRag, summarise, summaryAllowed, type RagEvent } from '../src/rag';
+import { detectEmergency } from '../src/emergency';
+import { detectMedicalIntent } from '../src/medical';
+import { planQueries, planSuggestions, rankChunks, retrieve, runRag, summarise, summaryAllowed, summaryBlock, type RagEvent } from '../src/rag';
 import { SYSTEM_PROMPT } from '../src/prompt';
 
 const ARTICLES: Record<string, ArticleText> = {
@@ -330,21 +332,10 @@ describe('summarise (Layer 2)', () => {
     expect(garbage.hiddenReason).toBe('unparseable');
   });
 
-  it('labels medical answers as unverified', async () => {
-    const r = await retrieve('What is the usual adult dose of paracetamol?', fakeKnowledge({ 'usual adult dose paracetamol': ['Paracetamol'] }), {
-      signal,
-    });
-    expect(r.medical).not.toBeNull();
-    const s = await summarise(r, fakeInference(answer([{ text: 'The usual adult dose of paracetamol is 500 mg.', source: 'S1' }])).engine, {
-      signal,
-    });
-    expect(s).toMatchObject({ status: 'shown', label: 'unverified-ai-summary' });
-  });
-
-  it('every shown summary carries a label', async () => {
+  it('every shown summary carries the fixed AI label', async () => {
     const r = await retrieve(WATER_Q, fakeKnowledge(WATER_INDEX), { signal });
     const s = await summarise(r, fakeInference(answer([{ text: 'Boil water for at least 1 minute.', source: 'S1' }])).engine, { signal });
-    expect(['ai-summary', 'unverified-ai-summary']).toContain(s.label);
+    expect(s.label).toBe('ai-summary');
   });
 
   it('refuses to run without a ready retrieval', async () => {
@@ -387,13 +378,61 @@ describe('no AI summary on emergency intent (first-aid instructions are never ge
     expect(inference.generate).not.toHaveBeenCalled();
   });
 
-  it('medical intent without an emergency still allows the summary (on demand in the apps)', async () => {
-    const r = await retrieve('What is the usual adult dose of paracetamol?', fakeKnowledge({ 'usual adult dose paracetamol': ['Paracetamol'] }), {
-      signal,
-    });
+});
+
+describe('no AI summary on medical intent (decision 2026-10-21, no opt-in)', () => {
+  const DOSE_Q = 'What is the usual adult dose of paracetamol?';
+  const doseKnowledge = (): KnowledgeEngine => fakeKnowledge({ 'usual adult dose paracetamol': ['Paracetamol'] });
+  const doseAnswer = JSON.stringify({ covered: true, sentences: [{ text: 'The usual adult dose of paracetamol is 500 mg.', source: 'S1' }] });
+
+  it('shows Layer 1 but allows no summary, and says why', async () => {
+    const r = await retrieve(DOSE_Q, doseKnowledge(), { signal });
     expect(r.medical).not.toBeNull();
     expect(r.emergency).toBeNull();
-    expect(summaryAllowed(r)).toBe(true);
+    expect(r.status).toBe('ready');
+    expect(r.layer1?.passages.length).toBeGreaterThan(0);
+    expect(summaryAllowed(r)).toBe(false);
+    expect(summaryBlock(r)).toBe('medical');
+  });
+
+  it('summarise refuses without calling the model', async () => {
+    const r = await retrieve(DOSE_Q, doseKnowledge(), { signal });
+    const inference = fakeInference(doseAnswer);
+    await expect(summarise(r, inference.engine, { signal })).rejects.toThrow(/medical intent/);
+    expect(inference.generate).not.toHaveBeenCalled();
+  });
+
+  it('runRag returns Layer 1 only', async () => {
+    const inference = fakeInference(doseAnswer);
+    const r = await runRag(DOSE_Q, { knowledge: doseKnowledge(), inference: inference.engine }, { signal, summary: 'auto' });
+    expect(r.summary).toBeNull();
+    expect(r.layer1?.passages.length).toBeGreaterThan(0);
+    expect(inference.generate).not.toHaveBeenCalled();
+  });
+});
+
+describe('summary intent gate', () => {
+  const none = { emergency: null, medical: null };
+  const emergency = detectEmergency('My friend is bleeding heavily');
+  const medical = detectMedicalIntent('What is the usual adult dose of paracetamol?');
+
+  it('blocks emergency first, then medical, and nothing else', () => {
+    expect(summaryBlock(none)).toBeNull();
+    expect(summaryBlock({ emergency, medical: null })).toBe('emergency');
+    expect(summaryBlock({ emergency, medical })).toBe('emergency');
+    expect(summaryBlock({ emergency: null, medical })).toBe('medical');
+  });
+
+  it.each([
+    ['What is the usual adult dose of paracetamol?', 'medical'],
+    ['symptoms of malaria', 'medical'],
+    ['How do I treat a burn?', 'emergency'],
+    ['My friend is bleeding heavily', 'emergency'],
+    ['How do I boil water to make it safe?', null],
+    ['What is the capital of France?', null],
+  ])('%s → %s', (q, expected) => {
+    const e = detectEmergency(q);
+    expect(summaryBlock({ emergency: e, medical: detectMedicalIntent(q, e) })).toBe(expected);
   });
 });
 

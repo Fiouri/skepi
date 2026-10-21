@@ -75,6 +75,12 @@ export default tseslint.config(
     rules: { 'no-restricted-globals': 'off', 'no-restricted-imports': 'off' },
   },
   {
+    // Tooling (CI and dev machines, never in the app): the pinned IFRC guidelines PDF for the
+    // emergency-card source check, accepted only with its pinned SHA-256.
+    files: ['tools/cards-source-check/src/source.ts'],
+    rules: { 'no-restricted-globals': 'off' },
+  },
+  {
     files: ['apps/mobile/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: {

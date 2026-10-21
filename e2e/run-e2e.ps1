@@ -4,9 +4,9 @@
   WebView made zero network requests (blocked-request log must be empty).
   1. e2e/ask-en.yaml    English UI: search, article, Layer 1 + automatic AI summary with citation, problem report to the share sheet, no source, map.
   2. e2e/ask-t1.yaml    English UI, T1-simulation: Layer 1, then "Summarise with AI".
-  3. e2e/medical.yaml   English UI: emergency number + Layer 1 first, unverified AI summary on tap.
+  3. e2e/medical.yaml   English UI: emergency number + Layer 1 only, no AI summary (not even on tap).
   4. e2e/onboarding.yaml "Get prepared" offline with the installed packs; readiness indicator.
-  5. e2e/cards.yaml     Emergency button, numbers, a draft card; an emergency question shows number + card first.
+  5. e2e/cards.yaml     Emergency button, numbers, an IFRC card with its citation; an emergency question shows number + card first.
   6. e2e/tools.yaml     SOS torch and screen, compass, GNSS fix, SMS hand-off (location permission granted here).
   7. e2e/blackout.yaml  Blackout mode with a simulated discharging battery at 25% (dumpsys battery), reset afterwards.
   7b. e2e/places.yaml  Place search (English and local names) and the emergency POI layer (map-gr, places-gr packs).

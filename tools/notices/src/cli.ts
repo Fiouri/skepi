@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ASSETS, NATIVE_DESKTOP, NATIVE_MOBILE } from './native';
+import { ASSETS, CONTENT, NATIVE_DESKTOP, NATIVE_MOBILE } from './native';
 import { addAndroid, addJavaScript, addRust, NoticesBuilder, type NoticesFile } from './notices';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -37,6 +37,7 @@ function build(app: 'mobile' | 'desktop', android: 'fresh' | 'committed'): Notic
     for (const c of NATIVE_MOBILE) b.add(c);
   }
   for (const c of ASSETS) b.add(c);
+  for (const c of CONTENT) b.add(c.component, [], [c.text]);
   return b.build(app);
 }
 

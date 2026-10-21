@@ -1,0 +1,10 @@
+{
+  "source": {
+    "url": "https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid,%20Resuscitation%20and%20Education%20Guidelines%202025.pdf",
+    "sha256": "eed67bdff38ca8a7628c7b01be5bcd23796601e0d85bb021dc301ec3f9ff8f1f",
+    "edition": "2025"
+  },
+  "cardsDigest": "f09ec8f621babcc488406c3c86c0c17648b2b49bb76f009048b1ed3a9e6cd29c",
+  "cards": 8,
+  "steps": 61
+}

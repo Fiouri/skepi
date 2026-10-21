@@ -1,7 +1,8 @@
 // Expo's default Metro configuration (monorepo-aware), plus one switch for Developer Preview builds:
-// with SKEPI_PREVIEW=1, `@skepi/emergency-cards` resolves to its preview entry, whose cards carry no
-// step text (packages/emergency-cards/src/preview.ts). The release build checks the bundle afterwards
-// (apps/mobile/plugins/withEmergencyCards.js -> tools/release-guards preview-cards).
+// with SKEPI_PREVIEW=1, `@skepi/emergency-cards` resolves to its preview entry (the same IFRC-sourced
+// cards, plus the "Developer preview" label; packages/emergency-cards/src/preview.ts). Every release build
+// checks the bundle afterwards (apps/mobile/plugins/withEmergencyCards.js -> tools/release-guards
+// cards-bundle).
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('node:path');
 

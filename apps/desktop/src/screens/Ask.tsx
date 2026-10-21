@@ -2,6 +2,7 @@ import {
   retrieve,
   summarise,
   summaryAllowed,
+  summaryBlock,
   SYSTEM_PROMPT,
   unbundledNumbers,
   type EmergencyMatch,
@@ -124,9 +125,9 @@ export function AskScreen() {
         },
       });
       setFound(r);
-      // T2+/T3: the AI summary follows Layer 1, except on medical intent and in blackout mode. On
-      // emergency intent there is no AI summary at all (summaryAllowed).
-      if (summaryAllowed(r) && model && profile.summaryMode === 'auto' && !r.medical && !blackout) await runSummary(r, abort);
+      // T2+/T3: the AI summary follows Layer 1, except in blackout mode. On emergency and medical intent
+      // there is no AI summary at all (summaryAllowed).
+      if (summaryAllowed(r) && model && profile.summaryMode === 'auto' && !blackout) await runSummary(r, abort);
     });
   };
 
@@ -149,10 +150,10 @@ export function AskScreen() {
   };
 
   const shown = summary?.status === 'shown' ? (summary.validation?.kept ?? []) : streamed;
-  const unverified = (summary?.label ?? (medical ? 'unverified-ai-summary' : 'ai-summary')) === 'unverified-ai-summary';
   const canSummarise = found !== null && summaryAllowed(found) && model !== null && summary === null && !busy;
   const hasCards = asked.length > 0 && cardsForQuestion(asked, emergency?.topics ?? []).length > 0;
-  const onDemand = profile.summaryMode === 'on-demand' || medical !== null || blackout;
+  const onDemand = profile.summaryMode === 'on-demand' || blackout;
+  const blocked = found?.status === 'ready' ? summaryBlock(found) : null;
 
   return (
     <section className="stack" data-testid="ask-screen">
@@ -244,7 +245,7 @@ export function AskScreen() {
 
       {(phase === 'generating' || shown.length > 0) && (
         <div className="summary stack" data-testid="ai-summary">
-          <strong data-testid="ai-label">{unverified ? t.ask.unverifiedAiLabel : t.ask.aiLabel}</strong>
+          <strong data-testid="ai-label">{t.ask.aiLabel}</strong>
           {phase === 'generating' && shown.length === 0 && <span className="muted">{t.ask.writing}</span>}
           {shown.map((s, i) => (
             <div key={`${s.source}-${String(i)}`} className="row">
@@ -268,12 +269,17 @@ export function AskScreen() {
           {summary.hiddenReason === 'not_covered' ? t.ask.summaryNotCovered : t.ask.summaryHidden}
         </p>
       )}
-      {found?.status === 'ready' && !summaryAllowed(found) && (
+      {blocked === 'emergency' && (
         <p className="muted" data-testid="summary-emergency">
           {t.ask.noSummaryEmergency}
         </p>
       )}
-      {canSummarise && onDemand && <Button testId="ask-summarise" label={medical ? t.ask.summariseMedical : t.ask.summarise} onClick={summariseOnDemand} />}
+      {blocked === 'medical' && (
+        <p className="muted" data-testid="summary-medical">
+          {t.ask.noSummaryMedical}
+        </p>
+      )}
+      {canSummarise && onDemand && <Button testId="ask-summarise" label={t.ask.summarise} onClick={summariseOnDemand} />}
       {found && !busy && <ProblemReport key={asked} question={asked} found={found} shown={shown} />}
 
       {found && (

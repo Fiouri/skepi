@@ -1,6 +1,6 @@
 # CI: typecheck, lint, unit tests and the committed-fixtures check (verify, every change); the rag-eval
 # smoke subset (llama.cpp on CPU), the Android release guards (unsigned release APK, permission allowlist,
-# release JS bundle rebuild probe, draft emergency cards gate) and the Windows desktop crates (skipped
+# release JS bundle rebuild probe, IFRC source check and gate of the emergency cards) and the Windows desktop crates (skipped
 # when only docs change); the reproducible unsigned APK is android-repro.yml. The full rag-eval run and
 # Android Maestro E2E run locally (phase reports).
 # Phase 3b-0: the Apple jobs on GitHub's macOS runners (no Mac, no signing): ios-build (Simulator Release
@@ -65,8 +65,8 @@ jobs:
           if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ] || [ "$E2E_LABEL" = true ]; then ios_e2e=true; fi
           echo "ios_e2e=$ios_e2e" >> "$GITHUB_OUTPUT"
           # Apple jobs (Phase 3b-0) follow their own paths: never docs-only changes.
-          IOS_PATHS='^(apps/mobile/(app\.json|package\.json|metro\.config\.js|plugins/)|apps/mobile/ios/|modules/|native/kiwix/|e2e/ios/|packages/emergency-cards/|catalog/|pnpm-lock\.yaml$|(.*/)?Podfile(\.lock)?$|\.github/workflows/ci\.yml$)'
-          MACOS_PATHS='^(crates/|apps/desktop/|native/kiwix/|Cargo\.(toml|lock)$|\.cargo/|rustfmt\.toml$|packages/emergency-cards/|catalog/|\.github/workflows/ci\.yml$)'
+          IOS_PATHS='^(apps/mobile/(app\.json|package\.json|metro\.config\.js|plugins/)|apps/mobile/ios/|modules/|native/kiwix/|e2e/ios/|packages/emergency-cards/|tools/(cards-source-check|release-guards)/|catalog/|pnpm-lock\.yaml$|(.*/)?Podfile(\.lock)?$|\.github/workflows/ci\.yml$)'
+          MACOS_PATHS='^(crates/|apps/desktop/|native/kiwix/|Cargo\.(toml|lock)$|\.cargo/|rustfmt\.toml$|packages/emergency-cards/|tools/release-guards/|catalog/|\.github/workflows/ci\.yml$)'
           if [ "$EVENT" = schedule ]; then
             echo "nightly: Apple jobs only"; echo "code=false" >> "$GITHUB_OUTPUT"; echo "ios=true" >> "$GITHUB_OUTPUT"; echo "macos=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
@@ -101,11 +101,12 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
-      # Developer Preview: the desktop UI bundle built with SKEPI_PREVIEW=1 holds no emergency-card step.
-      - name: Preview desktop bundle has no card advice text
+      # The desktop UI bundle (Developer Preview build): no unsourced card text, every IFRC-sourced step
+      # (shipped only with a passed source check, packages/emergency-cards/source-check.lock.json).
+      - name: Desktop bundle card text (unsourced 0, sourced only when source-checked)
         run: |
           SKEPI_PREVIEW=1 pnpm --filter @skepi/desktop build
-          node node_modules/tsx/dist/cli.mjs tools/release-guards/src/preview-cards-cli.ts apps/desktop/dist
+          node node_modules/tsx/dist/cli.mjs tools/release-guards/src/cards-bundle-cli.ts --expect-sourced apps/desktop/dist
 
   rag-eval-smoke:
     needs: changes
@@ -230,20 +231,30 @@ jobs:
           rc=0; scripts/ci/link-slot.sh sh -c 'exit 7' || rc=$?
           [ "$rc" -eq 7 ]
       - run: pnpm install --frozen-lockfile
+      # Emergency cards (decision 2026-10-21): every step must be an exact excerpt of the IFRC guidelines
+      # PDF at the cited page (pinned URL + SHA-256, pdftotext; the PDF is never committed, cached here
+      # by its hash), and source-check.lock.json must record exactly these steps.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/ifrc
+          key: ifrc-guidelines-${{ hashFiles('packages/emergency-cards/src/sources.ts') }}
+      - name: Cards source check (IFRC guidelines, pdftotext)
+        run: |
+          sudo apt-get install -y -q poppler-utils
+          node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts --cache-dir .cache/ifrc
       - name: Expo prebuild (android/ is generated, never committed)
         run: pnpm --filter @skepi/mobile run prebuild
-      - name: Release build must fail with draft emergency cards
-        working-directory: apps/mobile/android
+      - name: Release build must fail when a card step is not the source-checked IFRC text
         run: |
-          if ./gradlew skepiCheckEmergencyCards --build-cache --console=plain > gate.log 2>&1; then
-            cat gate.log
-            echo "::error::the draft-cards gate let a release build through"
-            exit 1
-          fi
+          sed -i.bak 's/Help the person to lie down\./Help the person to lie down now./' packages/emergency-cards/src/cards.ts && rm packages/emergency-cards/src/cards.ts.bak
+          rc=0
+          (cd apps/mobile/android && ./gradlew skepiCheckEmergencyCards --build-cache --console=plain) > gate.log 2>&1 || rc=$?
+          git checkout -- packages/emergency-cards/src/cards.ts
           cat gate.log
-          grep -q "emergency cards are DRAFT" gate.log
-      # Developer Preview mode (what ships): no card steps in the bundle, checked by Gradle right after
-      # the JS bundle is built (skepiCheckPreviewBundle -> tools/release-guards preview-cards).
+          if [ "$rc" -eq 0 ]; then echo "::error::the emergency-cards gate let an altered step through"; exit 1; fi
+          grep -q "the card steps differ from the last passed cards-source-check" gate.log
+      # Developer Preview mode (what ships): Gradle checks the JS bundle right after it is built
+      # (skepiCheckCardsBundle -> tools/release-guards cards-bundle): no unsourced card text, every sourced step.
       # Unsigned (-PskepiUnsigned=true): CI holds no key, not even the debug key; the reproducible APK that
       # gets signed for release comes from .github/workflows/android-repro.yml.
       - name: Release APK, Developer Preview (unsigned)
@@ -346,7 +357,7 @@ jobs:
 
   # Phase 3b-0: the iOS app on the Simulator (macOS runner, no signing, no TestFlight). CoreKiwix
   # (libzim 9.7.0) from the official Kiwix xcframework, SHA-256 pinned in native/kiwix; llama.rn built
-  # from source; Developer Preview bundle (no card step text, scanned after the build).
+  # from source; Developer Preview bundle (card text scanned after the build: no unsourced text, every IFRC step).
   # ios-build: Release build, Swift unit tests, bundle scan and link checks (path filter). When ios-e2e runs
   # in the same workflow run, it also builds the ad-hoc Simulator copy and hands both apps over as an artifact.
   ios-build:
@@ -422,14 +433,25 @@ jobs:
       - name: pod install
         working-directory: apps/mobile/ios
         run: pod install
-      - name: Release build must fail with draft emergency cards
+      # Emergency cards: the IFRC source check, as in android-release-guards.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/ifrc
+          key: ifrc-guidelines-${{ hashFiles('packages/emergency-cards/src/sources.ts') }}
+      - name: Cards source check (IFRC guidelines, pdftotext)
         run: |
+          brew install poppler
+          node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts --cache-dir .cache/ifrc
+      - name: Release build must fail when a card step is not the source-checked IFRC text
+        run: |
+          sed -i.bak 's/Help the person to lie down\./Help the person to lie down now./' packages/emergency-cards/src/cards.ts && rm packages/emergency-cards/src/cards.ts.bak
           rc=0
-          env -u SKEPI_PREVIEW CONFIGURATION=Release TARGET_BUILD_DIR="$RUNNER_TEMP/gate" UNLOCALIZED_RESOURCES_FOLDER_PATH=SKEPI.app \
+          CONFIGURATION=Release TARGET_BUILD_DIR="$RUNNER_TEMP/gate" UNLOCALIZED_RESOURCES_FOLDER_PATH=SKEPI.app \
             bash apps/mobile/plugins/ios/skepi-xcode.sh resources > gate.log 2>&1 || rc=$?
+          git checkout -- packages/emergency-cards/src/cards.ts
           cat gate.log
-          if [ "$rc" -eq 0 ]; then echo "::error::the draft-cards gate let a release build through"; exit 1; fi
-          grep -q "emergency cards are DRAFT" gate.log
+          if [ "$rc" -eq 0 ]; then echo "::error::the emergency-cards gate let an altered step through"; exit 1; fi
+          grep -q "the card steps differ from the last passed cards-source-check" gate.log
       - name: xcodebuild Release for the Simulator (unsigned, Developer Preview)
         id: build
         run: |
@@ -457,8 +479,8 @@ jobs:
           otool -L "$app/SKEPI"
           if nm -a "$app/SKEPI" | grep -E 'curl_easy_init|curl_multi_perform|MHD_start_daemon'; then echo "::error::network code from CoreKiwix is linked"; exit 1; fi
           echo "libzim symbols: $(nm -a "$app/SKEPI" | grep -c '3zim7Archive' || true)"
-      - name: Preview bundle holds no card advice text
-        run: node node_modules/tsx/dist/cli.mjs tools/release-guards/src/preview-cards-cli.ts "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app/main.jsbundle"
+      - name: Bundle card text (unsourced 0, every sourced step, source check lock)
+        run: node node_modules/tsx/dist/cli.mjs tools/release-guards/src/cards-bundle-cli.ts --expect-sourced "$DERIVED_DATA/Build/Products/Release-iphonesimulator/SKEPI.app/main.jsbundle"
       - name: Swift unit tests (SkepiZim; binding, catalog/hash, viewer sealing)
         run: |
           set -o pipefail
@@ -613,10 +635,10 @@ jobs:
         run: cargo clippy --workspace --all-targets --no-default-features --features "$FEATURES" -- -D warnings
       - name: Tests (Metal build)
         run: cargo test --workspace --no-default-features --features "$FEATURES"
-      - name: Desktop UI (Developer Preview) holds no card advice text
+      - name: Desktop UI (Developer Preview) card text (unsourced 0, sourced only when source-checked)
         run: |
           SKEPI_PREVIEW=1 pnpm --filter @skepi/desktop build
-          node node_modules/tsx/dist/cli.mjs tools/release-guards/src/preview-cards-cli.ts apps/desktop/dist
+          node node_modules/tsx/dist/cli.mjs tools/release-guards/src/cards-bundle-cli.ts --expect-sourced apps/desktop/dist
       - name: Unsigned Tauri build (aarch64-apple-darwin, app + dmg, Developer Preview)
         env:
           SKEPI_PREVIEW: '1'

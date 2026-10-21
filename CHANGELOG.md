@@ -5,6 +5,21 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 
 ## [Unreleased]
 
+### Changed
+- Emergency cards: every step is now a verbatim excerpt from the IFRC International First Aid,
+  Resuscitation and Education Guidelines 2025 with its citation (section, page), headed "Call 112 first"
+  (the country's number). 8 cards ship (CPR, severe bleeding, choking, burns, fractures, hypothermia,
+  heatstroke, poisoning); earthquake, fire, flood and water purification have no IFRC passage and are no
+  longer shipped. The former US public-domain steps and their Greek translation are gone. A CI source
+  check proves every step against the pinned IFRC PDF.
+- Medical questions never get an AI summary (no "Show unverified AI summary" button any more): cards and
+  source excerpts only, with "AI summaries are not available for medical questions."
+- One intended-purpose statement in the store description, About, README and privacy policy.
+
+### Added
+- "AI-generated summary" line in every shared or copied problem report that contains an AI summary.
+- About → third-party notices: IFRC attribution and licence statement.
+
 ## [0.1.1-preview] — Developer Preview (Android + Windows)
 
 Second preview, for developers and testers. **Not for emergency use.** Emergency card steps are still

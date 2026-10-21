@@ -1,0 +1,23 @@
+{
+  "name": "@skepi/cards-source-check",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "description": "Proves every emergency-card step is a verbatim excerpt of the IFRC guidelines PDF at the cited page (pinned URL and SHA-256, pdftotext).",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run",
+    "check": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@skepi/emergency-cards": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.3"
+  }
+}

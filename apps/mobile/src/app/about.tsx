@@ -42,6 +42,7 @@ export default function AboutScreen() {
       <Text style={styles.heading} accessibilityRole="header" testID="about-version">
         {`S.K.E.P.I. · ${t.about.version(version)}`}
       </Text>
+      {section(t.about.purposeTitle, t.about.purpose, 'about-purpose')}
       {section(t.about.licenceTitle, `${t.about.licence}\n${t.about.sourceCode}`, 'about-licence')}
       {section(t.about.contentTitle, [t.about.wikipedia, t.about.maps, t.about.places, t.about.model, t.about.cardSources].join('\n\n'), 'about-content')}
       {section(t.about.signingTitle, t.about.signingAndroid(ANDROID_RELEASE_SIGNING_SHA256), 'about-signing')}

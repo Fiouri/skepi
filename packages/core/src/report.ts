@@ -39,6 +39,12 @@ export interface ProblemReportInput {
   description?: string;
 }
 
+/**
+ * The plain marker line every shared or copied text carries when it contains an AI summary (EU AI Act
+ * Art. 50: AI-generated text is marked as such, also outside the app). Fixed English, never localised.
+ */
+export const AI_GENERATED_MARKER = 'AI-generated summary';
+
 /** Longest user text kept in a report (the input field has the same limit). */
 export const PROBLEM_REPORT_MAX_DESCRIPTION = 2000;
 
@@ -55,7 +61,7 @@ export function problemReportText(input: ProblemReportInput, labels: ProblemRepo
     lines.push('');
   }
   if (input.aiSentences.length > 0) {
-    lines.push(`${labels.ai}:`);
+    lines.push(AI_GENERATED_MARKER, `${labels.ai}:`);
     for (const s of input.aiSentences) lines.push(`- ${s.text} [${s.source}]`);
   } else {
     lines.push(`${labels.noAi}.`);

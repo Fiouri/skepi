@@ -70,34 +70,33 @@ export function EmergencyNumbers({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function DraftBanner({ card }: { card: LocalizedCard }) {
+/** The first line of every card: call the emergency number first, with a button to the dialler. */
+function CallFirst() {
   const t = useMessages();
   const styles = useStyles();
-  if (!card.draft) return null;
+  const numbers = useEmergencyNumbers();
   return (
-    <View style={styles.warning} testID="card-draft-banner" accessibilityRole="alert">
-      <Text style={styles.warningText}>{t.cards.draftBanner}</Text>
+    <View style={styles.banner} testID="card-call-first" accessibilityRole="alert">
+      <Text style={styles.bannerText} accessibilityRole="header">
+        {t.cards.callFirst(numbers.general)}
+      </Text>
+      <Button testID="card-call" label={t.emergency.call(numbers.general)} tone="danger" onPress={() => { dial(numbers.general); }} />
     </View>
   );
 }
 
-/**
- * Developer Preview builds ship cards without steps (packages/emergency-cards/src/preview.ts): the card
- * says it is under professional review; the emergency numbers are shown above it.
- */
-export function UnderReview() {
-  const t = useMessages();
+/** "Source: IFRC … 2025, "<section>", p. <page>." under the steps (verbatim excerpts, cited). */
+function Citation({ card }: { card: LocalizedCard }) {
   const styles = useStyles();
   return (
-    <View style={styles.warning} testID="card-under-review" accessibilityRole="alert">
-      <Text style={styles.warningText}>{t.cards.underReview}</Text>
-      <Text style={styles.bannerBody}>{t.cards.underReviewDetail}</Text>
-    </View>
+    <Text style={styles.muted} selectable testID="card-citation">
+      {card.citation}
+    </Text>
   );
 }
 
-function speakable(card: LocalizedCard, stepWord: (n: number) => string, whenToCall: string): string {
-  return [card.title, ...card.steps.map((s, i) => `${stepWord(i + 1)}. ${s.text}`), `${whenToCall}. ${card.whenToCallForHelp.text}`].join('\n');
+function speakable(card: LocalizedCard, stepWord: (n: number) => string): string {
+  return [card.title, ...card.steps.map((s, i) => `${stepWord(i + 1)}. ${s.text}`)].join('\n');
 }
 
 /** Reads the card aloud with the OS text-to-speech (offline voices permitting). */
@@ -114,8 +113,9 @@ function ReadAloud({ card }: { card: LocalizedCard }) {
       return;
     }
     setSpeaking(true);
-    Speech.speak(speakable(card, t.cards.step, t.cards.whenToCall), {
-      language: card.locale === 'el' ? 'el-GR' : 'en-US',
+    // The steps are English IFRC text in every locale.
+    Speech.speak(speakable(card, t.cards.step), {
+      language: 'en-US',
       rate: 0.9,
       onDone: () => { setSpeaking(false); },
       onStopped: () => { setSpeaking(false); },
@@ -125,27 +125,17 @@ function ReadAloud({ card }: { card: LocalizedCard }) {
   return <Button testID="card-read-aloud" label={speaking ? t.cards.stopReading : t.cards.readAloud} onPress={toggle} />;
 }
 
-/** A whole card: draft banner, numbered steps, when to call, sources, read aloud. */
+/** A whole card: "Call <number> first", numbered IFRC steps, the citation, read aloud. */
 export function CardView({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const styles = useStyles();
   const c = localizeCard(card, CARD_DISPLAY_LOCALE);
-  if (c.steps.length === 0) {
-    return (
-      <View style={{ gap: 12 }} testID={`card-${card.id}`}>
-        <Text style={styles.heading} accessibilityRole="header">
-          {c.title}
-        </Text>
-        <UnderReview />
-      </View>
-    );
-  }
   return (
     <View style={{ gap: 12 }} testID={`card-${card.id}`}>
       <Text style={styles.heading} accessibilityRole="header">
         {c.title}
       </Text>
-      <DraftBanner card={c} />
+      <CallFirst />
       <ReadAloud card={c} />
       <Text style={styles.title} accessibilityRole="header">
         {t.cards.steps}
@@ -156,29 +146,12 @@ export function CardView({ card }: { card: EmergencyCard }) {
           <Text style={styles.stepText}>{s.text}</Text>
         </View>
       ))}
-      <View style={styles.banner}>
-        <Text style={styles.bannerText} accessibilityRole="header">
-          {t.cards.whenToCall}
-        </Text>
-        <Text style={styles.bannerBody} testID="card-when-to-call">
-          {c.whenToCallForHelp.text}
-        </Text>
-      </View>
-      <Text style={styles.title} accessibilityRole="header">
-        {t.cards.sources}
-      </Text>
-      {c.steps.map((s, i) =>
-        s.refs.map((r, k) => (
-          <Text key={`${String(i)}-${String(k)}`} style={styles.muted} selectable>
-            {`${String(i + 1)}. ${t.cards.source({ title: r.title, locator: r.locator })} — ${r.url}`}
-          </Text>
-        )),
-      )}
+      <Citation card={c} />
     </View>
   );
 }
 
-/** Compact card for the Ask intercept: title, draft banner, steps, and a link to the full card. */
+/** Compact card for the Ask intercept: title, steps, citation, and a link to the full card. */
 function InlineCard({ card }: { card: EmergencyCard }) {
   const t = useMessages();
   const styles = useStyles();
@@ -189,13 +162,13 @@ function InlineCard({ card }: { card: EmergencyCard }) {
       <Text style={styles.title} accessibilityRole="header">
         {c.title}
       </Text>
-      {c.steps.length === 0 ? <UnderReview /> : <DraftBanner card={c} />}
       {c.steps.map((s, i) => (
         <View key={i} style={styles.step}>
           <Text style={styles.stepNumber}>{i + 1}.</Text>
           <Text style={styles.stepText}>{s.text}</Text>
         </View>
       ))}
+      <Citation card={c} />
       <Pressable
         accessibilityRole="link"
         testID={`open-card-${card.id}`}
@@ -229,7 +202,6 @@ export function EmergencyCardSlot({ question, topics }: { question: string; topi
 export function CardLinks({ cards }: { cards: readonly EmergencyCard[] }) {
   const styles = useStyles();
   const router = useRouter();
-  const t = useMessages();
   return (
     <View>
       {cards.map((card) => {
@@ -238,7 +210,7 @@ export function CardLinks({ cards }: { cards: readonly EmergencyCard[] }) {
           <Pressable
             key={card.id}
             accessibilityRole="link"
-            accessibilityLabel={c.draft ? `${c.title}. ${t.cards.draftBanner}` : c.title}
+            accessibilityLabel={c.title}
             testID={`card-link-${card.id}`}
             style={styles.item}
             onPress={() => {
@@ -246,7 +218,6 @@ export function CardLinks({ cards }: { cards: readonly EmergencyCard[] }) {
             }}
           >
             <Text style={styles.title}>{c.title}</Text>
-            {c.draft && <Text style={styles.muted}>{t.cards.draftBanner}</Text>}
           </Pressable>
         );
       })}

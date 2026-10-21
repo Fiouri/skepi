@@ -3,9 +3,10 @@ import { foldText, tokenize } from './text';
 
 /**
  * Medical intent (architecture, "User safety"): a question about doses, drugs, symptoms, diseases or
- * treatment. The Ask screen then shows the emergency number and Layer 1 first, and the AI summary
- * only on tap, labelled "Unverified AI summary — check the source". Lexicon-based and deterministic,
- * like the emergency intercept; English and Greek.
+ * treatment. The Ask screen then shows the emergency number, the matching cards and Layer 1 only, with
+ * the note that AI summaries are not available for medical questions (no AI summary at all,
+ * `summaryAllowed`; decision 2026-10-21). Lexicon-based and deterministic, like the emergency
+ * intercept; English and Greek.
  */
 export interface MedicalIntent {
   /** Lexicon entries that matched (folded form). */

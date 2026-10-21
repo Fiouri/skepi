@@ -1,10 +1,10 @@
 import { CARD_DISPLAY_LOCALE, cardById } from '@skepi/emergency-cards';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text } from 'react-native';
-import { CardView, EmergencyNumbers } from '../../components/EmergencyCards';
+import { CardView } from '../../components/EmergencyCards';
 import { useStyles } from '../../components/ui';
 
-/** One emergency card, with the emergency number first. Bundled: works with no pack installed. */
+/** One emergency card ("Call <number> first" heads it). Bundled: works with no pack installed. */
 export default function CardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = useStyles();
@@ -14,8 +14,7 @@ export default function CardScreen() {
   }
   return (
     <ScrollView style={styles.fill} contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 48 }} testID="card-screen">
-      <Stack.Screen options={{ title: card.locales[CARD_DISPLAY_LOCALE].title }} />
-      <EmergencyNumbers compact />
+      <Stack.Screen options={{ title: card.labels[CARD_DISPLAY_LOCALE].title }} />
       <CardView card={card} />
     </ScrollView>
   );

@@ -71,6 +71,16 @@ photos or video), `NEARBY_WIFI_DEVICES` with `neverForLocation` and the Wi-Fi/ne
 (local-only hotspot for phone-to-phone sharing). Justifications:
 https://github.com/Fiouri/skepi/blob/HEAD/docs/store-readiness.md (§8).
 
+**Note for the NEXT version (not 0.1.1-preview).** From the version after `0.1.1-preview`, the
+emergency cards contain text quoted word for word from the IFRC International First Aid, Resuscitation
+and Education Guidelines 2025 (© IFRC, Geneva, 2025), whose terms are: "Copies of all or part of this
+study may be made for non-commercial use, providing the source is acknowledged." That is not a free
+licence, so the reviewers may add the `NonFreeAssets` anti-feature from that version on; the code stays
+GPL-3.0-or-later and the app stays non-commercial (no paid features, ads, analytics or data collection).
+Each card cites its section and page, and About carries the IFRC attribution. The text of the merge
+request above describes 0.1.1-preview, which ships no card steps; update it if the request is still
+open when the next version is tagged.
+
 **Updates:** `UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$`, `AutoUpdateMode: Version`; versionCode is in
 `apps/mobile/app.json`, release tags are `v<versionName>`. Metadata (description, changelogs, screenshots)
 is in the repository under `fastlane/metadata/android/en-US/`.

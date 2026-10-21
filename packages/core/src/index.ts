@@ -41,6 +41,7 @@ export {
   runRag,
   summarise,
   summaryAllowed,
+  summaryBlock,
   TITLE_BOOST,
   toSources,
   type ArchiveRef,
@@ -56,6 +57,7 @@ export {
   type RetrieveOptions,
   type SummariseOptions,
   type SummaryHiddenReason,
+  type SummaryBlock,
   type SummaryLabel,
   type SummaryResult,
   type SummaryStatus,
@@ -271,5 +273,5 @@ export {
   type TransferErrorCode,
   type TransferManifest,
 } from './transfer';
-export { PROBLEM_REPORT_MAX_DESCRIPTION, problemReportShare, problemReportText, type ProblemReportInput, type ProblemReportLabels, type ProblemReportShare, type ProblemReportSource } from './report';
+export { AI_GENERATED_MARKER, PROBLEM_REPORT_MAX_DESCRIPTION, problemReportShare, problemReportText, type ProblemReportInput, type ProblemReportLabels, type ProblemReportShare, type ProblemReportSource } from './report';
 export { ANDROID_RELEASE_SIGNING_SHA256 } from './release';

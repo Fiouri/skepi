@@ -296,14 +296,10 @@ try {
 
   await click(tid('emergency-button'));
   await click(tid('card-open-cpr'));
-  if (preview) {
-    check(
-      'preview card: "Under professional review" + emergency numbers, no steps',
-      (await visible('card-under-review')) && (await visible('emergency-numbers')) && !(await visible('card-draft-banner')),
-    );
-  } else {
-    check('emergency card with the draft banner', await visible('card-draft-banner'));
-  }
+  check(
+    'emergency card: "Call 112 first", IFRC steps and their citation',
+    (await visible('card-call-first')) && (await visible('card-step-1')) && (await textOf(tid('card-citation'))).includes('IFRC International First Aid, Resuscitation and Education Guidelines 2025'),
+  );
 
   await click(tid('tab-about'));
   await waitFor(() => visible('about-screen'), 10_000, 'about');

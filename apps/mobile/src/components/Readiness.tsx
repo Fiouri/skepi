@@ -1,5 +1,4 @@
 import { detectMobileTier } from '@skepi/core';
-import { draftCards } from '@skepi/emergency-cards';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { useContent } from '../lib/content';
@@ -8,7 +7,6 @@ import { useStyles } from './ui';
 
 export interface ReadinessState {
   cards: boolean;
-  cardsDraft: boolean;
   map: boolean;
   encyclopedia: boolean;
   /** null: this device runs no AI (T0). */
@@ -24,7 +22,6 @@ export function useReadiness(): ReadinessState {
   const tier = totalRamMb > 0 ? detectMobileTier(totalRamMb) : 'T0';
   return {
     cards: true,
-    cardsDraft: draftCards().length > 0,
     map: pmtilesPath !== null,
     encyclopedia: archives.some((a) => a.verified),
     ai: tier === 'T0' ? null : models.length > 0,
@@ -39,7 +36,7 @@ export function Readiness() {
   const r = useReadiness();
   const ready = r.cards && r.map && r.encyclopedia && r.ai !== false;
   const items: { id: string; label: string; ok: boolean }[] = [
-    { id: 'cards', label: r.cardsDraft ? t.readiness.cardsDraft : t.readiness.cards, ok: r.cards },
+    { id: 'cards', label: t.readiness.cards, ok: r.cards },
     { id: 'map', label: t.readiness.map, ok: r.map },
     { id: 'encyclopedia', label: t.readiness.encyclopedia, ok: r.encyclopedia },
     { id: 'ai', label: r.ai === null ? t.readiness.aiUnsupported : t.readiness.ai, ok: r.ai !== false },

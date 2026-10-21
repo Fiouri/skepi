@@ -1,19 +1,20 @@
-DEVELOPER PREVIEW. NOT FOR EMERGENCY USE. In an emergency, call your local emergency number.
+S.K.E.P.I. is for general reference and education only. It is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Consult a healthcare professional for medical advice. In an emergency, call 112 or your local emergency number.
+
+DEVELOPER PREVIEW. NOT FOR EMERGENCY USE.
 
 S.K.E.P.I. (Survival Knowledge & Emergency Pocket Intelligence) is a free, open-source reference library that keeps working without a connection. Download content once, on Wi-Fi, and then read, search and ask questions with no mobile data, no account and no tracking.
 
 WHAT IT DOES
 
 • Offline encyclopedia: search and read Wikipedia articles from Kiwix packs (English top articles and medical articles), in a viewer that runs no scripts and opens no web pages.
-• Ask a question: the answer starts with source excerpts, copied word for word from the packs and labelled "not verified advice". An optional summary written by a small AI model on your phone follows; every sentence must match a cited excerpt, or it is not shown. Questions about emergencies get no AI summary.
+• Ask a question: the answer starts with source excerpts, copied word for word from the packs and labelled "not verified advice". An optional summary written by a small AI model on your phone follows, marked "AI summary"; every sentence must match a cited excerpt, or it is not shown. Medical and emergency questions get no AI summary.
 • Offline maps and places: a map of Greece from OpenStreetMap, with hospitals, pharmacies, shelters and water points, and place search.
-• Emergency tools: the emergency number for your country, SOS torch (Morse), compass and a one-shot GPS position.
+• Emergency tools: the emergency number for your country, first aid cards quoted word for word from the IFRC International First Aid, Resuscitation and Education Guidelines 2025 (with section and page), SOS torch (Morse), compass and your position on the map.
 • Share without the internet: send content packs from phone to phone over Wi-Fi or a local hotspot, paired by QR code, or receive them from the S.K.E.P.I. desktop app. Every file is checked against a digitally signed catalog before it opens.
 
 IMPORTANT LIMITATIONS
 
-• Not for emergency use. The emergency cards ship without their steps ("Under professional review") until certified first-aid instructors have reviewed them; each card shows the emergency numbers.
-• S.K.E.P.I. is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Always consult a healthcare professional for medical advice, diagnosis, or treatment.
+• Not for emergency use: call the emergency number first. The first aid cards quote the IFRC guidelines and do not replace first aid training.
 • Source excerpts are shown as written in the packs, and AI summaries can be wrong. Check the cited source.
 • Content is downloaded after installation and is large (about 2 to 8 GB, depending on what you choose). It can also be received from another phone or a computer running SKEPI.
 • English only. Map pack: Greece only. Needs a 64-bit (arm64) phone with Android 7.0 or newer. Phones with less than about 3 GB of RAM get source excerpts without AI summaries.
@@ -31,4 +32,4 @@ PERMISSIONS
 
 OPEN SOURCE
 
-SKEPI is free software under the GNU GPL v3.0 or later. Content: Wikipedia text CC BY-SA 4.0; maps and places © OpenStreetMap contributors, ODbL 1.0; AI model Qwen2.5-1.5B-Instruct, Apache 2.0. Source code, issues and reports: https://github.com/Fiouri/skepi
+SKEPI is free software under the GNU GPL v3.0 or later. Content: Wikipedia text CC BY-SA 4.0; first aid card text © IFRC 2025 (non-commercial use with acknowledgement); maps and places © OpenStreetMap contributors, ODbL 1.0; AI model Qwen2.5-1.5B-Instruct, Apache 2.0. Source code, issues and reports: https://github.com/Fiouri/skepi

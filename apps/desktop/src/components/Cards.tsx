@@ -44,48 +44,29 @@ export function EmergencyNumbers({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** One card: numbered steps, when to call, sources; drafts carry the permanent banner. */
+/** One card: "Call <number> first", the numbered IFRC steps (verbatim) and their citation. */
 export function CardView({ card }: { card: EmergencyCard }) {
   const t = useMessages();
+  const numbers = useEmergencyNumbers();
   const c = localizeCard(card, CARD_DISPLAY_LOCALE);
-  // Developer Preview builds ship cards without steps (packages/emergency-cards/src/preview.ts).
-  if (c.steps.length === 0) {
-    return (
-      <article className="stack" data-testid={`card-${c.id}`}>
-        <h1>{c.title}</h1>
-        <Banner tone="warning" testId="card-under-review" role="alert">
-          <strong>{t.cards.underReview}</strong>
-          <div>{t.cards.underReviewDetail}</div>
-        </Banner>
-        <EmergencyNumbers />
-      </article>
-    );
-  }
   return (
     <article className="stack" data-testid={`card-${c.id}`}>
       <h1>{c.title}</h1>
-      {c.draft && (
-        <Banner tone="warning" testId="card-draft-banner" role="alert">
-          {t.cards.draftBanner}
-        </Banner>
-      )}
+      <Banner tone="danger" testId="card-call-first" role="alert">
+        <strong>{t.cards.callFirst(numbers.general)}</strong>
+      </Banner>
       <EmergencyNumbers compact />
       <h2>{t.cards.steps}</h2>
       <ol>
         {c.steps.map((s, i) => (
-          <li key={i} style={{ fontSize: 18, marginBottom: 8 }}>
+          <li key={i} style={{ fontSize: 18, marginBottom: 8 }} data-testid={`card-step-${String(i + 1)}`}>
             {s.text}
           </li>
         ))}
       </ol>
-      <h2>{t.cards.whenToCall}</h2>
-      <p>{c.whenToCallForHelp.text}</p>
-      <h2>{t.cards.sources}</h2>
-      <ul className="muted">
-        {[...new Map(c.steps.flatMap((s) => s.refs).map((r) => [`${r.source}|${r.locator}`, r])).values()].map((r) => (
-          <li key={`${r.source}|${r.locator}`}>{t.cards.source({ title: r.title, locator: r.locator })}</li>
-        ))}
-      </ul>
+      <p className="muted" data-testid="card-citation">
+        {c.citation}
+      </p>
     </article>
   );
 }

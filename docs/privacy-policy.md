@@ -3,6 +3,10 @@
 Effective date: 2026-10-12. Applies to the S.K.E.P.I. app for Android (package `org.skepi.app`) and the S.K.E.P.I.
 desktop app for Windows, from every distribution channel (GitHub Releases, F-Droid, Google Play).
 
+## Intended purpose
+
+S.K.E.P.I. is for general reference and education only. It is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Consult a healthcare professional for medical advice. In an emergency, call 112 or your local emergency number.
+
 ## Summary
 
 S.K.E.P.I. collects no personal data. It has no accounts, no analytics, no advertising, no crash reporting and

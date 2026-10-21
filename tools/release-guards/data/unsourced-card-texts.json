@@ -1,0 +1,1015 @@
+{
+  "description": "Card advice texts that have no IFRC source (the cards before 2026-10-21: US public-domain steps and their Greek translation). No bundle may contain any of them (tools/release-guards cards-bundle).",
+  "texts": [
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "Make sure the area is safe. Check whether the person responds and is breathing normally."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "If they are not breathing, call the emergency number (or have someone call) and ask for an AED (defibrillator) to be brought if one is nearby."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "Lay the person on their back on a firm, flat surface. Kneel beside their chest."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "Put the heel of one hand on the centre of the chest, between the nipples. Put your other hand on top and clasp your hands."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "Push hard and fast: at least 5 cm (2 inches) deep, 100 to 120 compressions per minute (about two per second)."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "Let the chest come fully back up after each push, without lifting your hands off the chest."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "If you are trained in rescue breaths, give 2 breaths after every 30 compressions. If not, keep doing chest compressions only."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "When the AED arrives, switch it on and follow its spoken instructions."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "Do not stop until professional help takes over, the person starts breathing or moving, or you are too exhausted to continue."
+    },
+    {
+      "card": "cpr",
+      "locale": "en",
+      "text": "Call the emergency number at once for anyone who is not breathing or has no pulse. Put the phone on speaker: the operator will tell you what to do."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Βεβαιωθείτε ότι ο χώρος είναι ασφαλής. Ελέγξτε αν το άτομο αντιδρά και αν αναπνέει κανονικά."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Αν δεν αναπνέει, καλέστε τον αριθμό έκτακτης ανάγκης (ή ζητήστε από κάποιον να καλέσει) και ζητήστε να φέρουν απινιδωτή (AED), αν υπάρχει κοντά."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Ξαπλώστε το άτομο ανάσκελα σε σκληρή, επίπεδη επιφάνεια. Γονατίστε δίπλα στο στήθος του."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Βάλτε τη βάση της παλάμης του ενός χεριού στο κέντρο του στήθους, ανάμεσα στις θηλές. Βάλτε το άλλο χέρι από πάνω και πλέξτε τα δάχτυλα."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Πιέστε δυνατά και γρήγορα: βάθος τουλάχιστον 5 cm (2 ίντσες), 100 έως 120 συμπιέσεις το λεπτό (περίπου δύο το δευτερόλεπτο)."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Αφήστε το στήθος να επανέλθει πλήρως μετά από κάθε πίεση, χωρίς να σηκώνετε τα χέρια από το στήθος."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Αν έχετε εκπαιδευτεί στις εμφυσήσεις, δώστε 2 εμφυσήσεις μετά από κάθε 30 συμπιέσεις. Αν όχι, συνεχίστε μόνο με θωρακικές συμπιέσεις."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Όταν φτάσει ο απινιδωτής, ανοίξτε τον και ακολουθήστε τις φωνητικές οδηγίες του."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Μη σταματάτε μέχρι να αναλάβουν επαγγελματίες, να αρχίσει το άτομο να αναπνέει ή να κινείται, ή να εξαντληθείτε."
+    },
+    {
+      "card": "cpr",
+      "locale": "el",
+      "text": "Καλέστε αμέσως τον αριθμό έκτακτης ανάγκης για όποιον δεν αναπνέει ή δεν έχει σφυγμό. Βάλτε το τηλέφωνο σε ανοιχτή ακρόαση: ο τηλεφωνητής θα σας καθοδηγήσει."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "Make sure you are safe. Call the emergency number, or have someone call."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "Find where the blood is coming from."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "If you can, put something between the blood and your hands: gloves, a cloth, a plastic bag."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "Press firmly and steadily directly on the bleeding. Push hard to stop or slow it, even if it hurts the injured person."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "Keep pressing until emergency medical services arrive."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "If firm pressure or a bandage does not stop heavy bleeding from an arm or leg, apply a tourniquet about 5–8 cm (2 to 3 inches) above the wound, never on the wound."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "Keep the person warm: cover them and put something between them and the ground."
+    },
+    {
+      "card": "bleeding",
+      "locale": "en",
+      "text": "Always call the emergency number for heavy bleeding. Keep pressure on the wound until help arrives."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Βεβαιωθείτε ότι είστε ασφαλείς. Καλέστε τον αριθμό έκτακτης ανάγκης ή ζητήστε από κάποιον να καλέσει."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Βρείτε από πού έρχεται το αίμα."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Αν μπορείτε, βάλτε κάτι ανάμεσα στο αίμα και στα χέρια σας: γάντια, ένα πανί, μια πλαστική σακούλα."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Πιέστε σταθερά και δυνατά απευθείας πάνω στο σημείο της αιμορραγίας, για να τη σταματήσετε ή να την επιβραδύνετε, ακόμη κι αν πονάει τον τραυματία."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Συνεχίστε να πιέζετε μέχρι να φτάσουν οι διασώστες."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Αν η σταθερή πίεση ή ο επίδεσμος δεν σταματούν τη μεγάλη αιμορραγία σε χέρι ή πόδι, βάλτε ίσχαιμο περίδεσμο (τουρνικέ) περίπου 5–8 cm (2 έως 3 ίντσες) πάνω από το τραύμα, ποτέ πάνω στο τραύμα."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Κρατήστε το άτομο ζεστό: σκεπάστε το και βάλτε κάτι ανάμεσα σε αυτό και στο έδαφος."
+    },
+    {
+      "card": "bleeding",
+      "locale": "el",
+      "text": "Καλείτε πάντα τον αριθμό έκτακτης ανάγκης για μεγάλη αιμορραγία. Συνεχίστε την πίεση στο τραύμα μέχρι να έρθει βοήθεια."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "Ask: \"Are you choking?\" If the person can speak or cough forcefully, encourage them to keep coughing and do not interfere."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "If they cannot breathe, speak or cough, or make high-pitched sounds, act now and call for help."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "Give five back blows."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "Then abdominal thrusts: stand behind the person and wrap your arms around their waist. Make a fist, thumb side against the abdomen in the middle, slightly above the navel and well below the tip of the breastbone. Grasp the fist with your other hand."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "Press into the abdomen with quick, separate backward and upward thrusts until the object comes out or the person becomes unresponsive."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "For a pregnant or very large person, or one with an abdominal wound, use chest thrusts instead: arms under the armpits, fist on the middle of the breastbone."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "If the person becomes unresponsive, call for help, open the airway and remove the object only if you can see it in the mouth. If you are trained, give rescue breaths and continue the thrusts (see the CPR card)."
+    },
+    {
+      "card": "choking",
+      "locale": "en",
+      "text": "Call the emergency number if the person cannot breathe, speak or cough, or becomes unresponsive."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Ρωτήστε: «Πνίγεστε;» Αν το άτομο μπορεί να μιλήσει ή να βήξει δυνατά, ενθαρρύνετέ το να συνεχίσει να βήχει και μην παρεμβαίνετε."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Αν δεν μπορεί να αναπνεύσει, να μιλήσει ή να βήξει, ή βγάζει οξύ συριγμό, δράστε αμέσως και φωνάξτε για βοήθεια."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Δώστε πέντε χτυπήματα στην πλάτη."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Μετά κοιλιακές ωθήσεις: σταθείτε πίσω από το άτομο και τυλίξτε τα χέρια σας γύρω από τη μέση του. Σχηματίστε γροθιά, με την πλευρά του αντίχειρα στη μέση της κοιλιάς, λίγο πάνω από τον αφαλό και αρκετά κάτω από την άκρη του στέρνου. Πιάστε τη γροθιά με το άλλο χέρι."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Πιέστε την κοιλιά με γρήγορες, ξεχωριστές ωθήσεις προς τα μέσα και προς τα πάνω, μέχρι να βγει το αντικείμενο ή να χάσει τις αισθήσεις του το άτομο."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Σε έγκυο, πολύ μεγαλόσωμο άτομο ή άτομο με τραύμα στην κοιλιά, κάντε θωρακικές ωθήσεις: χέρια κάτω από τις μασχάλες, γροθιά στη μέση του στέρνου."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Αν το άτομο χάσει τις αισθήσεις του, φωνάξτε για βοήθεια, ανοίξτε τον αεραγωγό και αφαιρέστε το αντικείμενο μόνο αν το βλέπετε στο στόμα. Αν έχετε εκπαιδευτεί, δώστε εμφυσήσεις και συνεχίστε τις ωθήσεις (δείτε την κάρτα ΚΑΡΠΑ)."
+    },
+    {
+      "card": "choking",
+      "locale": "el",
+      "text": "Καλέστε τον αριθμό έκτακτης ανάγκης αν το άτομο δεν μπορεί να αναπνεύσει, να μιλήσει ή να βήξει, ή αν χάσει τις αισθήσεις του."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Stop the burning: move the person away from the source and put out any flames."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Electrical burn: switch off the power first. Do not touch the person or the source with bare hands; if you cannot switch it off, move the person away with dry wood, rope or clothing."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Remove clothing, jewellery and metal from the burned area, but leave any clothing that is stuck to the burn."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Hold the burn under cool running water for 10 to 15 minutes. Use cool water, not cold water or ice."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Chemical burn: carefully brush off dry chemicals with a clean, dry cloth, then flush with plenty of flowing water."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Do not break blisters. Do not put cream, lotion, oil, butter or egg white on the burn."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Cover the burn with a clean cloth and keep the person warm and off the ground."
+    },
+    {
+      "card": "burns",
+      "locale": "en",
+      "text": "Call the emergency number or go to hospital if the burn comes from fire, electricity or chemicals, is larger than 5 cm (2 inches), looks dark red and glossy with blisters, or shows signs of infection."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Σταματήστε το κάψιμο: απομακρύνετε το άτομο από την πηγή και σβήστε τυχόν φλόγες."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Ηλεκτρικό έγκαυμα: κλείστε πρώτα το ρεύμα. Μην αγγίζετε το άτομο ή την πηγή με γυμνά χέρια· αν δεν μπορείτε να κλείσετε το ρεύμα, απομακρύνετε το άτομο με στεγνό ξύλο, σχοινί ή ρούχο."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Αφαιρέστε ρούχα, κοσμήματα και μεταλλικά αντικείμενα από την καμένη περιοχή, αλλά αφήστε όποιο ρούχο έχει κολλήσει στο έγκαυμα."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Κρατήστε το έγκαυμα κάτω από δροσερό τρεχούμενο νερό για 10 έως 15 λεπτά. Χρησιμοποιήστε δροσερό νερό, όχι κρύο νερό ή πάγο."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Χημικό έγκαυμα: απομακρύνετε προσεκτικά τις ξηρές χημικές ουσίες με καθαρό, στεγνό πανί και μετά ξεπλύνετε με άφθονο τρεχούμενο νερό."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Μη σπάτε τις φουσκάλες. Μη βάζετε κρέμα, λοσιόν, λάδι, βούτυρο ή ασπράδι αβγού στο έγκαυμα."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Σκεπάστε το έγκαυμα με καθαρό πανί και κρατήστε το άτομο ζεστό και μακριά από το έδαφος."
+    },
+    {
+      "card": "burns",
+      "locale": "el",
+      "text": "Καλέστε τον αριθμό έκτακτης ανάγκης ή πηγαίνετε στο νοσοκομείο αν το έγκαυμα προέρχεται από φωτιά, ηλεκτρισμό ή χημικά, είναι μεγαλύτερο από 5 cm (2 ίντσες), είναι σκούρο κόκκινο και γυαλιστερό με φουσκάλες, ή δείχνει σημάδια μόλυνσης."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Do not try to straighten the limb, and move the injured part as little as possible."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Stop any bleeding first (see the bleeding card). Do not splint over a wound that has not been treated."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Check the pulse and the feeling below the injury. Coolness, numbness or no pulse are signs of poor circulation."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Splint the limb in a normal resting position: use a board, sticks, a rolled blanket, or the uninjured leg. Include the joints above and below the break."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Pad the splint and tie it with belts, cloth strips or tape, but never directly over the break."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Check that it is not too tight. If fingers or toes become numb, tingle, hurt more, or turn pale or bluish, loosen it."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Support a broken arm in a sling, or pin the shirt sleeve to the shirt."
+    },
+    {
+      "card": "fractures",
+      "locale": "en",
+      "text": "Every suspected fracture needs medical care. Call the emergency number at once if the limb below the injury is cold, numb or has no pulse, or if there is heavy bleeding."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Μην προσπαθήσετε να ισιώσετε το άκρο και κουνάτε το τραυματισμένο σημείο όσο το δυνατόν λιγότερο."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Σταματήστε πρώτα κάθε αιμορραγία (δείτε την κάρτα αιμορραγίας). Μη βάζετε νάρθηκα πάνω από τραύμα που δεν έχει περιποιηθεί."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Ελέγξτε τον σφυγμό και την αίσθηση κάτω από τον τραυματισμό. Κρύο δέρμα, μούδιασμα ή απουσία σφυγμού δείχνουν κακή κυκλοφορία."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Ακινητοποιήστε το άκρο σε φυσική θέση ανάπαυσης με νάρθηκα: σανίδα, ξύλα, τυλιγμένη κουβέρτα ή το υγιές πόδι. Συμπεριλάβετε τις αρθρώσεις πάνω και κάτω από το κάταγμα."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Βάλτε μαλακό υλικό στον νάρθηκα και δέστε τον με ζώνες, λωρίδες υφάσματος ή ταινία, ποτέ όμως ακριβώς πάνω στο κάταγμα."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Ελέγξτε ότι δεν είναι πολύ σφιχτός. Αν τα δάχτυλα μουδιάσουν, μυρμηγκιάσουν, πονάνε περισσότερο ή γίνουν χλωμά ή μελανά, χαλαρώστε τον."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Στηρίξτε ένα σπασμένο χέρι με αναρτήρα (κρεμαστάρι) ή καρφιτσώστε το μανίκι στο πουκάμισο."
+    },
+    {
+      "card": "fractures",
+      "locale": "el",
+      "text": "Κάθε πιθανό κάταγμα χρειάζεται ιατρική φροντίδα. Καλέστε αμέσως τον αριθμό έκτακτης ανάγκης αν το άκρο κάτω από τον τραυματισμό είναι κρύο, μουδιασμένο ή χωρίς σφυγμό, ή αν υπάρχει μεγάλη αιμορραγία."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Warning signs: shivering, exhaustion or feeling very tired, confusion, fumbling hands, memory loss, slurred speech, drowsiness."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Get the person into a warm room or shelter."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Remove any wet clothing."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Warm the centre of the body first (chest, neck, head and groin), with an electric blanket if available, or with skin-to-skin contact under loose, dry layers of blankets, clothing or towels."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Put something between the person and the cold ground."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "If the person is conscious, give warm drinks, never alcohol. Never give drinks to an unconscious person."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Handle the person gently."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Once body temperature has risen, keep the person dry and wrapped in a warm blanket, including the head and neck."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "If there is no breathing or pulse, start CPR, even if the person appears dead, and continue until they respond or medical help arrives."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "en",
+      "text": "Get medical attention as soon as possible, and immediately if body temperature is below 35 °C (95 °F)."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Προειδοποιητικά σημάδια: ρίγος, εξάντληση ή μεγάλη κούραση, σύγχυση, αδέξια χέρια, απώλεια μνήμης, δυσκολία στην ομιλία, υπνηλία."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Μεταφέρετε το άτομο σε ζεστό δωμάτιο ή καταφύγιο."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Αφαιρέστε όλα τα βρεγμένα ρούχα."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Ζεστάνετε πρώτα το κέντρο του σώματος (στήθος, λαιμό, κεφάλι και βουβωνική χώρα), με ηλεκτρική κουβέρτα αν υπάρχει, ή με επαφή δέρμα με δέρμα κάτω από χαλαρά, στεγνά στρώματα από κουβέρτες, ρούχα ή πετσέτες."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Βάλτε κάτι ανάμεσα στο άτομο και στο κρύο έδαφος."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Αν το άτομο έχει τις αισθήσεις του, δώστε ζεστά ροφήματα, ποτέ αλκοόλ. Ποτέ μη δίνετε υγρά σε άτομο χωρίς αισθήσεις."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Χειριστείτε το άτομο απαλά."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Όταν ανέβει η θερμοκρασία του σώματος, κρατήστε το άτομο στεγνό και τυλιγμένο σε ζεστή κουβέρτα, μαζί με το κεφάλι και τον λαιμό."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Αν δεν αναπνέει ή δεν έχει σφυγμό, ξεκινήστε ΚΑΡΠΑ, ακόμη κι αν φαίνεται νεκρό, και συνεχίστε μέχρι να αντιδράσει ή να φτάσει ιατρική βοήθεια."
+    },
+    {
+      "card": "hypothermia",
+      "locale": "el",
+      "text": "Ζητήστε ιατρική βοήθεια το συντομότερο, και αμέσως αν η θερμοκρασία του σώματος είναι κάτω από 35 °C (95 °F)."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Signs of heat stroke: confusion, headache, dizziness or fainting, nausea or vomiting, hot dry skin, very high body temperature (above 40 °C / 104 °F), fast strong heartbeat, seizures."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Call the emergency number immediately."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Move the person to a cooler place: shade or an air-conditioned room."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Cool them as fast as possible: immerse them in cold water if you can, or apply cold water with wet towels or sponges, and fan them while misting with cool water."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Loosen or remove tight or unnecessary clothing."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Watch their breathing, pulse and responsiveness. If they stop breathing and you cannot find a pulse, start CPR if you are trained."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Heat exhaustion (heavy sweating, weakness, pale, cool or clammy skin): rest in the shade with legs slightly raised and sip cool water or a sports drink. Get medical help if they are not better within 30 minutes or get worse."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "en",
+      "text": "Heat stroke is a medical emergency: call the emergency number at once, and also if heat exhaustion gets worse or the person becomes confused or loses consciousness."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Σημάδια θερμοπληξίας: σύγχυση, πονοκέφαλος, ζάλη ή λιποθυμία, ναυτία ή έμετος, ζεστό ξηρό δέρμα, πολύ υψηλή θερμοκρασία σώματος (πάνω από 40 °C / 104 °F), γρήγορος και δυνατός σφυγμός, σπασμοί."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Καλέστε αμέσως τον αριθμό έκτακτης ανάγκης."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Μεταφέρετε το άτομο σε πιο δροσερό μέρος: σκιά ή κλιματιζόμενο χώρο."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Δροσίστε το όσο πιο γρήγορα γίνεται: βυθίστε το σε κρύο νερό αν μπορείτε, ή βάλτε κρύο νερό με βρεγμένες πετσέτες ή σφουγγάρια, και κάντε του αέρα ενώ το ψεκάζετε με δροσερό νερό."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Χαλαρώστε ή αφαιρέστε σφιχτά ή περιττά ρούχα."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Παρακολουθείτε την αναπνοή, τον σφυγμό και αν αντιδρά. Αν σταματήσει να αναπνέει και δεν βρίσκετε σφυγμό, ξεκινήστε ΚΑΡΠΑ αν έχετε εκπαιδευτεί."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Θερμική εξάντληση (έντονη εφίδρωση, αδυναμία, χλωμό, δροσερό ή υγρό δέρμα): ξεκούραση στη σκιά με τα πόδια λίγο ψηλά και γουλιές δροσερό νερό ή ισοτονικό ποτό. Ζητήστε ιατρική βοήθεια αν δεν βελτιωθεί μέσα σε 30 λεπτά ή αν χειροτερέψει."
+    },
+    {
+      "card": "heatstroke",
+      "locale": "el",
+      "text": "Η θερμοπληξία είναι επείγουσα κατάσταση: καλέστε αμέσως τον αριθμό έκτακτης ανάγκης, και επίσης αν η θερμική εξάντληση χειροτερεύει ή το άτομο πάθει σύγχυση ή χάσει τις αισθήσεις του."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "Call the emergency number at once if the person is unconscious, has trouble breathing or has seizures (convulsions)."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "Otherwise call a poison information centre for advice. Keep the product container or label with you and read its first-aid directions."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "Do not make the person vomit unless the poison centre, the emergency operator or the product label tells you to."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "Poison on the skin: remove contaminated clothing, drench the area with water, then wash skin and hair thoroughly with soap and water."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "Poison in the eye: hold the eyelid open and rinse gently with clean running water for at least 15 minutes."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "Inhaled poison (fumes, gas): get the person to fresh air immediately if you can do so safely, and open doors and windows."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "If breathing stops, give rescue breaths or CPR and call for help."
+    },
+    {
+      "card": "poisoning",
+      "locale": "en",
+      "text": "Call the emergency number for unconsciousness, trouble breathing or seizures. For everything else, call a poison information centre."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Καλέστε αμέσως τον αριθμό έκτακτης ανάγκης αν το άτομο δεν έχει τις αισθήσεις του, δυσκολεύεται να αναπνεύσει ή έχει σπασμούς."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Διαφορετικά, καλέστε ένα κέντρο δηλητηριάσεων για οδηγίες. Έχετε μαζί σας τη συσκευασία ή την ετικέτα του προϊόντος και διαβάστε τις οδηγίες πρώτων βοηθειών της."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Μην προκαλείτε έμετο, εκτός αν σας το πει το κέντρο δηλητηριάσεων, ο τηλεφωνητής έκτακτης ανάγκης ή η ετικέτα του προϊόντος."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Δηλητήριο στο δέρμα: αφαιρέστε τα μολυσμένα ρούχα, ρίξτε άφθονο νερό στην περιοχή και μετά πλύνετε καλά δέρμα και μαλλιά με σαπούνι και νερό."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Δηλητήριο στο μάτι: κρατήστε το βλέφαρο ανοιχτό και ξεπλύνετε απαλά με καθαρό τρεχούμενο νερό για τουλάχιστον 15 λεπτά."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Εισπνοή δηλητηρίου (αναθυμιάσεις, αέριο): μεταφέρετε αμέσως το άτομο στον καθαρό αέρα αν μπορείτε να το κάνετε με ασφάλεια, και ανοίξτε πόρτες και παράθυρα."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Αν σταματήσει η αναπνοή, κάντε εμφυσήσεις ή ΚΑΡΠΑ και φωνάξτε για βοήθεια."
+    },
+    {
+      "card": "poisoning",
+      "locale": "el",
+      "text": "Καλέστε τον αριθμό έκτακτης ανάγκης για απώλεια αισθήσεων, δυσκολία στην αναπνοή ή σπασμούς. Για οτιδήποτε άλλο, καλέστε ένα κέντρο δηλητηριάσεων."
+    },
+    {
+      "card": "water-purification",
+      "locale": "en",
+      "text": "If the water is cloudy, first filter it through a clean cloth, paper towel or coffee filter."
+    },
+    {
+      "card": "water-purification",
+      "locale": "en",
+      "text": "Boiling is best: bring clear water to a rolling boil for 1 minute (3 minutes above 6,500 feet, about 2,000 m)."
+    },
+    {
+      "card": "water-purification",
+      "locale": "en",
+      "text": "Let the boiled water cool. Store it in clean containers with tight covers."
+    },
+    {
+      "card": "water-purification",
+      "locale": "en",
+      "text": "If you cannot boil it, use unscented household chlorine bleach with 5% to 9% sodium hypochlorite: 8 drops, or a little less than 1/8 teaspoon, per 1 gallon (about 3.8 litres) of water."
+    },
+    {
+      "card": "water-purification",
+      "locale": "en",
+      "text": "If the water is cloudy, murky, coloured or very cold, use double the amount of bleach."
+    },
+    {
+      "card": "water-purification",
+      "locale": "en",
+      "text": "Stir well and let the water stand for at least 30 minutes before you drink it."
+    },
+    {
+      "card": "water-purification",
+      "locale": "en",
+      "text": "Follow the recommendations of your health department on boiling or treating water."
+    },
+    {
+      "card": "water-purification",
+      "locale": "el",
+      "text": "Αν το νερό είναι θολό, φιλτράρετέ το πρώτα με καθαρό πανί, χαρτί κουζίνας ή φίλτρο καφέ."
+    },
+    {
+      "card": "water-purification",
+      "locale": "el",
+      "text": "Το βράσιμο είναι η καλύτερη μέθοδος: φέρτε το καθαρό νερό σε δυνατό βρασμό για 1 λεπτό (3 λεπτά σε υψόμετρο πάνω από 6.500 πόδια, περίπου 2.000 m)."
+    },
+    {
+      "card": "water-purification",
+      "locale": "el",
+      "text": "Αφήστε το βρασμένο νερό να κρυώσει. Φυλάξτε το σε καθαρά δοχεία με καπάκι που κλείνει καλά."
+    },
+    {
+      "card": "water-purification",
+      "locale": "el",
+      "text": "Αν δεν μπορείτε να το βράσετε, χρησιμοποιήστε άοσμη οικιακή χλωρίνη με 5% έως 9% υποχλωριώδες νάτριο: 8 σταγόνες, ή λίγο λιγότερο από 1/8 κουταλάκι του γλυκού, ανά 1 γαλόνι (περίπου 3,8 λίτρα) νερού."
+    },
+    {
+      "card": "water-purification",
+      "locale": "el",
+      "text": "Αν το νερό είναι θολό, λασπώδες, χρωματισμένο ή πολύ κρύο, χρησιμοποιήστε διπλάσια ποσότητα χλωρίνης."
+    },
+    {
+      "card": "water-purification",
+      "locale": "el",
+      "text": "Ανακατέψτε καλά και αφήστε το νερό να σταθεί τουλάχιστον 30 λεπτά πριν το πιείτε."
+    },
+    {
+      "card": "water-purification",
+      "locale": "el",
+      "text": "Ακολουθήστε τις συστάσεις των υγειονομικών αρχών για το βράσιμο ή την επεξεργασία του νερού."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "Drop where you are onto your hands and knees."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "Cover your head and neck with one arm and hand."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "Hold on until the shaking stops."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "In bed: turn face down and cover your head and neck with a pillow."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "Outdoors: stay outside. Move to an open area away from buildings, trees, streetlights and power lines."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "In a car: pull over and stop. Set the parking brake."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "Expect aftershocks: Drop, Cover and Hold On again. If you are in a damaged building, go outside and move away from it. Do not enter damaged buildings."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "If you are trapped, send a text or bang on a pipe or wall."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "Use text messages to communicate; they may be more reliable than phone calls."
+    },
+    {
+      "card": "earthquake",
+      "locale": "en",
+      "text": "After the shaking, watch for leaking gas, damaged buildings and downed power lines. Call the emergency number for injured or trapped people; if calls do not get through, try a text message."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Πέστε στο σημείο που βρίσκεστε, στα γόνατα και στα χέρια."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Καλύψτε το κεφάλι και τον αυχένα με το ένα χέρι."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Κρατηθείτε μέχρι να σταματήσει η δόνηση."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Στο κρεβάτι: γυρίστε μπρούμυτα και καλύψτε κεφάλι και αυχένα με ένα μαξιλάρι."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Σε εξωτερικό χώρο: μείνετε έξω. Πηγαίνετε σε ανοιχτό χώρο, μακριά από κτίρια, δέντρα, κολόνες φωτισμού και καλώδια ρεύματος."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Στο αυτοκίνητο: σταθμεύστε στην άκρη και σταματήστε. Τραβήξτε το χειρόφρενο."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Περιμένετε μετασεισμούς: ξανά «Πέσε, Καλύψου, Κρατήσου». Αν είστε σε κτίριο με ζημιές, βγείτε έξω και απομακρυνθείτε. Μην μπαίνετε σε κτίρια με ζημιές."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Αν έχετε εγκλωβιστεί, στείλτε γραπτό μήνυμα ή χτυπήστε έναν σωλήνα ή τον τοίχο."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Επικοινωνείτε με γραπτά μηνύματα· μπορεί να είναι πιο αξιόπιστα από τις κλήσεις."
+    },
+    {
+      "card": "earthquake",
+      "locale": "el",
+      "text": "Μετά τη δόνηση, προσέξτε για διαρροή αερίου, κτίρια με ζημιές και πεσμένα καλώδια ρεύματος. Καλέστε τον αριθμό έκτακτης ανάγκης για τραυματίες ή εγκλωβισμένους· αν οι κλήσεις δεν περνούν, δοκιμάστε γραπτό μήνυμα."
+    },
+    {
+      "card": "fire",
+      "locale": "en",
+      "text": "Get out of the home quickly and call the emergency number (fire service) from outside."
+    },
+    {
+      "card": "fire",
+      "locale": "en",
+      "text": "Drop down to the floor and crawl low, under any smoke, to your exit."
+    },
+    {
+      "card": "fire",
+      "locale": "en",
+      "text": "Before opening a door, feel the doorknob and the door. If either is hot, or smoke is coming around the door, leave it closed and use your second way out."
+    },
+    {
+      "card": "fire",
+      "locale": "en",
+      "text": "If your clothes catch fire: stop, drop to the ground, cover your face with your hands and roll over until the fire is out."
+    },
+    {
+      "card": "fire",
+      "locale": "en",
+      "text": "If you cannot get to someone who needs help, leave the home and tell the fire service where they are."
+    },
+    {
+      "card": "fire",
+      "locale": "en",
+      "text": "If you cannot get out: close the door, cover vents and cracks around doors with cloth or tape to keep smoke out, and call the emergency number."
+    },
+    {
+      "card": "fire",
+      "locale": "en",
+      "text": "Call the fire service as soon as you are safely outside, or from the room if you are trapped."
+    },
+    {
+      "card": "fire",
+      "locale": "el",
+      "text": "Βγείτε γρήγορα από το σπίτι και καλέστε τον αριθμό έκτακτης ανάγκης (πυροσβεστική) από έξω."
+    },
+    {
+      "card": "fire",
+      "locale": "el",
+      "text": "Σκύψτε στο πάτωμα και μπουσουλήστε χαμηλά, κάτω από τον καπνό, ως την έξοδο."
+    },
+    {
+      "card": "fire",
+      "locale": "el",
+      "text": "Πριν ανοίξετε μια πόρτα, αγγίξτε το πόμολο και την πόρτα. Αν κάποιο από τα δύο καίει ή βγαίνει καπνός γύρω από την πόρτα, αφήστε την κλειστή και χρησιμοποιήστε τη δεύτερη έξοδο."
+    },
+    {
+      "card": "fire",
+      "locale": "el",
+      "text": "Αν πάρουν φωτιά τα ρούχα σας: σταματήστε, πέστε στο έδαφος, καλύψτε το πρόσωπο με τα χέρια και κυλιστείτε μέχρι να σβήσει η φωτιά."
+    },
+    {
+      "card": "fire",
+      "locale": "el",
+      "text": "Αν δεν μπορείτε να φτάσετε σε κάποιον που χρειάζεται βοήθεια, βγείτε από το σπίτι και πείτε στην πυροσβεστική πού βρίσκεται."
+    },
+    {
+      "card": "fire",
+      "locale": "el",
+      "text": "Αν δεν μπορείτε να βγείτε: κλείστε την πόρτα, καλύψτε αεραγωγούς και χαραμάδες γύρω από τις πόρτες με πανί ή ταινία για να μη μπαίνει καπνός, και καλέστε τον αριθμό έκτακτης ανάγκης."
+    },
+    {
+      "card": "fire",
+      "locale": "el",
+      "text": "Καλέστε την πυροσβεστική μόλις βγείτε με ασφάλεια, ή από το δωμάτιο αν έχετε εγκλωβιστεί."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Do not walk, swim or drive through flood water. Turn around, don't drown!"
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Just 6 inches (15 cm) of moving water can knock you down, and 1 foot (30 cm) of moving water can sweep your vehicle away."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Evacuate immediately if you are told to."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Stay off bridges over fast-moving water."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Trapped in a car in rapidly moving water: stay inside. If water is rising inside the car, get on the roof."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Trapped in a building: go to the highest level. Go on the roof only if necessary, and signal for help from there."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Return home only when the authorities say it is safe. Avoid flood water: it may be contaminated, hide debris, or be electrically charged by downed power lines."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Use generators only outdoors and away from windows."
+    },
+    {
+      "card": "flood",
+      "locale": "en",
+      "text": "Call the emergency number or signal for help if you or others are trapped by rising water."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Μην περπατάτε, μην κολυμπάτε και μην οδηγείτε μέσα σε νερά πλημμύρας. Γυρίστε πίσω!"
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Μόλις 15 cm (6 ίντσες) νερού σε κίνηση μπορούν να σας ρίξουν κάτω, και 30 cm (1 πόδι) νερού σε κίνηση μπορούν να παρασύρουν το αυτοκίνητό σας."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Εκκενώστε αμέσως αν σας ζητηθεί."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Μένετε μακριά από γέφυρες πάνω από ορμητικά νερά."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Εγκλωβισμένοι σε αυτοκίνητο μέσα σε ορμητικό νερό: μείνετε μέσα. Αν το νερό ανεβαίνει μέσα στο αυτοκίνητο, ανεβείτε στην οροφή."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Εγκλωβισμένοι σε κτίριο: ανεβείτε στο ψηλότερο επίπεδο. Βγείτε στη στέγη μόνο αν χρειαστεί και δώστε σήμα για βοήθεια από εκεί."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Επιστρέψτε σπίτι μόνο όταν οι αρχές πουν ότι είναι ασφαλές. Αποφεύγετε τα νερά της πλημμύρας: μπορεί να είναι μολυσμένα, να κρύβουν συντρίμμια ή να είναι ηλεκτρισμένα από πεσμένα καλώδια."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Χρησιμοποιείτε γεννήτριες μόνο σε εξωτερικό χώρο και μακριά από παράθυρα."
+    },
+    {
+      "card": "flood",
+      "locale": "el",
+      "text": "Καλέστε τον αριθμό έκτακτης ανάγκης ή δώστε σήμα για βοήθεια αν εσείς ή άλλοι έχετε εγκλωβιστεί από νερό που ανεβαίνει."
+    }
+  ]
+}

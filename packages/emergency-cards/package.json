@@ -2,21 +2,21 @@
   "name": "@skepi/emergency-cards",
   "version": "0.0.0",
   "private": true,
-  "license": "CC-BY-SA-4.0 AND GPL-3.0-or-later",
-  "description": "Curated static emergency cards (English master, Greek translation) and per-country emergency numbers. Every change needs review by people with first-aid training (CODEOWNERS).",
+  "license": "GPL-3.0-or-later AND LicenseRef-IFRC-NonCommercial",
+  "description": "Emergency cards: verbatim excerpts of the IFRC International First Aid, Resuscitation and Education Guidelines with citations (tools/cards-source-check), and per-country emergency numbers. Every change needs review (CODEOWNERS).",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./preview": "./src/preview.ts"
+    "./preview": "./src/preview.ts",
+    "./digest": "./src/digest.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src test scripts",
     "test": "vitest run",
-    "check-release": "tsx scripts/check-release.ts",
-    "export-preview": "tsx scripts/export-preview.ts"
+    "check-release": "tsx scripts/check-release.ts"
   },
   "dependencies": {
     "@skepi/core": "workspace:*"
