@@ -32,7 +32,8 @@ env:
     id: inline-card-cpr
     below:
       id: emergency-banner
-- assertVisible: "Under professional review"
+# The inline card shows the verbatim IFRC steps (decision 2026-10-21).
+- assertVisible: ".*Check for a response by gently shaking the person.*"
 - takeScreenshot: e2e/out/ios/05-card-first
 - extendedWaitUntil:
     visible:
