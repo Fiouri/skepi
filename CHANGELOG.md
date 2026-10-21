@@ -17,6 +17,10 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 - One intended-purpose statement in the store description, About, README and privacy policy.
 
 ### Added
+- Map: your live position and direction (puck, accuracy circle, compass heading cone, course when moving
+  faster than walking), "My location" to centre and follow, a grey puck and "Waiting for GPS…" without a
+  fix, and the coordinates under the map. Only while the map is open and the app is in front (slower in
+  blackout mode); the position is never stored, logged or sent. Android and iOS; no new permission.
 - "AI-generated summary" line in every shared or copied problem report that contains an AI summary.
 - About → third-party notices: IFRC attribution and licence statement.
 

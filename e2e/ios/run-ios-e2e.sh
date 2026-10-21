@@ -79,6 +79,8 @@ if [ -n "$unsigned" ]; then
 fi
 
 xcrun simctl install "$udid" "$app"
+# "While in use" location for the map position flow (07-map-location); Maestro sets the simulated fix.
+xcrun simctl privacy "$udid" grant location "$bundle_id"
 
 # --- Packs (verified against the embedded release catalog) -------------------------------------
 container="$(xcrun simctl get_app_container "$udid" "$bundle_id" data)"
@@ -109,7 +111,9 @@ cat > "$out/skipped.md" <<'EOF'
 | tools.yaml (SOS torch, compass, GNSS fix, SMS hand-off) | Hardware: the Simulator has no torch, compass or GNSS receiver |
 | p2p-host / p2p-receive / station-receive | Not supported on iOS in Phase 3b-0 (no LocalOnlyHotspot; QR camera; P2P arrives later) |
 | download.yaml / onboarding-mirror.yaml | Downloads are not supported on iOS in Phase 3b-0 (packs are provisioned or imported) |
-| ask-en.yaml AI summary, ask-t1.yaml, medical.yaml AI part, bench-*.yaml, heldout.yaml | Needs the GGUF model and llama.rn on a device (no model on the Simulator); retrieval parity needs no model and runs (e2e/ios/parity.yaml) |
+| ask-en.yaml AI summary, ask-t1.yaml, bench-*.yaml, heldout.yaml | Needs the GGUF model and llama.rn on a device (no model on the Simulator); retrieval parity needs no model and runs (e2e/ios/parity.yaml) |
+| medical.yaml | Not ported: the medical gate (no AI summary) is covered by unit tests and the Android flow |
+| map-location.yaml heading cone | The Simulator has no compass (CLHeading): the puck, accuracy and coordinates run in 07-map-location with a simulated fix; the heading needs a real iPhone |
 | blackout.yaml / energy.yaml | Battery simulation (dumpsys battery) and battery current are Android-only |
 | locale-el.yaml | Frozen locale, optional on Android as well |
 | airplane mode in every flow | Maestro cannot toggle it on iOS; this build has no network code path (downloads unsupported, no P2P) |

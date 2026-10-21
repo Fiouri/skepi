@@ -16,7 +16,7 @@
       },
       "infoPlist": {
         "CFBundleDisplayName": "S.K.E.P.I.",
-        "NSLocationWhenInUseUsageDescription": "S.K.E.P.I. shows your coordinates in Tools and on the offline map, only when you ask. Your location never leaves the device."
+        "NSLocationWhenInUseUsageDescription": "S.K.E.P.I. shows your position and direction on the offline map while it is open, and your coordinates in Tools when you ask. Your location is never stored and never leaves the device."
       }
     },
     "android": {

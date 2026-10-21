@@ -17,6 +17,10 @@ export interface GnssFix {
   longitude: number;
   accuracyM: number | null;
   altitudeM: number | null;
+  /** Ground speed, m/s (null when the receiver gives none). */
+  speedMps: number | null;
+  /** Course over ground, degrees from true north (null when unknown). */
+  bearingDeg: number | null;
   timeMs: number;
   ageMs: number;
   provider: string;
@@ -26,6 +30,8 @@ type ToolsEvents = {
   onHeading: (event: HeadingEvent) => void;
   onGnssStatus: (event: GnssStatusEvent) => void;
   onTorchError: (event: { message: string }) => void;
+  /** Continuous fixes while startLocationUpdates runs (map tab in front only). */
+  onLocation: (event: GnssFix) => void;
 };
 
 declare class ExpoEmergencyToolsNativeModule extends NativeModule<ToolsEvents> {
@@ -34,13 +40,17 @@ declare class ExpoEmergencyToolsNativeModule extends NativeModule<ToolsEvents> {
   startMorse(durations: number[], loop: boolean): void;
   stopMorse(): void;
   compassAvailable(): boolean;
-  startCompass(): void;
+  /** `minIntervalMs`: at most one onHeading per interval (default 200 ms). */
+  startCompass(minIntervalMs?: number): void;
   stopCompass(): void;
   declination(latitude: number, longitude: number, altitudeM: number): number;
   locationPermissionGranted(): boolean;
   gpsEnabled(): boolean;
   getFix(timeoutMs: number, maxAgeMs: number): Promise<GnssFix>;
   cancelFix(): void;
+  /** Continuous GNSS fixes (onLocation) every `intervalMs`, foreground only; GPS provider / CoreLocation. */
+  startLocationUpdates(intervalMs: number): void;
+  stopLocationUpdates(): void;
   setScreenBrightness(value: number | null): void;
 }
 

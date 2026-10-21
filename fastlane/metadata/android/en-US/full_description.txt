@@ -25,7 +25,7 @@ No accounts, ads, analytics, crash reporting or telemetry. The app uses the inte
 
 PERMISSIONS
 
-• Location (foreground only): your position on the map and in Tools, only when you ask.
+• Location (foreground only): your position and direction on the map while it is open, and in Tools when you ask. Never stored or sent.
 • Camera: scanning the pairing QR code of another phone.
 • Nearby Wi-Fi devices and Wi-Fi changes: the local hotspot used to share content between phones.
 • Internet: downloads you start.

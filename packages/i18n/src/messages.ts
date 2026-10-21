@@ -248,6 +248,19 @@ export interface Messages {
     zoomForPois: string;
     noPlaces: string;
     attribution: string;
+    /** Live position (decision 2026-10-21): "My location" button, puck states, coordinates panel. */
+    myLocation: string;
+    myLocationFollowing: string;
+    youAreHere: (accuracy: string | null) => string;
+    lastKnown: (seconds: number) => string;
+    waitingGps: string;
+    waitingGpsDetail: string;
+    satellites: (p: { visible: number; used: number }) => string;
+    heading: (p: { degrees: number; point: string; source: 'compass' | 'course' }) => string;
+    noHeading: string;
+    permissionNeeded: string;
+    allowLocation: string;
+    gpsOff: string;
   };
   bench: {
     run: string;

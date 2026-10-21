@@ -1,0 +1,27 @@
+# iOS Simulator: live position on the map from a simulated fix (CoreLocation; "while in use" granted by
+# run-ios-e2e.sh). Puck legend and coordinates; the heading cone needs a real iPhone (no compass here).
+appId: org.skepi.app
+name: SKEPI iOS map location
+---
+- launchApp:
+    stopApp: true
+- setLocation:
+    latitude: 38.24664
+    longitude: 21.73457
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-map
+- extendedWaitUntil:
+    visible:
+      text: "Map ready.*"
+    timeout: 90000
+- extendedWaitUntil:
+    visible:
+      id: map-puck
+    timeout: 60000
+- assertVisible:
+    id: map-coordinates-decimal
+    text: "38\\.2466.*, 21\\.734.*"
+- tapOn:
+    id: map-my-location
+- takeScreenshot: e2e/out/ios/09-map-location

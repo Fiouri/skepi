@@ -52,7 +52,7 @@ deletes it. The Android app opts out of cloud backup, so none of it is copied to
 | Permission | Used for | When |
 | --- | --- | --- |
 | Internet, network state | Downloading packs you choose | Only during a download you started |
-| Location (precise and approximate, foreground only) | Showing your position on the offline map and in Tools | Only when you ask for it; never in the background, never stored or sent |
+| Location (precise and approximate, foreground only) | Showing your position and direction on the offline map, and your coordinates in Tools | Asked when you press "My location"; used only while the map is open (or when you ask in Tools), never in the background, never stored, logged or sent |
 | Camera | Scanning the pairing QR code of another device | Only while the QR scanner is open; no photos are taken or saved |
 | Nearby Wi-Fi devices, Wi-Fi and network state changes | Creating or joining a local hotspot to share packs between phones | Only while you share or receive; not used to find your location |
 

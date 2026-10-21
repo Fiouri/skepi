@@ -77,7 +77,9 @@ and Education Guidelines 2025 (© IFRC, Geneva, 2025), whose terms are: "Copies 
 study may be made for non-commercial use, providing the source is acknowledged." That is not a free
 licence, so the reviewers may add the `NonFreeAssets` anti-feature from that version on; the code stays
 GPL-3.0-or-later and the app stays non-commercial (no paid features, ads, analytics or data collection).
-Each card cites its section and page, and About carries the IFRC attribution. The text of the merge
+Each card cites its section and page, and About carries the IFRC attribution. The same version shows
+the live position on the map while the map is open (the same foreground location permission, the
+platform GPS provider, never stored or sent). The text of the merge
 request above describes 0.1.1-preview, which ships no card steps; update it if the request is still
 open when the next version is tagged.
 

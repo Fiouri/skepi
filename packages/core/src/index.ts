@@ -93,6 +93,37 @@ export {
   type StructuralReason,
 } from './sanitize';
 export { compassPoint, formatDecimal, formatDms, osmLink } from './geo';
+export {
+  angleDelta,
+  chooseHeading,
+  circleRing,
+  COURSE_MIN_SPEED_MPS,
+  coneLengthM,
+  coneRing,
+  destination,
+  fixState,
+  followStep,
+  HEADING_INTERVAL_MS,
+  HEADING_INTERVAL_MS_BLACKOUT,
+  HEADING_SMOOTHING,
+  INITIAL_FOLLOW,
+  LOCATION_INTERVAL_MS,
+  LOCATION_INTERVAL_MS_BLACKOUT,
+  locationFeatures,
+  normalizeDegrees,
+  smoothHeading,
+  STALE_AFTER_MS,
+  STALE_AFTER_MS_BLACKOUT,
+  type FixState,
+  type FollowEvent,
+  type FollowMode,
+  type FollowState,
+  type FollowStep,
+  type Heading,
+  type HeadingSource,
+  type LocationFeatures,
+  type LocationFix,
+} from './location';
 export { morseTimeline, SOS_TIMELINE, SOS_UNIT_MS } from './morse';
 export {
   planPreset,

@@ -8,6 +8,8 @@
   4. e2e/onboarding.yaml "Get prepared" offline with the installed packs; readiness indicator.
   5. e2e/cards.yaml     Emergency button, numbers, an IFRC card with its citation; an emergency question shows number + card first.
   6. e2e/tools.yaml     SOS torch and screen, compass, GNSS fix, SMS hand-off (location permission granted here).
+  6b. e2e/map-location.yaml (only with -MockLocation, debug build with map-gr) Live position on the map:
+     puck, coordinates, "My location" centre/follow, panning leaves follow mode.
   7. e2e/blackout.yaml  Blackout mode with a simulated discharging battery at 25% (dumpsys battery), reset afterwards.
   7b. e2e/places.yaml  Place search (English and local names) and the emergency POI layer (map-gr, places-gr packs).
   8. e2e/locale-el.yaml Greek UI (frozen locale, only with -IncludeGreek): turns on the developer flag, app
@@ -15,7 +17,7 @@
   The per-app locale (Android 13+) is reset to "follow the system" afterwards.
   -Only runs a subset (file names without .yaml).
   -AppId selects the installed build: org.skepi.app (release, default) or org.skepi.app.dev (debug).
-  -MockLocation runs tools.yaml on the debug build (-ToolsAppId, default org.skepi.app.dev) with its
+  -MockLocation runs tools.yaml and map-location.yaml on the debug build (-ToolsAppId, default org.skepi.app.dev) with its
   debug-only mock GNSS provider (a fixed fix from files/e2e/mock-location.json, pushed here and removed
   afterwards): deterministic, no shell test provider. Release builds contain no mock code.
 #>
@@ -108,7 +110,7 @@ $script:shareIntents = 0
 $flows = @(
   # tools.yaml first: with -SimulateGnss the test provider stopped receiving positions when tools.yaml ran
   # after other flows (cause not found; standalone and first-in-suite runs pass).
-  @{ Flow = 'e2e/tools.yaml'; Report = 'report-tools.xml'; Locale = 'en-US' },
+  @{ Flow = 'e2e/tools.yaml'; Report = 'report-tools.xml'; Locale = 'en-US'; Location = $true },
   @{ Flow = 'e2e/onboarding.yaml'; Report = 'report-onboarding.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/ask-en.yaml'; Report = 'report-en.xml'; Locale = 'en-US' },
   @{ Flow = 'e2e/ask-t1.yaml'; Report = 'report-t1.xml'; Locale = 'en-US' },
@@ -117,13 +119,15 @@ $flows = @(
   @{ Flow = 'e2e/blackout.yaml'; Report = 'report-blackout.xml'; Locale = 'en-US'; Battery = $true },
   @{ Flow = 'e2e/places.yaml'; Report = 'report-places.xml'; Locale = 'en-US' }
 )
+# The live map position needs a deterministic fix: the debug build's mock provider (-MockLocation).
+if ($MockLocation) { $flows = @($flows[0], @{ Flow = 'e2e/map-location.yaml'; Report = 'report-map-location.xml'; Locale = 'en-US'; Location = $true }) + @($flows | Select-Object -Skip 1) }
 if ($IncludeGreek) { $flows += @{ Flow = 'e2e/locale-el.yaml'; Report = 'report-el.xml'; Locale = 'el-GR' } }
 # -Only a,b arrives as one string through powershell -File: split it.
 $Only = @($Only | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if ($Only.Count -gt 0) { $flows = @($flows | Where-Object { $Only -contains [IO.Path]::GetFileNameWithoutExtension($_.Flow) }) }
 if ($flows.Count -eq 0) { throw "no flow matches -Only $($Only -join ',')" }
 
-# Location "while in use" for the GNSS step of tools.yaml.
+# Location "while in use" for the GNSS step of tools.yaml and the map position (map-location.yaml).
 & adb @adbArgs shell pm grant $toolsPackage android.permission.ACCESS_FINE_LOCATION
 & adb @adbArgs shell pm grant $toolsPackage android.permission.ACCESS_COARSE_LOCATION
 
@@ -189,7 +193,7 @@ $results = @()
 Push-Location $root
 try {
   foreach ($f in $flows) {
-    $location = $f.Flow -eq 'e2e/tools.yaml'
+    $location = $f.ContainsKey('Location')
     $app = $(if ($location) { $toolsPackage } else { $package })
     Set-AppLocale $f.Locale $app
     if ($location) { Set-Location $true; if ($SimulateGnss) { Start-TestGps }; if ($MockLocation) { Start-MockLocation } }
@@ -199,7 +203,7 @@ try {
       $results += [pscustomobject]@{ Flow = $f.Flow; App = $app; Exit = (Invoke-Flow $f.Flow $f.Report $app) }
       # SMS hand-off (tools.yaml): the app only started a VIEW sms: intent (data redacted in logcat).
       # Counted right away: later flows push it out of the log buffer.
-      if ($location) { $script:smsIntents = @(& adb @adbArgs logcat -d | Select-String -Pattern 'START u0 \{act=android.intent.action.VIEW dat=sms:').Count }
+      if ($f.Flow -eq 'e2e/tools.yaml') { $script:smsIntents = @(& adb @adbArgs logcat -d | Select-String -Pattern 'START u0 \{act=android.intent.action.VIEW dat=sms:').Count }
       # Problem report (ask-en.yaml): "Send…" only started the system share sheet (a CHOOSER intent).
       if ($f.Flow -eq 'e2e/ask-en.yaml') { $script:shareIntents = @(& adb @adbArgs logcat -d | Select-String -Pattern 'START u0 \{act=android.intent.action.CHOOSER').Count }
     } finally {

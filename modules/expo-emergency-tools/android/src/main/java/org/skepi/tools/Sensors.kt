@@ -57,10 +57,13 @@ internal class Compass(context: Context, private val onHeading: (Double, Int) ->
   private var accuracy = SensorManager.SENSOR_STATUS_UNRELIABLE
   private var lastEmit = 0L
   private var lastHeading = Double.NaN
+  private var minIntervalMs = DEFAULT_MIN_INTERVAL_MS
 
   val available: Boolean get() = rotation != null || (accel != null && magnet != null)
 
-  fun start() {
+  /** `minIntervalMs`: at most one reading per interval (the map asks for less in blackout mode). */
+  fun start(minIntervalMs: Long = DEFAULT_MIN_INTERVAL_MS) {
+    this.minIntervalMs = minIntervalMs.coerceIn(DEFAULT_MIN_INTERVAL_MS, 10_000L)
     lastHeading = Double.NaN
     if (rotation != null) {
       manager.registerListener(this, rotation, SensorManager.SENSOR_DELAY_UI)
@@ -107,15 +110,107 @@ internal class Compass(context: Context, private val onHeading: (Double, Int) ->
     SensorManager.getOrientation(matrix, orientation)
     val heading = (Math.toDegrees(orientation[0].toDouble()) + 360.0) % 360.0
     val now = System.currentTimeMillis()
-    // The first reading is always shown; then at most ~5 updates per second, and only on a visible
-    // change (the UI does no work otherwise).
+    // The first reading is always shown; then at most one per interval (~5 per second by default),
+    // and only on a visible change (the UI does no work otherwise).
     if (!lastHeading.isNaN()) {
       val delta = Math.abs(((heading - lastHeading + 540.0) % 360.0) - 180.0)
-      if (now - lastEmit < 200 || delta < 1.0) return
+      if (now - lastEmit < minIntervalMs || delta < 1.0) return
     }
     lastEmit = now
     lastHeading = heading
     onHeading(heading, accuracy)
+  }
+
+  companion object {
+    const val DEFAULT_MIN_INTERVAL_MS = 200L
+  }
+}
+
+/**
+ * Continuous GNSS fixes for the map while it is in front (decision 2026-10-21): the GPS provider only
+ * (works offline, no Play Services, no network location), one update per interval, foreground only
+ * (the module stops it when the app leaves the foreground). Fixes are handed to JavaScript and never
+ * stored or logged here. Debug builds with the E2E mock file emit that fixed position instead.
+ */
+internal class GnssWatch(
+  private val context: Context,
+  private val onLocation: (Location) -> Unit,
+  private val onStatus: (visible: Int, used: Int) -> Unit,
+) {
+  private val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+  private val handler = Handler(Looper.getMainLooper())
+  private var listener: LocationListener? = null
+  private var statusCallback: GnssStatus.Callback? = null
+  private var mockTick: Runnable? = null
+
+  val running: Boolean get() = listener != null || mockTick != null
+
+  @SuppressLint("MissingPermission")
+  fun start(intervalMs: Long) {
+    val interval = intervalMs.coerceIn(500L, 60_000L)
+    handler.post {
+      stopNow()
+      MockLocation.read(context)?.let {
+        // Debug builds only (E2E): the pushed fix, re-stamped on every tick like a live receiver.
+        val tick = object : Runnable {
+          override fun run() {
+            MockLocation.read(context)?.let(onLocation)
+            handler.postDelayed(this, interval)
+          }
+        }
+        mockTick = tick
+        handler.postDelayed(tick, MOCK_FIRST_FIX_MS)
+        return@post
+      }
+      val l = object : LocationListener {
+        override fun onLocationChanged(location: Location) = onLocation(location)
+
+        @Deprecated("Deprecated in Java")
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
+        override fun onProviderEnabled(provider: String) = Unit
+        override fun onProviderDisabled(provider: String) = Unit
+      }
+      val cb = object : GnssStatus.Callback() {
+        override fun onSatelliteStatusChanged(status: GnssStatus) {
+          var used = 0
+          for (i in 0 until status.satelliteCount) if (status.usedInFix(i)) used += 1
+          onStatus(status.satelliteCount, used)
+        }
+      }
+      try {
+        manager.registerGnssStatusCallback(cb, handler)
+        manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, interval, 0f, l, Looper.getMainLooper())
+        listener = l
+        statusCallback = cb
+      } catch (e: Exception) {
+        manager.removeUpdates(l)
+        manager.unregisterGnssStatusCallback(cb)
+        return@post
+      }
+      // The last GPS fix, if any, so the puck appears at once (JavaScript greys it out when old).
+      try {
+        manager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let(onLocation)
+      } catch (e: Exception) {
+        // No last fix: wait for the first one.
+      }
+    }
+  }
+
+  fun stop() {
+    handler.post { stopNow() }
+  }
+
+  private fun stopNow() {
+    listener?.let { manager.removeUpdates(it) }
+    listener = null
+    statusCallback?.let { manager.unregisterGnssStatusCallback(it) }
+    statusCallback = null
+    mockTick?.let { handler.removeCallbacks(it) }
+    mockTick = null
+  }
+
+  companion object {
+    private const val MOCK_FIRST_FIX_MS = 1_000L
   }
 }
 
@@ -227,6 +322,8 @@ internal class GnssFix(
       "longitude" to location.longitude,
       "accuracyM" to if (location.hasAccuracy()) location.accuracy.toDouble() else null,
       "altitudeM" to if (location.hasAltitude()) location.altitude else null,
+      "speedMps" to if (location.hasSpeed()) location.speed.toDouble() else null,
+      "bearingDeg" to if (location.hasBearing()) location.bearing.toDouble() else null,
       "timeMs" to location.time.toDouble(),
       "ageMs" to (System.currentTimeMillis() - location.time).toDouble(),
       "provider" to (location.provider ?: "gps"),

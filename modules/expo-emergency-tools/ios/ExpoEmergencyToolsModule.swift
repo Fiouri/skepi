@@ -69,9 +69,10 @@ final class MorsePlayer {
   }
 }
 
-/// Tools that work without packs or network (Tools tab), iOS (Phase 3b-0): SOS torch with a Morse
-/// timeline, compass (CoreLocation heading), one-shot location fix, screen brightness for the SOS screen.
-/// Nothing runs in the background: everything stops when the app leaves the foreground. iOS exposes no
+/// Tools that work without packs or network (Tools tab, map), iOS (Phase 3b-0): SOS torch with a Morse
+/// timeline, compass (CoreLocation heading), one-shot location fix, continuous fixes for the map (decision
+/// 2026-10-21), screen brightness for the SOS screen. Nothing runs in the background: everything stops
+/// when the app leaves the foreground. iOS exposes no
 /// satellite counts (no onGnssStatus) and no on-device magnetic model (declination throws; the UI then
 /// shows no declination).
 public class ExpoEmergencyToolsModule: Module {
@@ -109,16 +110,20 @@ public class ExpoEmergencyToolsModule: Module {
     morse.stop()
     location.stopHeading()
     location.cancelFix()
+    location.stopWatch()
   }
 
   public func definition() -> ModuleDefinition {
     Name("ExpoEmergencyTools")
-    Events("onHeading", "onGnssStatus", "onTorchError")
+    Events("onHeading", "onGnssStatus", "onTorchError", "onLocation")
 
     OnCreate {
       self.morse.setOn = { [weak self] on in self?.torchStep(on) }
       self.location.onHeading = { [weak self] heading, accuracy in
         self?.sendEvent("onHeading", ["heading": heading, "accuracy": accuracy])
+      }
+      self.location.onLocation = { [weak self] fix in
+        self?.sendEvent("onLocation", fix)
       }
     }
 
@@ -147,9 +152,9 @@ public class ExpoEmergencyToolsModule: Module {
       CLLocationManager.headingAvailable()
     }
 
-    Function("startCompass") {
+    Function("startCompass") { (minIntervalMs: Double?) in
       guard CLLocationManager.headingAvailable() else { throw toolsError("ERR_COMPASS_UNAVAILABLE", "No compass on this device") }
-      DispatchQueue.main.async { self.location.startHeading() }
+      DispatchQueue.main.async { self.location.startHeading(minInterval: max(minIntervalMs ?? 200, 200) / 1000) }
     }
 
     Function("stopCompass") {
@@ -184,6 +189,20 @@ public class ExpoEmergencyToolsModule: Module {
       DispatchQueue.main.async { self.location.cancelFix() }
     }
 
+    /// Continuous fixes (onLocation) for the map; asks for "while in use" permission when never asked.
+    Function("startLocationUpdates") { (intervalMs: Double) in
+      let status = self.location.manager.authorizationStatus
+      if status == .denied || status == .restricted {
+        throw toolsError("ERR_LOCATION_PERMISSION", "Location permission denied")
+      }
+      guard CLLocationManager.locationServicesEnabled() else { throw toolsError("ERR_GPS_DISABLED", "Location services are off") }
+      DispatchQueue.main.async { self.location.startWatch(interval: min(max(intervalMs, 500), 60_000) / 1000) }
+    }
+
+    Function("stopLocationUpdates") {
+      DispatchQueue.main.async { self.location.stopWatch() }
+    }
+
     /// 0..1 for the screen, or null to restore the brightness from before (SOS screen mode).
     Function("setScreenBrightness") { (value: Double?) in
       DispatchQueue.main.async {
@@ -208,11 +227,19 @@ public class ExpoEmergencyToolsModule: Module {
   }
 }
 
-/// CoreLocation for the compass and the one-shot fix. Main thread only.
+/// CoreLocation for the compass, the one-shot fix and the map's continuous fixes. Main thread only.
 final class LocationTools: NSObject, CLLocationManagerDelegate {
   let manager = CLLocationManager()
   var onHeading: ((Double, Int) -> Void)?
+  var onLocation: (([String: Any?]) -> Void)?
   private var pending: ((Result<[String: Any?], Error>) -> Void)?
+  /// The map's watch: fixes are forwarded at most once per `watchInterval` (never stored).
+  private var watching = false
+  private var watchInterval: TimeInterval = 1
+  private var lastWatchEmit: Date?
+  private var waitingToWatch = false
+  private var headingInterval: TimeInterval = 0.2
+  private var lastHeadingEmit: Date?
   private var maxAge: TimeInterval = 0
   private var timer: Timer?
   private var waitingForPermission = false
@@ -229,8 +256,39 @@ final class LocationTools: NSObject, CLLocationManagerDelegate {
     status == .authorizedWhenInUse || status == .authorizedAlways
   }
 
-  func startHeading() {
+  func startHeading(minInterval: TimeInterval = 0.2) {
+    headingInterval = minInterval
+    lastHeadingEmit = nil
     manager.startUpdatingHeading()
+  }
+
+  func startWatch(interval: TimeInterval) {
+    watchInterval = interval
+    lastWatchEmit = nil
+    switch manager.authorizationStatus {
+    case .notDetermined:
+      waitingToWatch = true
+      manager.requestWhenInUseAuthorization()
+    case .authorizedWhenInUse, .authorizedAlways:
+      watching = true
+      manager.startUpdatingLocation()
+      if let last = manager.location, last.horizontalAccuracy >= 0 { emitWatch(last) }
+    default:
+      return
+    }
+  }
+
+  func stopWatch() {
+    watching = false
+    waitingToWatch = false
+    if pending == nil { manager.stopUpdatingLocation() }
+  }
+
+  private func emitWatch(_ l: CLLocation) {
+    let now = Date()
+    if let last = lastWatchEmit, now.timeIntervalSince(last) < watchInterval * 0.9 { return }
+    lastWatchEmit = now
+    onLocation?(LocationTools.fix(l))
   }
 
   func stopHeading() {
@@ -276,7 +334,7 @@ final class LocationTools: NSObject, CLLocationManagerDelegate {
     timer?.invalidate()
     timer = nil
     waitingForPermission = false
-    manager.stopUpdatingLocation()
+    if !watching { manager.stopUpdatingLocation() }
     let done = pending
     pending = nil
     done?(result)
@@ -288,6 +346,8 @@ final class LocationTools: NSObject, CLLocationManagerDelegate {
       "longitude": l.coordinate.longitude,
       "accuracyM": l.horizontalAccuracy >= 0 ? l.horizontalAccuracy : nil,
       "altitudeM": l.verticalAccuracy >= 0 ? l.altitude : nil,
+      "speedMps": l.speed >= 0 ? l.speed : nil,
+      "bearingDeg": l.course >= 0 ? l.course : nil,
       "timeMs": l.timestamp.timeIntervalSince1970 * 1000,
       "ageMs": -l.timestamp.timeIntervalSinceNow * 1000,
       "provider": "core-location",
@@ -297,6 +357,10 @@ final class LocationTools: NSObject, CLLocationManagerDelegate {
   // MARK: - CLLocationManagerDelegate
 
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    if waitingToWatch, LocationTools.authorized(manager.authorizationStatus) {
+      waitingToWatch = false
+      startWatch(interval: watchInterval)
+    }
     guard waitingForPermission, pending != nil else { return }
     switch manager.authorizationStatus {
     case .notDetermined:
@@ -310,8 +374,9 @@ final class LocationTools: NSObject, CLLocationManagerDelegate {
   }
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    guard pending != nil, let last = locations.last(where: { $0.horizontalAccuracy >= 0 }) else { return }
-    finish(.success(LocationTools.fix(last)))
+    guard let last = locations.last(where: { $0.horizontalAccuracy >= 0 }) else { return }
+    if watching { emitWatch(last) }
+    if pending != nil { finish(.success(LocationTools.fix(last))) }
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
@@ -327,6 +392,9 @@ final class LocationTools: NSObject, CLLocationManagerDelegate {
     let a = newHeading.headingAccuracy
     // SensorManager accuracy scale: 0 unreliable, 1 low, 2 medium, 3 high.
     let accuracy = a < 0 ? 0 : a <= 10 ? 3 : a <= 30 ? 2 : 1
+    let now = Date()
+    if let last = lastHeadingEmit, now.timeIntervalSince(last) < headingInterval { return }
+    lastHeadingEmit = now
     onHeading?(newHeading.magneticHeading, accuracy)
   }
 }
