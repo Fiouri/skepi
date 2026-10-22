@@ -120,5 +120,7 @@ grep -q 'Removing .* at node_modules/@esbuild/linux-x64/bin/esbuild' "$OUT/fdroi
 if grep -q 'Ignoring binary at node_modules/@esbuild' "$OUT/fdroid-build.log"; then
   echo "the prebuilt esbuild is still scanignored"; exit 1
 fi
-# fdroid scanner on the unsigned APK, as F-Droid runs it on built APKs.
+# fdroid scanner on the unsigned APK, as F-Droid runs it on built APKs. `fdroid build --on-server`
+# uninstalls sudo at the end; fdroiddata's CI reinstalls it the same way.
+apt-get install -y -q sudo > /dev/null
 (cd "$home_vagrant" && fdroid scanner --exit-code --verbose "$apk") 2>&1 | tee "$OUT/scanner-apk.log"
