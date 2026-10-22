@@ -55,7 +55,11 @@ came as prebuilt AARs from `node_modules`). Every CMake build loads `apps/mobile
    build; the key file and alias come from `~/.gradle/gradle.properties`, apksigner prompts for the
    password), then checks that
    the signer certificate is the published one (`7d61c382…447e`) and that the signed APK holds the
-   artifact's entries byte for byte, plus only the signature. It prints the signed APK's SHA-256.
+   artifact's entries byte for byte, plus only the signature. apksigner runs with
+   `--alignment-preserved true` and the script checks `apk-compare.py copyable`: the signed APK must be
+   the artifact byte for byte plus the APK Signing Block, or F-Droid cannot copy the signature onto its
+   own build (v0.1.1-preview was re-aligned by apksigner and failed fdroiddata's build, 2026-10-22,
+   `docs/store-readiness.md`). It prints the signed APK's SHA-256.
 6. **Smoke test.** `adb install -r` the signed APK on the S23 and run `e2e/run-e2e.ps1` (airplane mode).
    It installs over the previous release (same certificate).
 7. **Publish (owner).** GitHub release for the tag with `skepi-<version>-arm64.apk` (the name the F-Droid
@@ -72,6 +76,7 @@ Anyone can repeat the comparison:
 
 ```sh
 python3 scripts/ci/apk-compare.py contents skepi-<version>-arm64.apk skepi-<version>-arm64-unsigned.apk
+python3 scripts/ci/apk-compare.py copyable skepi-<version>-arm64.apk skepi-<version>-arm64-unsigned.apk  # what F-Droid needs
 apksigner verify --print-certs skepi-<version>-arm64.apk   # Signer #1 certificate SHA-256 digest: 7d61c382…447e
 ```
 

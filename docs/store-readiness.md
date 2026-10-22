@@ -71,6 +71,24 @@ is the tag's full hash; merge request text in `docs/fdroid/merge-request.md` (ow
 recipe change, run 38973901393 (`e729f09`): `android-repro` (a), (b) and `fdroid-build` again
 `13fdec22…fcdc` (fdroid-build rerun after an apt download error from deb.debian.org).
 
+**F-Droid submission (owner, 2026-10-22):** fdroiddata merge request
+<https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588> "New app: S.K.E.P.I. (org.skepi.app)",
+opened 2026-10-22 (GitLab: 2026-10-21 22:06 UTC) from the owner's account, which is not identity-verified
+by choice (the MR template allows that); recipe = `docs/fdroid/org.skepi.app.yml` with `AuthorName` and
+`AuthorEmail` added. **Status (checked 2026-10-22, public API):** open, labels `New App`,
+`waiting-for-upstream`; the MR pipeline did run (2975487569, 2026-10-22 08:23 UTC, after two earlier
+ones) and **failed** in three jobs; the other six passed (lint, schema, source check, git redirect,
+tools; `check apk` skipped):
+
+| Job | Cause | Fix |
+| --- | --- | --- |
+| `fdroid rewritemeta` | the build command's line wrap is not fdroid's YAML format | recipe rewrapped as `rewritemeta` writes it (2026-10-22) |
+| `checkupdates` | "Couldn't find any version information": `UpdateCheckMode: Tags` reads the Gradle files, and the version lives in `apps/mobile/app.json` | `UpdateCheckData: apps/mobile/app.json\|"versionCode":\s*(\d+)\|.\|"version":\s*"([^"]+)"`; local `fdroid checkupdates` (fdroidserver 2.4.5) now finds 0.1.1-preview (3) and 0.1.0-preview (2), the old recipe gives the same error as the MR |
+| `fdroid build` | F-Droid's build of the tag is **byte-identical** to our CI artifact (`13fdec22…fcdc`), but our signature cannot be copied onto it: "APK Signature Scheme v2 signer #1: APK integrity check failed. CHUNKED_SHA512 digest mismatch". The published APK (`b3e35ed4…160e`) has the same 1349 entries, but `apksigner` re-aligned every entry while signing (alignment extra fields of 6 instead of 2 bytes from byte 285 on), so it is not "the unsigned APK plus a signing block" | `sign-release-apk.ps1` signs with `--alignment-preserved true` and checks the new `apk-compare.py copyable` (the apksigcopier condition). Dry run with the Android debug key on F-Droid's own build: copyable, and `apksigcopier compare` 1.1.1 passes; on the published APK both fail with F-Droid's exact error. **The v0.1.1-preview APK on GitHub can never pass:** the owner re-signs and publishes (§ below) |
+
+The CI job `fdroid-build` now also runs `fdroid rewritemeta` (no diff allowed), `fdroid lint` and
+`fdroid checkupdates` on the recipe as submitted.
+
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
 
@@ -108,7 +126,7 @@ No Google Play Services, Firebase, analytics, ads or other proprietary SDK was f
 | Anti-features | ready | None expected: no tracking, ads or non-free assets; content hosts (Kiwix, Hugging Face, GitHub) serve freely licensed files, and every pack can also come from import or P2P, so the app does not "depend entirely" on a non-free service (NonFreeNet). Disclose the download hosts in the submission |
 | Metadata | ready | `fastlane/metadata/android/en-US/` (title "S.K.E.P.I. Offline Survival", short and full description, `changelogs/2.txt` and `3.txt`, 6 phone screenshots; none shows the product name, so the rename needed no new ones); icon and feature graphic still to add (§5) |
 | Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`); a recipe pins the full commit hash |
-| fdroiddata recipe | owner | `docs/fdroid/org.skepi.app.yml` (§6, `commit:` = the `v0.1.1-preview` tag), `fdroid lint` clean; merge request text `docs/fdroid/merge-request.md`; submission is an owner action (GitLab merge request) |
+| fdroiddata recipe | owner | Submitted 2026-10-22: merge request [53588](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588), open, pipeline failed (rewritemeta, checkupdates: fixed in `docs/fdroid/org.skepi.app.yml`; build: the published APK's signature cannot be copied, see "F-Droid submission" above); the owner pushes the fixed recipe to the MR branch with a correctly signed APK |
 
 ### Google Play (deferred to v1)
 
@@ -234,7 +252,7 @@ comparison and `llvm-objcopy`/`llvm-readelf` from NDK 27.3 (diffoscope is not av
   Open: the Selis run of late 2026-10-12 should be checked (owner), and Selis's own scripts should take
   the same lock (`device-lock.ps1 acquire/release`).
 
-## 6. fdroiddata recipe (not submitted; `fdroid build` in CI gives the published bytes)
+## 6. fdroiddata recipe (submitted 2026-10-22, merge request 53588; `fdroid build` in CI gives the published bytes)
 
 The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). It targets `v0.1.1-preview`,
 versionCode 3 (the version in `apps/mobile/app.json`); `v0.1.0-preview` cannot be built unsigned. `commit:` is
@@ -281,6 +299,8 @@ Categories:
   - Reading
   - Science & Education
 License: GPL-3.0-or-later
+AuthorName: Fiouri
+AuthorEmail: anywecon@gmail.com
 SourceCode: https://github.com/Fiouri/skepi
 IssueTracker: https://github.com/Fiouri/skepi/issues
 Changelog: https://github.com/Fiouri/skepi/blob/HEAD/CHANGELOG.md
@@ -321,14 +341,15 @@ Builds:
       - tools/rag-eval/parity-reference
     build:
       - cd android
-      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true -PskepiJdk21=true
-        --no-daemon
+      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true
+        -PskepiJdk21=true --no-daemon
     ndk: 27.1.12297006
 
 AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$
+UpdateCheckData: apps/mobile/app.json|"versionCode":\s*(\d+)|.|"version":\s*"([^"]+)"
 CurrentVersion: 0.1.1-preview
 CurrentVersionCode: 3
 ```

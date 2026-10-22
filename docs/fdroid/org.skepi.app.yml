@@ -2,6 +2,8 @@ Categories:
   - Reading
   - Science & Education
 License: GPL-3.0-or-later
+AuthorName: Fiouri
+AuthorEmail: anywecon@gmail.com
 SourceCode: https://github.com/Fiouri/skepi
 IssueTracker: https://github.com/Fiouri/skepi/issues
 Changelog: https://github.com/Fiouri/skepi/blob/HEAD/CHANGELOG.md
@@ -42,13 +44,14 @@ Builds:
       - tools/rag-eval/parity-reference
     build:
       - cd android
-      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true -PskepiJdk21=true
-        --no-daemon
+      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true
+        -PskepiJdk21=true --no-daemon
     ndk: 27.1.12297006
 
 AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$
+UpdateCheckData: apps/mobile/app.json|"versionCode":\s*(\d+)|.|"version":\s*"([^"]+)"
 CurrentVersion: 0.1.1-preview
 CurrentVersionCode: 3

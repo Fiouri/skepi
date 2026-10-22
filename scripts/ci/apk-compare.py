@@ -8,6 +8,11 @@
   apk-compare.py contents SIGNED UNSIGNED exit 0 when SIGNED holds exactly the entries of UNSIGNED (same
                                           names, order and bytes) plus only signature files; used after
                                           signing the CI artifact locally (docs/release-process.md)
+  apk-compare.py copyable SIGNED UNSIGNED exit 0 when SIGNED is UNSIGNED byte for byte plus only an APK
+                                          Signing Block before the central directory (and the moved
+                                          directory offset): the condition under which F-Droid's
+                                          apksigcopier can copy our signature onto its own build;
+                                          apksigner breaks it unless it signs with --alignment-preserved
 """
 import hashlib
 import struct
@@ -36,15 +41,19 @@ def entries(path):
         return [(i.filename, i.file_size, hashlib.sha256(z.read(i)).hexdigest()) for i in z.infolist()]
 
 
-def has_signing_block(path):
-    # The APK Signing Block (v2+) sits right before the central directory and ends with its magic. The
-    # End of Central Directory record (last 22 bytes + an optional comment) holds the directory offset.
+def zip_layout(path):
+    # The End of Central Directory record (last 22 bytes + an optional comment) holds the directory
+    # offset; the APK Signing Block (v2+) sits right before the central directory and ends with its magic.
     with open(path, 'rb') as f:
         data = f.read()
     eocd = data.rfind(b'PK\x05\x06', max(0, len(data) - 22 - 0xFFFF))
     if eocd < 0:
         raise ValueError(f'{path}: no End of Central Directory record')
-    cd_offset = struct.unpack_from('<I', data, eocd + 16)[0]
+    return data, eocd, struct.unpack_from('<I', data, eocd + 16)[0]
+
+
+def has_signing_block(path):
+    data, _, cd_offset = zip_layout(path)
     return data[cd_offset - len(SIG_BLOCK_MAGIC):cd_offset] == SIG_BLOCK_MAGIC
 
 
@@ -94,6 +103,29 @@ def cmd_contents(signed, unsigned):
     return 1
 
 
+def cmd_copyable(signed, unsigned):
+    s, s_eocd, s_cd = zip_layout(signed)
+    u, u_eocd, u_cd = zip_layout(unsigned)
+    problems = []
+    if s[:u_cd] != u[:u_cd]:
+        first = next((i for i in range(min(u_cd, len(s))) if s[i] != u[i]), min(u_cd, len(s)))
+        problems.append(f'the ZIP entries differ from byte {first} on (re-aligned or rewritten by the signer)')
+    block = s[u_cd:s_cd]
+    if len(block) < 32 or not block.endswith(SIG_BLOCK_MAGIC):
+        problems.append('no APK Signing Block between the entries and the central directory')
+    if s[s_cd:s_eocd] != u[u_cd:u_eocd]:
+        problems.append('the central directory differs')
+    if s[s_eocd:s_eocd + 16] + s[s_eocd + 20:] != u[u_eocd:u_eocd + 16] + u[u_eocd + 20:]:
+        problems.append('the End of Central Directory record differs beyond the directory offset')
+    if problems:
+        print(f'{signed}: NOT the unsigned APK plus a signature; F-Droid cannot copy this signature:')
+        for p in problems:
+            print(f'  {p}')
+        return 1
+    print(f'{signed}: {unsigned} byte for byte plus a {len(block)}-byte APK Signing Block (copyable by apksigcopier)')
+    return 0
+
+
 def main(argv):
     if len(argv) == 4 and argv[1] == 'same':
         return cmd_same(argv[2], argv[3])
@@ -101,6 +133,8 @@ def main(argv):
         return cmd_unsigned(argv[2])
     if len(argv) == 4 and argv[1] == 'contents':
         return cmd_contents(argv[2], argv[3])
+    if len(argv) == 4 and argv[1] == 'copyable':
+        return cmd_copyable(argv[2], argv[3])
     print(__doc__, file=sys.stderr)
     return 2
 

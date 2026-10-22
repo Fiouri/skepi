@@ -12,6 +12,11 @@
   4. The signer certificate's SHA-256 is the published SKEPI fingerprint.
   5. The signed APK holds the unsigned APK's entries byte for byte (only the signature is added), and
      apksigner verify passes.
+  6. The signed APK is the unsigned APK byte for byte plus an APK Signing Block, so F-Droid's
+     apksigcopier can copy the signature onto its own reproducible build. apksigner signs with
+     --alignment-preserved true: by default it re-aligns every entry, which keeps the contents (5) but
+     not the bytes; that is why fdroiddata's build of v0.1.1-preview failed (merge request 53588,
+     2026-10-22: "APK integrity check failed. CHUNKED_SHA512 digest mismatch").
   Prints the signed APK's SHA-256 for the release notes and SHA256SUMS.txt of the GitHub release.
 
 .EXAMPLE
@@ -72,7 +77,7 @@ if ($actual -ne $expected) { throw "SHA-256 mismatch: $actual, SHA256SUMS.txt sa
 Write-Host "unsigned APK: $actual (matches SHA256SUMS.txt)"
 Invoke-Checked 'unsigned check' { python $compare unsigned $Unsigned }
 
-# 2. Alignment (AGP writes the unsigned APK aligned; apksigner keeps the layout).
+# 2. Alignment (AGP writes the unsigned APK aligned; apksigner keeps it with --alignment-preserved).
 Invoke-Checked 'zipalign check' { & $zipalign -c -P 16 4 $Unsigned }
 Write-Host 'zip alignment: OK (4 bytes, 16 KB pages for native libraries)'
 
@@ -92,7 +97,7 @@ Write-Host "signing with alias '$KeyAlias' from $([IO.Path]::GetFileName($KeySto
 Invoke-Checked 'apksigner sign' {
   & $apksigner sign --ks $KeyStore --ks-key-alias $KeyAlias `
     --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false `
-    --out $Out $Unsigned
+    --alignment-preserved true --out $Out $Unsigned
 }
 
 try {
@@ -109,6 +114,9 @@ try {
 
   # 5. Contents equal the CI artifact.
   Invoke-Checked 'contents check' { python $compare contents $Out $Unsigned }
+
+  # 6. Byte layout F-Droid can copy the signature from.
+  Invoke-Checked 'apksigcopier layout check' { python $compare copyable $Out $Unsigned }
 } catch {
   Remove-Item -Force $Out -ErrorAction SilentlyContinue
   throw

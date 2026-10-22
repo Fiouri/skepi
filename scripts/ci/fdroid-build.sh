@@ -61,6 +61,25 @@ fdroid() {
     HOME="$home_vagrant" GRADLE_USER_HOME="$home_vagrant/.gradle" \
     fdroid "$@"
 }
+# The recipe as submitted, the way fdroiddata's CI checks it (merge request 53588 failed "fdroid
+# rewritemeta" and "checkupdates" on 2026-10-22): formatting, lint, and a version found at the tags
+# (checkupdates exits 0 on failure and logs an ERROR).
+meta="$home_vagrant/meta-check"
+mkdir -p "$meta/metadata" "$meta/config"
+cp "$SRC/docs/fdroid/org.skepi.app.yml" "$meta/metadata/"
+cp "$home_vagrant/config/categories.yml" "$meta/config/"
+printf -- '---\n' > "$meta/config.yml"
+git -C "$meta" init -q
+chown -R vagrant "$meta"
+(cd "$meta" && fdroid rewritemeta org.skepi.app)
+diff -u "$SRC/docs/fdroid/org.skepi.app.yml" "$meta/metadata/org.skepi.app.yml" ||
+  { echo "docs/fdroid/org.skepi.app.yml is not in fdroid rewritemeta format (diff above)"; exit 1; }
+(cd "$meta" && fdroid lint org.skepi.app)
+(cd "$meta" && fdroid checkupdates --verbose --allow-dirty org.skepi.app) 2>&1 | tee "$OUT/checkupdates.log" | grep -E 'UpdateCheckData found|ERROR' || true
+if grep -q 'ERROR' "$OUT/checkupdates.log" || ! grep -q 'UpdateCheckData found version' "$OUT/checkupdates.log"; then
+  echo "fdroid checkupdates found no version (see checkupdates.log)"; exit 1
+fi
+
 # --on-server builds the checkout in build/org.skepi.app; fdroiddata CI makes it with its fetchsrclibs plugin,
 # which wraps this internal command.
 fdroid fetch_repo "org.skepi.app:$code" --verbose
