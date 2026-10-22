@@ -15,9 +15,9 @@ Repo: https://github.com/Fiouri/skepi.git
 Binaries: https://github.com/Fiouri/skepi/releases/download/v%v/skepi-%v-arm64.apk
 
 Builds:
-  - versionName: 0.1.1-preview
-    versionCode: 3
-    commit: a974d925a9dc56a8ea4621e2854ab6cb46c55c74
+  - versionName: 0.1.2-preview
+    versionCode: 4
+    commit: 4af3b0c43daf6078abe46163d80d6daf18700e89
     subdir: apps/mobile
     sudo:
       - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list
@@ -57,5 +57,5 @@ AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45d
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$
 UpdateCheckData: apps/mobile/app.json|"versionCode":\s*(\d+)|.|"version":\s*"([^"]+)"
-CurrentVersion: 0.1.1-preview
-CurrentVersionCode: 3
+CurrentVersion: 0.1.2-preview
+CurrentVersionCode: 4

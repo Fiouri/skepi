@@ -131,7 +131,7 @@ No Google Play Services, Firebase, analytics, ads or other proprietary SDK was f
 | Reproducible build (publish our signed APK via `Binaries:` + `AllowedAPKSigningKeys:`) | ready (`fdroid build` gives the same bytes) | Byte-identical across paths, Gradle homes and runners (§4); `fdroid build` in the buildserver container compared with `android-repro` (§6) |
 | Anti-features | ready | None expected: no tracking, ads or non-free assets; content hosts (Kiwix, Hugging Face, GitHub) serve freely licensed files, and every pack can also come from import or P2P, so the app does not "depend entirely" on a non-free service (NonFreeNet). Disclose the download hosts in the submission |
 | Metadata | ready | `fastlane/metadata/android/en-US/` (title "S.K.E.P.I. Offline Survival", short and full description, `changelogs/2.txt` and `3.txt`, 6 phone screenshots; none shows the product name, so the rename needed no new ones); icon and feature graphic still to add (§5) |
-| Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`); a recipe pins the full commit hash |
+| Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`, 4 for `v0.1.2-preview`); a recipe pins the full commit hash |
 | fdroiddata recipe | owner | Submitted 2026-10-22: merge request [53588](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588), open, pipeline failed (rewritemeta, checkupdates: fixed in `docs/fdroid/org.skepi.app.yml`; build: the published APK's signature cannot be copied, see "F-Droid submission" above); the owner pushes the fixed recipe to the MR branch with a correctly signed APK |
 
 ### Google Play (deferred to v1)
@@ -267,10 +267,14 @@ comparison and `llvm-objcopy`/`llvm-readelf` from NDK 27.3 (diffoscope is not av
 
 ## 6. fdroiddata recipe (submitted 2026-10-22, merge request 53588; `fdroid build` in CI gives the published bytes)
 
-The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). It targets `v0.1.1-preview`,
-versionCode 3 (the version in `apps/mobile/app.json`); `v0.1.0-preview` cannot be built unsigned. `commit:` is
-the full hash of the `v0.1.1-preview` tag (`a974d925a9dc…`, tagged and released 2026-10-17); the merge
-request text is in `docs/fdroid/merge-request.md`.
+The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). Since 2026-10-22 it targets
+`v0.1.2-preview`, versionCode 4, with one build only (F-Droid builds the latest): `commit:` is
+`4af3b0c43daf6078abe46163d80d6daf18700e89`, the commit to tag `v0.1.2-preview` (owner decision 2026-10-22: the
+`v0.1.1-preview` APK could not pass F-Droid's signature copy, see "F-Droid submission" above). CI at that
+commit (run 39778296502): `android-repro` (a), (b) and `fdroid-build` all give the unsigned SHA-256
+`9857b660808d9c5e1f53a3d1bfcd185a7489b8a0b2ded6ff04b1f7c1e9ad12c1`. Before, it targeted `v0.1.1-preview` (versionCode 3,
+`a974d925a9dc…`); `v0.1.0-preview` cannot be built unsigned. The merge request text is in
+`docs/fdroid/merge-request.md`.
 
 **Part 3: `fdroid build` in CI.** Job `fdroid-build` (`.github/workflows/android-repro.yml`,
 `scripts/ci/fdroid-build.sh`; on `workflow_dispatch` and on changes to `docs/fdroid/**`, the Android build
@@ -327,9 +331,9 @@ Repo: https://github.com/Fiouri/skepi.git
 Binaries: https://github.com/Fiouri/skepi/releases/download/v%v/skepi-%v-arm64.apk
 
 Builds:
-  - versionName: 0.1.1-preview
-    versionCode: 3
-    commit: a974d925a9dc56a8ea4621e2854ab6cb46c55c74
+  - versionName: 0.1.2-preview
+    versionCode: 4
+    commit: 4af3b0c43daf6078abe46163d80d6daf18700e89
     subdir: apps/mobile
     sudo:
       - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list
@@ -369,8 +373,8 @@ AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45d
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$
 UpdateCheckData: apps/mobile/app.json|"versionCode":\s*(\d+)|.|"version":\s*"([^"]+)"
-CurrentVersion: 0.1.1-preview
-CurrentVersionCode: 3
+CurrentVersion: 0.1.2-preview
+CurrentVersionCode: 4
 ```
 
 ## 7. Play Data safety answers
