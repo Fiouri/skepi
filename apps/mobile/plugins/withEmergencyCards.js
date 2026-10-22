@@ -4,8 +4,9 @@
 // tools/cards-source-check verified (packages/emergency-cards/source-check.lock.json; CI re-runs that
 // check against the IFRC PDF and the CDC / Ready.gov snapshots). Right after the JS bundle is built, tools/release-guards cards-bundle checks
 // it: no unsourced card text, and every sourced step present (decision 2026-10-21).
-// `-PskepiPreview=true` (Developer Preview, with SKEPI_PREVIEW=1 in the environment so that Metro bundles
-// the preview entry, apps/mobile/metro.config.js) only adds the "Developer preview" label.
+// Developer Preview builds set SKEPI_PREVIEW=1: Metro then bundles the preview entry
+// (apps/mobile/metro.config.js), which carries the "Developer preview" label. `-PskepiPreview=true` changes
+// nothing in the build; it is only a guard that fails Gradle when SKEPI_PREVIEW=1 did not reach Metro.
 const { withAppBuildGradle } = require('expo/config-plugins');
 
 const MARKER = '// skepi:emergency-cards';

@@ -43,7 +43,9 @@ came as prebuilt AARs from `node_modules`). Every CMake build loads `apps/mobile
    green: it writes the commit, version, run id and the APK's SHA-256 to the job summary and uploads the
    artifact `skepi-<version>-vc<versionCode>-<commit12>-unsigned` (`skepi-<version>-arm64-unsigned.apk` +
    `SHA256SUMS.txt`, kept 90 days).
-3. **Tag (owner).** `git tag -s v<version> <commit>` on exactly that commit; push the tag.
+3. **Tag (owner).** `git tag -a v<version> <commit> -m "S.K.E.P.I. v<version>"` on exactly that commit; push
+   the tag. Tags are annotated, not signed (no GPG key is configured; `v0.1.1-preview` and `v0.1.2-preview`
+   are annotated and unsigned).
 4. **Download.**
    ```powershell
    gh run download <run-id> --repo Fiouri/skepi -n skepi-<version>-vc<code>-<commit12>-unsigned -D $env:TEMP\skepi\release
