@@ -1,7 +1,11 @@
-# Notice to the IFRC about the use of the First Aid Guidelines (draft, not sent)
+# Notice to the IFRC about the use of the First Aid Guidelines (sent 2026-10-21)
 
 The IFRC's licence asks that the source is acknowledged and adds: "The IFRC would appreciate receiving
-details of its use." This is the owner's email for that. Nothing has been sent from this repository.
+details of its use." This is the owner's email for that.
+
+**Sent:** 2026-10-21 by the owner, from anywecon@gmail.com to secretariat@ifrc.org (this text; nothing is
+sent from this repository). No reply recorded yet; a reply asking for changes goes into
+`docs/architecture.md` (User safety) and the cards.
 
 - **To:** secretariat@ifrc.org
 - **Cc (optional):** the IFRC Global First Aid Reference Centre (globalfirstaidcentre.org contact form)
