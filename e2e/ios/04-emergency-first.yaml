@@ -69,10 +69,12 @@ env:
       id: ask-phase
       text: "done"
     timeout: 60000
+# layer1 is taller than the screen: count it as reached once part of it shows.
 - scrollUntilVisible:
     element:
       id: layer1
     direction: DOWN
+    visibilityPercentage: 10
     timeout: 30000
 - takeScreenshot: e2e/out/ios/06b-layer1-after-the-card
 - scrollUntilVisible:
