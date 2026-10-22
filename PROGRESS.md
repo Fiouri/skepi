@@ -1,6 +1,12 @@
-**Current:** Owner follow-ups 2026-10-21 (legal research in repo, exact short-step bundle scan, map GPS energy measured) — done, on main, not released
-**Next step:** owner: send `docs/ifrc-notice-email.md` to the IFRC; then tag the next preview (F-Droid: possible NonFreeAssets, see `docs/fdroid/merge-request.md`)
-**Last session:** 2026-10-21 — legal-research.md committed; bundle scan 61/61 incl. "Access EMS." (Hermes string table); map GNSS+compass +131 mAh/h (blackout +44) unplugged on the S23; verify 49/49, Android release build, Maestro S23 9/9 flows, CI (see log)
+**Current:** Public-domain emergency cards (CDC water, Ready.gov earthquake/fire/flood; 12 cards, 111 steps) — done, on main, not released
+**Next step:** owner: send `docs/ifrc-notice-email.md` to the IFRC; then tag the next preview (F-Droid: NonFreeAssets possible for the 8 IFRC cards only, see `docs/fdroid/merge-request.md`)
+**Last session:** 2026-10-21 — 4 cards sourced verbatim from CDC / Ready.gov with snapshots, disclaimer and weekly drift job; source check 111/111; verify 49/49, Android + desktop release builds, bundle scans 111/111, Maestro S23 cards + medical PASS, CI green incl. iOS E2E
+
+## Public-domain emergency cards 2026-10-21 (evening)
+
+- Done: fire (Ready.gov Home Fires + Wildfires, 12 steps), earthquake (Ready.gov Earthquakes, 14), flood (Ready.gov Floods, 11), water (CDC How to Make Water Safe in an Emergency, 13), verbatim, US-specific passages left out; citation (attribution, title, URL, retrieval date) + no-endorsement statement on each card and in About; `tools/cards-source-check` checks several sources (dated snapshots in `tools/cards-source-check/snapshots/`, `snapshot`/`drift` commands); weekly non-blocking `.github/workflows/cards-sources-drift.yml` (issue on drift); lock covers all sources; blocklist 202 → 199 (3 former texts are verbatim Ready.gov sentences); docs (architecture, legal-research, F-Droid note, README, CHANGELOG); `e2e/run-e2e.ps1` waits for adb after each flow.
+- Verified: `pnpm verify` 49/49; cards-source-check 111/111 (IFRC PDF + 5 snapshots) and drift: no drift; Android preview release build (cards gate 12/111, Gradle bundle scan 0/199 unsourced, 111/111 sourced, permission allowlist PASS); desktop `tauri build` MSI + NSIS, dist scan 111/111, Playwright 15/15; Maestro on the S23 (airplane mode, device lock): cards and medical E2E PASS (0 blocked, 0 downloads, 0 bytes); CI on main green incl. iOS Simulator E2E (dispatch 39697366431: 9/9 flows incl. the new public-domain card flow; iOS emergency flow now scrolls past the long earthquake card to Layer 1), Android repro + F-Droid build, drift job: no drift.
+- Open risks: the Ready.gov burn sentence (cool 3–5 min) is left out of the fire card because it conflicts with the IFRC burns card; the CDC dosing tables are not quoted (multi-block), the card says to follow the bleach label; the S23 still drops off USB adb after Maestro sessions.
 
 ## Owner follow-ups 2026-10-21 (afternoon)
 
