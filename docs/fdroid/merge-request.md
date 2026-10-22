@@ -9,6 +9,18 @@ inclusion" template if GitLab offers it and tick its checklist items as they app
 
 **Title:** `New app: S.K.E.P.I. (org.skepi.app)`
 
+**Opened 2026-10-22:** <https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588>. Review
+(Licaon_Kter): "get esbuild from Debian or build it", answered by the esbuild srclib build below.
+Reply for the MR thread:
+
+> esbuild is now built from source: `srclibs: - esbuild@v0.28.2` (the exact version pnpm-lock.yaml
+> resolves for tsx), `golang-go` from Debian, `go build -C $$esbuild$$ ./cmd/esbuild` and
+> `ESBUILD_BINARY_PATH` exported in the Gradle build's shell. `@esbuild/linux-x64` is gone from
+> scanignore, so scandelete removes the prebuilt. Same output: our CI runs this recipe in
+> buildserver-trixie at a974d925 and still gets 13fdec22…fcdc. Debian forky's esbuild is also 0.28.2,
+> if you prefer the package. Also fixed: rewritemeta formatting and UpdateCheckData (version in
+> apps/mobile/app.json).
+
 ---
 
 **S.K.E.P.I.** (Survival Knowledge & Emergency Pocket Intelligence) is a fully offline knowledge and
@@ -49,10 +61,14 @@ the upstream-signed APK:
   from npm.
 - `scandelete: node_modules` deletes the prebuilt files the scanner flags there (unused Expo
   `local-maven-repo` AARs, CLI binaries, iOS archives); the build uses none of them.
+- esbuild is built from source: `srclibs: - esbuild@v0.28.2` (the version `pnpm-lock.yaml` resolves for
+  tsx), Debian's `golang-go`, and tsx is pointed at it with `ESBUILD_BINARY_PATH` in the Gradle build's
+  shell (tsx runs the catalog, card and bundle checks during the Gradle build). The prebuilt
+  `@esbuild/linux-x64` is no longer scanignored, so scandelete removes it. The upstream CI runs this
+  recipe at `a974d925` and gets the same `13fdec22…fcdc` bytes.
 - `scanignore` covers what the build runs or reads: `hermes-compiler` (React Native's Hermes bytecode
-  compiler, part of the standard RN build), `@esbuild/linux-x64` (tsx runs the catalog, card and bundle
-  checks during the Gradle build; it can be built from source as a srclib if you prefer), and four Gradle
-  files that the scanner flags for `unknown maven repo` lines only.
+  compiler, part of the standard RN build) and four Gradle files that the scanner flags for
+  `unknown maven repo` lines only.
 - `prebuild` removes MapLibre's `play-services-location` dependency line (used only by its non-default
   Google location engine); the app uses the platform location provider.
 - `ndk: 27.1.12297006` is the only NDK the build uses.
