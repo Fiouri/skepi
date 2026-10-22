@@ -1,6 +1,12 @@
-**Current:** v0.1.2-preview — prepared on main, not tagged: commit 4af3b0c43daf6078abe46163d80d6daf18700e89, unsigned APK 9857b660…12c1 (android-repro + fdroid-build identical)
-**Next step:** owner: tag v0.1.2-preview on 4af3b0c43daf, sign the CI artifact with `sign-release-apk.ps1` (ends with the F-Droid signature-copy check), publish the GitHub pre-release; then update the fdroiddata MR 53588 branch with `docs/fdroid/org.skepi.app.yml` and the reply in `docs/fdroid/merge-request.md`
-**Last session:** 2026-10-22 — v0.1.2-preview prep: version 0.1.2-preview/4, signature-copy check (apksigcopier 1.1.1), recipe for the release commit; verify 49/49, source check 111/111, Android + Windows release builds, bundle scans, Maestro S23 9/9, CI incl. iOS E2E green, CI repro at the release commit 9857b660…12c1; signed APK (80fd1071…c628) smoke-tested on the S23: Maestro 9/9
+**Current:** F-Droid inclusion — v0.1.2-preview published 2026-10-22 (signed APK 80fd1071…ac628, signature-copy check PASS); fdroiddata MR 53588 updated 2026-10-23 with its recipe, in review
+**Next step:** wait for Licaon_Kter's reply on `-PskepiPreview=true`; if he wants it dropped, dispatch `android-repro` with the changed recipe and change it only if `fdroid-build` stays at 9857b660…12c1
+**Last session:** 2026-10-23 — release and MR update recorded; signed v0.1.2-preview APK smoke-tested on the S23 before publishing (Maestro 9/9, airplane mode)
+
+## v0.1.2-preview published, MR 53588 updated 2026-10-22/23
+
+- Done (owner): GitHub pre-release v0.1.2-preview published 2026-10-22 20:50 UTC (https://github.com/Fiouri/skepi/releases/tag/v0.1.2-preview), tag on `4af3b0c43daf6078abe46163d80d6daf18700e89`; signed APK `skepi-0.1.2-preview-arm64.apk` `80fd1071905978cfa67a7bd96e97b77177ab71d6c66a63163820a355921ac628`, MSI `2e1d327b…733f`, NSIS `6ae8dadb…b237`, SHA256SUMS.txt. fdroiddata MR 53588 updated 2026-10-23: branch commit `06ae193c…` with the 0.1.2-preview recipe and the description from `docs/fdroid/merge-request.md`.
+- Verified: `check-fdroid-signature-copy.ps1` on the APK downloaded back from the release: PASS (owner); before publishing, the same signed APK installed over the current install on the S23 (device lock, airplane mode): Maestro 9/9, 0 blocked, 0 downloads, 0 bytes; release assets' digests match the hashes above (GitHub API).
+- Open: Licaon_Kter (2026-10-23) asked whether both `SKEPI_PREVIEW=1` and `-PskepiPreview=true` are needed; the owner answered that only the env var changes the build (the property is a guard that fails without it) and offered to drop the property. Pending his reply; if he wants it, verify with an `android-repro` dispatch that the unsigned hash stays `9857b660808d9c5e1f53a3d1bfcd185a7489b8a0b2ded6ff04b1f7c1e9ad12c1` before changing the recipe. Recorded in `docs/store-readiness.md`.
 
 ## v0.1.2-preview prep 2026-10-22 (evening, not tagged)
 

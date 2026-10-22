@@ -95,6 +95,24 @@ The CI job `fdroid-build` now also runs `fdroid rewritemeta` (no diff allowed), 
 `13fdec22…fcdc`, the scanner removed the prebuilt esbuild, `fdroid scanner --exit-code` on the APK clean.
 The owner pushes the recipe to the MR branch and replies with the text in `docs/fdroid/merge-request.md`.
 
+**v0.1.2-preview published (owner, 2026-10-22):** GitHub pre-release
+<https://github.com/Fiouri/skepi/releases/tag/v0.1.2-preview> (20:50 UTC), tag on
+`4af3b0c43daf6078abe46163d80d6daf18700e89`; signed APK `skepi-0.1.2-preview-arm64.apk`
+`80fd1071905978cfa67a7bd96e97b77177ab71d6c66a63163820a355921ac628` (signed with `--alignment-preserved`
+from the CI artifact `9857b660…12c1`, run 39778296502); `check-fdroid-signature-copy.ps1` on the asset
+downloaded back from the release: **PASS**. Before publishing it passed the full Maestro suite on the S23
+(9/9, airplane mode).
+
+**MR 53588 updated (owner, 2026-10-23):** MR branch commit `06ae193c…` with the 0.1.2-preview recipe
+(`docs/fdroid/org.skepi.app.yml`) and the MR description from `docs/fdroid/merge-request.md`.
+**Review (Licaon_Kter, 2026-10-23):** asked whether both `SKEPI_PREVIEW=1` and `-PskepiPreview=true` are
+needed. Owner's answer: only the environment variable changes the build (Metro bundles the preview cards
+entry and the preview label from it); the Gradle property is a guard that fails the build when it is set
+without the variable (`apps/mobile/plugins/withEmergencyCards.js`), and the owner offered to drop it.
+**Pending his reply.** If he wants it dropped: remove `-PskepiPreview=true` from the recipe's `build:`
+line only after an `android-repro` dispatch with the changed recipe shows `fdroid-build` still at
+`9857b660808d9c5e1f53a3d1bfcd185a7489b8a0b2ded6ff04b1f7c1e9ad12c1`.
+
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
 
@@ -132,7 +150,7 @@ No Google Play Services, Firebase, analytics, ads or other proprietary SDK was f
 | Anti-features | ready | None expected: no tracking, ads or non-free assets; content hosts (Kiwix, Hugging Face, GitHub) serve freely licensed files, and every pack can also come from import or P2P, so the app does not "depend entirely" on a non-free service (NonFreeNet). Disclose the download hosts in the submission |
 | Metadata | ready | `fastlane/metadata/android/en-US/` (title "S.K.E.P.I. Offline Survival", short and full description, `changelogs/2.txt` and `3.txt`, 6 phone screenshots; none shows the product name, so the rename needed no new ones); icon and feature graphic still to add (§5) |
 | Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`, 4 for `v0.1.2-preview`); a recipe pins the full commit hash |
-| fdroiddata recipe | owner | Submitted 2026-10-22: merge request [53588](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588), open, pipeline failed (rewritemeta, checkupdates: fixed in `docs/fdroid/org.skepi.app.yml`; build: the published APK's signature cannot be copied, see "F-Droid submission" above); the owner pushes the fixed recipe to the MR branch with a correctly signed APK |
+| fdroiddata recipe | owner | Submitted 2026-10-22: merge request [53588](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588), open. First pipeline failed (rewritemeta, checkupdates, signature copy of the v0.1.1-preview APK, see "F-Droid submission" above); v0.1.2-preview published 2026-10-22 with a copyable signature (check PASS on the downloaded asset); MR branch updated 2026-10-23 with the 0.1.2-preview recipe (`06ae193c…`); open review question on `-PskepiPreview=true`, waiting for the reviewer |
 
 ### Google Play (deferred to v1)
 
