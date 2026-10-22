@@ -7,6 +7,8 @@
 # (scripts/android/jdk21.sh, -PskepiJdk21=true), as the F-Droid recipe builds it on Debian trixie.
 # fdroid-build runs `fdroid build` of docs/fdroid/org.skepi.app.yml in F-Droid's buildserver container and
 # must produce the same bytes as android-repro (scripts/ci/fdroid-build.sh).
+# workflow_dispatch with app_commit builds that commit (e.g. a released tag) with this run's recipe and
+# CI scripts: the proof that a recipe change for a published version still gives the published bytes.
 # Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
 name: Android reproducible build
 
@@ -29,12 +31,17 @@ on:
       - '!rustfmt.toml'
       - '!.github/workflows/ci.yml'
   workflow_dispatch:
+    inputs:
+      app_commit:
+        description: 'Full commit hash to build (default: this run''s commit); the recipe and CI scripts come from this run''s commit'
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 concurrency:
-  group: android-repro-${{ github.sha }}
+  group: android-repro-${{ github.sha }}-${{ inputs.app_commit }}
   cancel-in-progress: false
 
 jobs:
@@ -84,9 +91,17 @@ jobs:
       CMAKE_CXX_LINKER_LAUNCHER: ${{ github.workspace }}/${{ matrix.dir }}/scripts/ci/link-slot.sh
       SKEPI_LINK_SLOTS: '2'
     steps:
+      - name: Commit to build
+        env:
+          APP_COMMIT: ${{ inputs.app_commit }}
+        run: |
+          if [ -n "$APP_COMMIT" ] && ! [[ "$APP_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::app_commit must be a full 40-character commit hash"; exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: ${{ matrix.dir }}
+          ref: ${{ inputs.app_commit || github.sha }}
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: ${{ matrix.dir }}/package.json
@@ -157,6 +172,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.app_commit || github.sha }}
           sparse-checkout: |
             scripts/ci
             apps/mobile/app.json
@@ -189,6 +205,8 @@ jobs:
           retention-days: 7
       - name: Name the artifact and write SHA256SUMS
         id: name
+        env:
+          APP_COMMIT: ${{ inputs.app_commit || github.sha }}
         run: |
           set -euo pipefail
           version=$(python3 -c "import json;print(json.load(open('apps/mobile/app.json'))['expo']['version'])")
@@ -197,11 +215,11 @@ jobs:
           mkdir -p out
           cp a/app-arm64-v8a-release-unsigned.apk "out/$name"
           (cd out && sha256sum "$name" > SHA256SUMS.txt)
-          echo "artifact=skepi-${version}-vc${code}-${GITHUB_SHA::12}-unsigned" >> "$GITHUB_OUTPUT"
+          echo "artifact=skepi-${version}-vc${code}-${APP_COMMIT::12}-unsigned" >> "$GITHUB_OUTPUT"
           {
             echo "### Reproducible unsigned APK"
             echo
-            echo "Commit \`$GITHUB_SHA\`, version \`$version\` (versionCode $code), run \`$GITHUB_RUN_ID\`."
+            echo "Commit \`$APP_COMMIT\`, version \`$version\` (versionCode $code), run \`$GITHUB_RUN_ID\`."
             echo
             echo '```'
             cat out/SHA256SUMS.txt
@@ -238,15 +256,18 @@ jobs:
           sudo docker image prune --all --force > /dev/null
           df -h / /mnt
       - name: fdroid build in registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie
+        env:
+          APP_COMMIT: ${{ inputs.app_commit || github.sha }}
         run: |
           set -euo pipefail
+          [[ "$APP_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::app_commit must be a full 40-character commit hash"; exit 1; }
           sudo mkdir -p /mnt/fdroid/build /mnt/fdroid/gradle /mnt/fdroid/out
           sudo docker run --rm \
             -v "$GITHUB_WORKSPACE/src:/src:ro" \
             -v /mnt/fdroid/build:/home/vagrant/build \
             -v /mnt/fdroid/gradle:/home/vagrant/.gradle \
             -v /mnt/fdroid/out:/out \
-            -e APP_COMMIT="$GITHUB_SHA" \
+            -e APP_COMMIT="$APP_COMMIT" \
             -e REPO_URL="https://github.com/$GITHUB_REPOSITORY.git" \
             registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie \
             bash /src/scripts/ci/fdroid-build.sh
