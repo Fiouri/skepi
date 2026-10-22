@@ -94,8 +94,14 @@ diff -u "$SRC/docs/fdroid/org.skepi.app.yml" "$meta/metadata/org.skepi.app.yml" 
   { echo "docs/fdroid/org.skepi.app.yml is not in fdroid rewritemeta format (diff above)"; exit 1; }
 (cd "$meta" && fdroid lint org.skepi.app)
 (cd "$meta" && fdroid checkupdates --verbose --allow-dirty org.skepi.app) 2>&1 | tee "$OUT/checkupdates.log" | grep -E 'UpdateCheckData found|ERROR' || true
-if grep -q 'ERROR' "$OUT/checkupdates.log" || ! grep -q 'UpdateCheckData found version' "$OUT/checkupdates.log"; then
+# Between the release commit and its tag the recipe's CurrentVersionCode is ahead of the newest tag;
+# checkupdates then reports "current version is newer", which is expected until the tag is pushed.
+if grep 'ERROR' "$OUT/checkupdates.log" | grep -v -q 'current version is newer' ||
+   ! grep -q 'UpdateCheckData found version' "$OUT/checkupdates.log"; then
   echo "fdroid checkupdates found no version (see checkupdates.log)"; exit 1
+fi
+if grep -q 'current version is newer' "$OUT/checkupdates.log"; then
+  echo "::warning::checkupdates: the recipe's version is not tagged yet (expected before the release tag is pushed)"
 fi
 
 # --on-server builds the checkout in build/org.skepi.app and does not set up srclibs; fdroiddata CI runs
