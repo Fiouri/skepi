@@ -5,6 +5,11 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 
 ## [Unreleased]
 
+## [0.1.2-preview] — Developer Preview (Android + Windows)
+
+Third preview, for developers and testers. **Not for emergency use.** The emergency cards now carry
+their steps, quoted word for word from their sources with citations.
+
 ### Changed
 - Emergency cards: every step is now a verbatim excerpt from the IFRC International First Aid,
   Resuscitation and Education Guidelines 2025 with its citation (section, page), headed "Call 112 first"
@@ -29,6 +34,14 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 - "AI-generated summary" line in every shared or copied problem report that contains an AI summary.
 - About → third-party notices: IFRC attribution and licence statement; CDC and FEMA Ready.gov sources
   with their terms and no-endorsement statements.
+
+### Build and release
+- The release APK is signed with its byte layout preserved (`apksigner --alignment-preserved`), so
+  F-Droid can copy the upstream signature onto its own reproducible build. The 0.1.1-preview APK was
+  re-aligned while signing and F-Droid could not use it. Before publishing, the maintainer copies the
+  signature onto the CI's unsigned APK with `apksigcopier`, as F-Droid does, and checks the result.
+- F-Droid recipe: esbuild (used by the build's checks) is built from source instead of a prebuilt
+  binary; formatting and update-check fixes.
 
 ## [0.1.1-preview] — Developer Preview (Android + Windows)
 

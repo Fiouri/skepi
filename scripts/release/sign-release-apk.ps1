@@ -17,6 +17,8 @@
      --alignment-preserved true: by default it re-aligns every entry, which keeps the contents (5) but
      not the bytes; that is why fdroiddata's build of v0.1.1-preview failed (merge request 53588,
      2026-10-22: "APK integrity check failed. CHUNKED_SHA512 digest mismatch").
+  7. F-Droid's own verification, reproduced: check-fdroid-signature-copy.ps1 copies the signature onto
+     the unsigned APK with apksigcopier 1.1.1, runs apksigner verify and requires byte equality.
   Prints the signed APK's SHA-256 for the release notes and SHA256SUMS.txt of the GitHub release.
 
 .EXAMPLE
@@ -117,6 +119,9 @@ try {
 
   # 6. Byte layout F-Droid can copy the signature from.
   Invoke-Checked 'apksigcopier layout check' { python $compare copyable $Out $Unsigned }
+
+  # 7. F-Droid's verification: copy the signature onto the unsigned APK, verify, compare bytes.
+  & (Join-Path $PSScriptRoot 'check-fdroid-signature-copy.ps1') -Signed $Out -Unsigned $Unsigned -BuildTools $BuildTools
 } catch {
   Remove-Item -Force $Out -ErrorAction SilentlyContinue
   throw

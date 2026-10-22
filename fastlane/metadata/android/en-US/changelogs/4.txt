@@ -1,0 +1,3 @@
+0.1.2-preview, Developer Preview. Not for emergency use.
+
+Emergency cards now show their steps, quoted word for word with citations: first aid from the IFRC Guidelines 2025; water, earthquake, fire and flood from CDC and FEMA Ready.gov. No AI summaries for medical questions. Live position and heading on the offline map while it is open; never stored or sent. Release signing fixed so F-Droid can verify the reproducible build.

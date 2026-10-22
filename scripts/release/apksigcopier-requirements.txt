@@ -1,0 +1,5 @@
+# apksigcopier as fdroidserver vendors it (1.1.1), for scripts/release/fdroid-signature-copy.py.
+# Installed with pip --require-hashes into a throwaway venv by check-fdroid-signature-copy.ps1.
+apksigcopier==1.1.1 --hash=sha256:0834bb7d6f3607bb0994cf8cd2e26b8f0c9d481e13b75872e0fa9cec052e519b
+click==8.5.0 --hash=sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360
+colorama==0.4.6 ; sys_platform == "win32" --hash=sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6

@@ -9,7 +9,8 @@ SKEPI release key. The key never enters CI, the repository or the project's Grad
 push to main ──► android-repro (2 clean Linux builds, different paths) ──► identical? ──► artifact:
                                                                                          unsigned APK + SHA256SUMS.txt
 maintainer: download artifact ──► scripts/release/sign-release-apk.ps1 (apksigner, release key)
-            ──► checks: SHA-256, unsigned, aligned, certificate = published fingerprint, contents = artifact
+            ──► checks: SHA-256, unsigned, aligned, certificate = published fingerprint, contents = artifact,
+                F-Droid's signature copy (apksigcopier onto the artifact, apksigner verify, same bytes)
             ──► GitHub release asset skepi-<version>-arm64.apk ──► F-Droid builds the tag, compares, ships ours
 ```
 
@@ -23,7 +24,8 @@ maintainer: download artifact ──► scripts/release/sign-release-apk.ps1 (ap
 | *(none of the above)* | Fails at `skepiCheckReleaseSigning` | — |
 
 `-PskepiUnsigned` and `-PskepiDebugSign` are exclusive. Preview builds add `SKEPI_PREVIEW=1` and
-`-PskepiPreview=true` (no emergency card steps in the bundle).
+`-PskepiPreview=true` (the "Developer preview" label; since 2026-10-21 the cards ship their
+source-checked steps in every build).
 `-PskepiJdk21=true` (after `scripts/android/jdk21.sh`) builds with the JDK 21 toolchain and bytecode target
 17, as F-Droid's Debian buildserver must; published APKs are built this way (`docs/architecture.md`).
 
@@ -59,7 +61,17 @@ came as prebuilt AARs from `node_modules`). Every CMake build loads `apps/mobile
    `--alignment-preserved true` and the script checks `apk-compare.py copyable`: the signed APK must be
    the artifact byte for byte plus the APK Signing Block, or F-Droid cannot copy the signature onto its
    own build (v0.1.1-preview was re-aligned by apksigner and failed fdroiddata's build, 2026-10-22,
-   `docs/store-readiness.md`). It prints the signed APK's SHA-256.
+   `docs/store-readiness.md`). Last, it runs `check-fdroid-signature-copy.ps1`, F-Droid's own
+   verification reproduced: apksigcopier 1.1.1 (the version fdroidserver vendors, installed with
+   `pip --require-hashes` from `scripts/release/apksigcopier-requirements.txt` into a venv under
+   `$env:TEMP\skepi`) copies the signature from the signed APK onto the CI artifact, `apksigner verify`
+   must pass on the result and the result must be byte-identical to the signed APK
+   (`F-DROID SIGNATURE COPY: PASS`). On any failure the signed APK is deleted. It prints the signed APK's
+   SHA-256. **Nothing is published unless this check passed on the exact file uploaded**; it can be
+   re-run on its own:
+   ```powershell
+   ./scripts/release/check-fdroid-signature-copy.ps1 -Signed <signed.apk> -Unsigned <unsigned.apk>
+   ```
 6. **Smoke test.** `adb install -r` the signed APK on the S23 and run `e2e/run-e2e.ps1` (airplane mode).
    It installs over the previous release (same certificate).
 7. **Publish (owner).** GitHub release for the tag with `skepi-<version>-arm64.apk` (the name the F-Droid
@@ -77,6 +89,7 @@ Anyone can repeat the comparison:
 ```sh
 python3 scripts/ci/apk-compare.py contents skepi-<version>-arm64.apk skepi-<version>-arm64-unsigned.apk
 python3 scripts/ci/apk-compare.py copyable skepi-<version>-arm64.apk skepi-<version>-arm64-unsigned.apk  # what F-Droid needs
+python3 scripts/release/fdroid-signature-copy.py skepi-<version>-arm64.apk skepi-<version>-arm64-unsigned.apk apksigner  # F-Droid's check (pip install -r scripts/release/apksigcopier-requirements.txt --require-hashes)
 apksigner verify --print-certs skepi-<version>-arm64.apk   # Signer #1 certificate SHA-256 digest: 7d61c382…447e
 ```
 

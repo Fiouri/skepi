@@ -9,8 +9,9 @@ Android phones and Windows computers; a computer can share packs with nearby pho
 
 > **Status: Developer Preview — not for emergency use.** For developers and testers. The emergency
 > cards are verbatim excerpts from the IFRC International First Aid, Resuscitation and Education
-> Guidelines 2025, each step with its section and page (since 2026-10-21; `v0.1.1-preview` shipped them
-> without steps). English only. Tested on a
+> Guidelines 2025, each step with its section and page; the water, earthquake, fire and flood cards
+> quote US federal public-domain pages (CDC, FEMA Ready.gov) word for word (since `v0.1.2-preview`).
+> English only. Tested on a
 > Samsung Galaxy S23 (Android 16) and on Windows 11 x64 only. Design and reports:
 > [`docs/architecture.md`](docs/architecture.md), [`docs/preview-report.md`](docs/preview-report.md),
 > [`docs/threat-model.md`](docs/threat-model.md).
@@ -31,14 +32,14 @@ Android phones and Windows computers; a computer can share packs with nearby pho
 
 ## Install
 
-Download from the release page (`v0.1.1-preview`): the Android APK, the Windows MSI or NSIS installer,
+Download from the release page (`v0.1.2-preview`): the Android APK, the Windows MSI or NSIS installer,
 and `SHA256SUMS.txt`.
 
 **1. Check the SHA-256 of what you downloaded**
 
 ```powershell
 # Windows PowerShell
-Get-FileHash .\skepi-0.1.1-preview-arm64.apk, .\SKEPI_0.1.1-preview_x64_en-US.msi, .\SKEPI_0.1.1-preview_x64-setup.exe -Algorithm SHA256
+Get-FileHash .\skepi-0.1.2-preview-arm64.apk, .\SKEPI_0.1.2-preview_x64_en-US.msi, .\SKEPI_0.1.2-preview_x64-setup.exe -Algorithm SHA256
 ```
 ```sh
 # Linux / macOS
@@ -49,7 +50,7 @@ The values must equal the lines of `SHA256SUMS.txt` from the release page.
 **2. Android (arm64, Android 7.0 / API 24 or newer)**: check the APK's signing certificate, then install.
 
 ```sh
-apksigner verify --print-certs skepi-0.1.1-preview-arm64.apk   # Android SDK build-tools
+apksigner verify --print-certs skepi-0.1.2-preview-arm64.apk   # Android SDK build-tools
 ```
 The certificate SHA-256 must be
 `7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e` (also shown in the app under
