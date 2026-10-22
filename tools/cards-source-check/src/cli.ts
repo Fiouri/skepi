@@ -14,9 +14,11 @@
  * these cards and sources (the release builds and bundle scans trust that lock); with --write-lock
  * (after a deliberate card change) it writes the lock.
  *
- * drift: re-fetches every web source and reports a changed page (HTML or text) and any card step no
- * longer on the live page; exit 1 on drift (the weekly CI job turns it into an issue, never a failed
- * build). The CDC asks reusers to check its pages for revisions.
+ * drift: re-fetches every web source and reports a changed page (HTML or text) with the changed passages
+ * (blocks removed from and added to the page, under their headings) and any card step no longer on the
+ * live page; exit 1 on drift or on a page that could not be fetched (the weekly CI job turns it into an
+ * issue, never a failed build). Nothing is updated automatically: the owner decides whether a card
+ * follows the change. The CDC asks reusers to check its pages for revisions.
  *
  * snapshot <id>: re-fetches one web source and rewrites its snapshot with today's date; prints the new
  * hashes to pin in sources.ts (then run the check with --write-lock).
@@ -26,6 +28,7 @@ import { resolve } from 'node:path';
 import { CARDS, IFRC_GUIDELINES, SOURCES, WEB_SOURCES, type SourceId } from '@skepi/emergency-cards';
 import { expectedLock, lockProblem, SOURCE_CHECK_LOCK } from '@skepi/emergency-cards/digest';
 import { checkCards, checkWebSteps, splitPages, type StepResult } from './check';
+import { changedPassages, formatPassages } from './drift';
 import { fetchPage, formatSnapshot, readSnapshot, snapshotPath, textSha256 } from './snapshot';
 import { extractText, fetchPinned, pdftotextBinary, pdftotextVersion, sha256 } from './source';
 
@@ -115,20 +118,22 @@ async function drift(): Promise<number> {
   const lines: string[] = [];
   const live = new Map<SourceId, string>();
   let drifted = 0;
+  let unfetched = 0;
   for (const w of WEB_SOURCES) {
     const committed = readSnapshot(w.id);
     let page;
     try {
       page = await fetchPage(w.url);
     } catch (e) {
-      drifted += 1;
-      lines.push(`- **${w.id}** (${w.url}): could not be fetched: ${e instanceof Error ? e.message : String(e)}`);
+      unfetched += 1;
+      lines.push(`- **${w.id}** (${w.url}): could not be fetched, not checked this time: ${e instanceof Error ? e.message : String(e)}`);
       continue;
     }
     live.set(w.id, page.text);
     if (page.text !== committed.text) {
       drifted += 1;
-      lines.push(`- **${w.id}** (${w.url}): the page text changed since the snapshot of ${committed.retrieved}.`);
+      lines.push(`- **${w.id}** (${w.url}): the page text changed since the snapshot of ${committed.retrieved}. Changed passages:`);
+      lines.push(...formatPassages(changedPassages(committed.text, page.text)));
     } else if (page.htmlSha256 !== committed.htmlSha256) {
       lines.push(`- ${w.id}: HTML changed (sha256 ${page.htmlSha256}), text unchanged.`);
     } else {
@@ -136,20 +141,31 @@ async function drift(): Promise<number> {
     }
   }
   const gone = checkWebSteps(live, CARDS).filter((r) => !r.ok && live.has(r.source));
-  for (const r of gone) lines.push(`- **card ${r.card}, step ${String(r.step)}** ("${r.section}", ${r.source}): ${r.problem ?? ''} on the live page.`);
+  for (const r of gone) {
+    const text = CARDS.find((c) => c.id === r.card)?.steps[r.step - 1]?.text ?? '';
+    lines.push(`- **card ${r.card}, step ${String(r.step)}** ("${r.section}", ${r.source}): ${r.problem ?? ''} on the live page: "${text}"`);
+  }
+  const head = [
+    drifted > 0
+      ? `Drift in ${String(drifted)} of ${String(WEB_SOURCES.length)} web sources of the emergency cards.`
+      : unfetched === 0
+        ? 'No drift: every web source of the emergency cards matches its committed snapshot.'
+        : 'No text drift in the web sources of the emergency cards that could be fetched.',
+    unfetched === 0 ? '' : `${String(unfetched)} source(s) could not be fetched and were not checked.`,
+  ];
   const summary = [
-    drifted === 0 ? 'No drift: every web source of the emergency cards matches its committed snapshot.' : `Drift in ${String(drifted)} of ${String(WEB_SOURCES.length)} web sources of the emergency cards.`,
+    head.filter((l) => l.length > 0).join(' '),
     '',
     ...lines,
     '',
     drifted === 0
       ? ''
-      : 'Review the change on the live page. If the card steps should follow it: `cards-source-check snapshot <id>`, update the hashes in packages/emergency-cards/src/sources.ts and the steps, run the check with `--write-lock`, and get a CODEOWNERS review.',
+      : 'Nothing was updated: the cards keep the snapshot text until the owner decides. If a card should follow the change: `cards-source-check snapshot <id>`, update the hashes in packages/emergency-cards/src/sources.ts and the steps, run the check with `--write-lock`, and get a CODEOWNERS review.',
   ].join('\n');
   console.log(summary);
   const out = arg('--report');
   if (out) writeFileSync(resolve(out), `${summary}\n`);
-  return drifted === 0 && gone.length === 0 ? 0 : 1;
+  return drifted === 0 && unfetched === 0 && gone.length === 0 ? 0 : 1;
 }
 
 async function snapshot(): Promise<number> {

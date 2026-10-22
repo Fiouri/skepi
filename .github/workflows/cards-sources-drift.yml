@@ -1,8 +1,9 @@
 # Weekly drift check of the public-domain web sources of the emergency cards (CDC, FEMA Ready.gov;
 # decision 2026-10-21): re-fetches each page and compares its text with the committed snapshot
 # (tools/cards-source-check/snapshots/). The CDC asks reusers to check its pages for revisions. Never
-# blocks anything: on drift the job stays green, writes a warning annotation and opens (or comments on)
-# one issue labelled "cards-source-drift". The cards change only by a deliberate, reviewed commit.
+# blocks anything: on drift, or when a page cannot be fetched, the job stays green, writes a warning
+# annotation and opens (or comments on) one issue labelled "cards-source-drift" with the changed passages.
+# Nothing is updated automatically: the owner decides, and a card changes only by a reviewed commit.
 # Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
 name: Card sources drift
 
@@ -42,7 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "::warning title=Emergency card sources drifted::A CDC or Ready.gov page changed since its snapshot; see the job summary."
+          echo "::warning title=Emergency card sources drifted::A CDC or Ready.gov page changed since its snapshot or could not be fetched; see the job summary."
           printf '\n[Workflow run](%s)\n' "$RUN_URL" >> drift.md
           gh label create cards-source-drift --color d93f0b --description "A web source of the emergency cards changed" 2>/dev/null || true
           issue=$(gh issue list --label cards-source-drift --state open --json number --jq '.[0].number // empty')

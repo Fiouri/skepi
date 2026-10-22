@@ -57,7 +57,17 @@ export function textSha256(text: string): string {
 
 /** Fetches the page now: its HTML hash and extracted text. Node's fetch (some CDNs refuse curl). */
 export async function fetchPage(url: string): Promise<{ htmlSha256: string; text: string }> {
-  const response = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'SKEPI cards-source-check', Accept: 'text/html' } });
+  // cdc.gov (Akamai) answers 403 to GitHub runners for a request without the usual language and
+  // encoding headers (drift run 39671621980); with them it serves the page (probe run 39752883835).
+  const response = await fetch(url, {
+    redirect: 'follow',
+    headers: {
+      'User-Agent': 'SKEPI cards-source-check (+https://github.com/Fiouri/skepi)',
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+    },
+  });
   if (!response.ok) throw new Error(`download failed: HTTP ${String(response.status)} ${url}`);
   if (response.url !== url) throw new Error(`${url} redirected to ${response.url}: pin the new URL deliberately`);
   const bytes = new Uint8Array(await response.arrayBuffer());
