@@ -1,0 +1,198 @@
+url: https://www.112.gov.tr/112-acm-projesi
+retrieved: 2026-10-23
+format: html
+file-sha256: 947e6a87c15cc2db99a4076e940ec2f463792f4aa584cc4a1cad24b5352f2705
+extractor: tools/cards-source-check/src/html.ts (the <main> element, one block per line)
+---
+Modal content
+×
+T.C. İÇİŞLERİ BAKANLIĞI
+WEB SİTESİ GİZLİLİK VE ÇEREZ POLİTİKASI
+Web sitemizi ziyaret edenlerin kişisel verilerini 6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca işlemekte ve gizliliğini korumaktayız. Bu Web Sitesi Gizlilik ve Çerez Politikası ile ziyaretçilerin kişisel verilerinin işlenmesi, çerez politikası ve internet sitesi gizlilik ilkeleri belirlenmektedir.
+Çerezler (cookies), küçük bilgileri saklayan küçük metin dosyalarıdır. Çerezler, ziyaret ettiğiniz internet siteleri tarafından, tarayıcılar aracılığıyla cihazınıza veya ağ sunucusuna depolanır. İnternet sitesi tarayıcınıza yüklendiğinde çerezler cihazınızda saklanır. Çerezler, internet sitesinin düzgün çalışmasını, daha güvenli hale getirilmesini, daha iyi kullanıcı deneyimi sunmasını sağlar. Oturum ve yerel depolama alanları da çerezlerle aynı amaç için kullanılır. İnternet sitemizde çerez bulunmamakta, oturum ve yerel depolama alanları çalışmaktadır.
+Web sitemizin ziyaretçiler tarafından en verimli şekilde faydalanılması için çerezler kullanılmaktadır. Çerezler tercih edilmemesi halinde tarayıcı ayarlarından silinebilir ya da engellenebilir. Ancak bu web sitemizin performansını olumsuz etkileyebilir. Ziyaretçi tarayıcıdan çerez ayarlarını değiştirmediği sürece bu sitede çerez kullanımını kabul ettiği varsayılır.
+1.Kişisel Verilerin İşlenme Amacı
+Web sitemizi ziyaret etmeniz dolayısıyla elde edilen kişisel verileriniz aşağıda sıralanan amaçlarla T.C. İçişleri Bakanlığı tarafından Kanun’un 5. ve 6. maddelerine uygun olarak işlenmektedir:
+- T.C. İçişleri Bakanlığı tarafından yürütülen ticari faaliyetlerin yürütülmesi için gerekli çalışmaların yapılması ve buna bağlı iş süreçlerinin gerçekleştirilmesi,
+- T.C. İçişleri Bakanlığı tarafından sunulan ürün ve hizmetlerden ilgili kişileri faydalandırmak için gerekli çalışmaların yapılması ve ilgili iş süreçlerinin gerçekleştirilmesi,
+- T.C. İçişleri Bakanlığı tarafından sunulan ürün ve hizmetlerin ilgili kişilerin beğeni, kullanım alışkanlıkları ve ihtiyaçlarına göre özelleştirilerek ilgili kişilere önerilmesi ve tanıtılması.
+2.Kişisel Verilerin Aktarıldığı Taraflar ve Aktarım Amacı
+Web sitemizi ziyaret etmeniz dolayısıyla elde edilen kişisel verileriniz, kişisel verilerinizin işlenme amaçları doğrultusunda, iş ortaklarımıza, tedarikçilerimize kanunen yetkili kamu kurumlarına ve özel kişilere Kanun’un 8. ve 9. maddelerinde belirtilen kişisel veri işleme şartları ve amaçları kapsamında aktarılabilmektedir.
+3.Kişisel Verilerin Toplanma Yöntemi
+Çerezler, ziyaret edilen internet siteleri tarafından tarayıcılar aracılığıyla cihaza veya ağ sunucusuna depolanan küçük metin dosyalarıdır. Web sitemiz ziyaret edildiğinde, kişisel verilerin saklanması için herhangi bir çerez kullanılmamaktadır.
+4.Çerezleri Kullanım Amacı
+Web sitemiz birinci ve üçüncü taraf çerezleri kullanır. Birinci taraf çerezleri çoğunlukla web sitesinin doğru şekilde çalışması için gereklidir, kişisel verilerinizi tutmazlar. Üçüncü taraf çerezleri, web sitemizin performansını, etkileşimini, güvenliğini, reklamları ve sonucunda daha iyi bir hizmet sunmak için kullanılır. Kullanıcı deneyimi ve web sitemizle gelecekteki etkileşimleri hızlandırmaya yardımcı olur. Bu kapsamda çerezler;
+İşlevsel: Bunlar, web sitemizdeki bazı önemli olmayan işlevlere yardımcı olan çerezlerdir. Bu işlevler arasında videolar gibi içerik yerleştirme veya web sitesindeki içerikleri sosyal medya platformlarında paylaşma yer alır.
+## Teknik olarak web sitemizde kullanılan çerez türleri aşağıdaki tabloda gösterilmektedir.
+Oturum Çerezleri
+(Session Cookies)
+Oturum çerezleri ziyaretçilerimizin web sitemizi ziyaretleri süresince kullanılan, tarayıcı kapatıldıktan sonra silinen geçici çerezlerdir. Amacı ziyaretiniz süresince İnternet Sitesinin düzgün bir biçimde çalışmasının teminini sağlamaktır.
+Web sitemizde çerez kullanılmasının başlıca amaçları aşağıda sıralanmaktadır:
+- • İnternet sitesinin işlevselliğini ve performansını arttırmak yoluyla sizlere sunulan hizmetleri geliştirmek,
+5.Çerez Tercihlerini Kontrol Etme
+Farklı tarayıcılar web siteleri tarafından kullanılan çerezleri engellemek ve silmek için farklı yöntemler sunar. Çerezleri engellemek / silmek için tarayıcı ayarları değiştirilmelidir. Tanımlama bilgilerinin nasıl yönetileceği ve silineceği hakkında daha fazla bilgi edinmek için www.allaboutcookies.org adresi ziyaret edilebilir. Ziyaretçi, tarayıcı ayarlarını değiştirerek çerezlere ilişkin tercihlerini kişiselleştirme imkânına sahiptir.
+6.Veri Sahiplerinin Hakları
+Kanunun ilgili kişinin haklarını düzenleyen 11 inci maddesi kapsamındaki talepleri, Politika’da düzenlendiği şekilde, ayrıntısını Bakanlığımıza ileterek yapabilir. Talebin niteliğine göre en kısa sürede ve en geç otuz gün içinde başvuruları ücretsiz olarak sonuçlandırılır; ancak işlemin ayrıca bir maliyet gerektirmesi halinde Kişisel Verileri Koruma Kurulu tarafından belirlenecek tarifeye göre ücret talep edilebilir.
+- e-Devlet
+- İçişleri Bakanlığı
+- İller İdaresi Genel Müdürlüğü
+112 Acil Çağrı Merkezi
+112 Acil Çağrı Merkezi
+- 112 AÇM
+- Hakkımızda
+- Genel Müdür
+- Genel Müdür Yardımcısı
+- Daire Başkanı
+- Teşkilat Şeması
+- 112 İl Müdürlükleri
+- Kurumsal Kimlik
+- Mevzuat
+- ÇAĞRI MERKEZLERİ
+- PROJELER
+- Hayat 112 Acil Mobil Uygulaması
+- AFAD Acil Mobil Uygulama Projesi
+- 112 AÇM
+- eCall
+- Engelsiz 112
+- Sms İhbarları
+- Web İhbarları
+- GÜNDEM
+- Duyurular
+- Haberler
+- Kamu Spotları
+- Tanıtım Materyalleri
+- İl Tanıtım Faaliyetleri Örnekleri
+- İLETİŞİM
+Ara
+- 112 AÇM
+- Hakkımızda
+- Genel Müdür
+- Genel Müdür Yardımcısı
+- Daire Başkanı
+- Teşkilat Şeması
+- 112 İl Müdürlükleri
+- Kurumsal Kimlik
+- Mevzuat
+- ÇAĞRI MERKEZLERİ
+- PROJELER
+- Hayat 112 Acil Mobil Uygulaması
+- AFAD Acil Mobil Uygulama Projesi
+- 112 AÇM
+- eCall
+- Engelsiz 112
+- Sms İhbarları
+- Web İhbarları
+- GÜNDEM
+- Duyurular
+- Haberler
+- Kamu Spotları
+- Tanıtım Materyalleri
+- İl Tanıtım Faaliyetleri Örnekleri
+- İLETİŞİM
+###### PROJELER
+- Hayat 112 Acil Mobil Uygulaması
+- AFAD Acil Mobil Uygulama Projesi
+- 112 AÇM
+- eCall
+- Engelsiz 112
+- Sms İhbarları
+- Web İhbarları
+## 112 Acil Çağrı Merkezi Projesi
+Ülkemizde farklı acil yardım çağrıları için (yangın, sağlık, güvenlik-asayiş) hâlihazırda farklı hizmet numaraları kullanılmaktadır. Birden fazla olan acil çağrı numaralarının tek numara (112) altında toplanmasını sağlamak üzere 112 Acil Çağrı Merkezlerinin kurulum çalışmaları Bakanlığımız koordinesinde yürütülmektedir.
+112 Acil Çağrı Merkezi Sisteminin Amacı
+Acil çağrı merkezinde; sağlık, itfaiye, jandarma, polis ve valiliklerce gerekli görülen diğer birimlerin aynı mekânda olduğu ve koordinasyon imkânı sağlayan co-location modeli tercih edilmiş ve çalışmalar buna göre yapılandırılmıştır. Bu modelde çağrının alınması, olayların takip ve koordinasyonu aynı salon içerisinde bulunan görevliler tarafından yerine getirilmektedir. 112 acil çağrı merkezi sisteminin iki temel amacı vardır;
+- Acil çağrı yapılmasını gerektirecek durumlarda vatandaşlarımızın birden çok numara yerine tek bir numarayı bilmeleri,
+- Acil çağrı alındıktan sonra ihtiyaç duyulacak tüm ekiplerin en kısa sürede olay mahalline ulaşmaları.
+Yapılan Çalışmalar
+112 Acil Çağrı Merkezleri Projesi kapsamında çalışmalara öncelikle pilot iller olarak belirlenen Antalya ve Isparta’da başlanmış ve bu iki ilde çağrı merkezleri 2009 yılında hizmete açılmıştır. 2021 itibariyle 81 ilimizde acil durumda tek numara 112 sistemi devreye alınmıştır. 2009-2016 yılları arasında tek numara 112 sistemine geçen illerimizde Yeni Nesil 112 Projesi kapsamında altyapı ve sistem yenilenmesi çalışmalarına başlanmış olup 2022 yılı sonuna kadar tamamlanması planlanmaktadır.
+112 Acil Çağrı Merkezlerinin İdari Yapılanması
+Türkiye’nin idari yapısı göz önüne alınarak 81 ilde tüm ilçeleri de kapsayacak şekilde 112 acil çağrı merkezleri kurulacaktır. Valilikler bünyesinde kurulacak olan 112 acil çağrı merkezleri, ilgili vali yardımcısının koordinasyon ve sorumluluğunda hizmet verecektir.
+Bu kapsamda, 3152 sayılı İçişleri Bakanlığı Teşkilat ve Görevleri Hakkında Kanunun 28 inci maddesine eklenen “Tüm acil çağrıları karşılamak, sevk ve koordinasyonu sağlamak üzere büyükşehir belediyesi bulunan illerde yatırım izleme ve koordinasyon başkanlığı bünyesinde, diğer illerde ise valilikler bünyesinde 112 Acil Çağrı merkezleri kurulur. Acil çağrı hizmeti veren kurumların çağrı hizmetini yürütmekle görevli personeli buralarda görevlendirilir. Yeterli personel bulunmaması hâlinde valilik kadro, yer ve unvanlarına bakmaksızın uzman, sözleşmeli personel ve memurları bu merkezlerde görevlendirebilir. Bu merkezlerin iş ve işlemleri Sağlık Bakanlığının uygun görüşü alınarak İçişleri Bakanlığı tarafından çıkarılacak yönetmelikle düzenlenir.” hükmü ile ülke genelinde 112 Acil Çağrı Merkezlerinin yasal altyapısı oluşturulmuştur.
+Ayrıca 16.05.2014 tarihli ve 29002 sayılı Resmi Gazete’de “112 Acil Çağrı Merkezleri Kuruluş, Görev ve Çalışma Yönetmeliği” yayımlanarak yürürlüğe girmiştir.
+Sonuç
+112 Acil Çağrı Merkezleri Projesi sayesinde:
+- Vatandaşların ve ülkemizde bulunan yabancıların acil çağrılar için birden fazla numara bilme zorunluluğu ortadan kalkmıştır.
+- Maliyet tasarrufu ve hizmette etkinlik sağlanmıştır.
+- İlgili kurumlar arasında koordinasyon ve işbirliği sağlanmıştır.
+- Tüm acil çağrılar kayıt altına alınmıştır.
+- Yabancı dil bilen personel istihdam edilmek suretiyle yabancıların hizmetten yararlanması mümkün hale gelmiştir.
+- İller arasında uygulama birliği sağlanmıştır.
+- Çağrı merkezlerinde kullanılan teknik sistemin tüm illerde aynı standart ve kalitede olması sağlanmıştır,
+- Çağrı merkezlerinde kullanılan coğrafi bilgi sistemleri sayesinde olay mahallinin tespiti kolaylaşmıştır,
+- Araç takip sistemi sayesinde araç ve ekiplerin sevk ve idaresi daha verimli hale gelmiştir,
+- Çağrıların karşılanmasından, ekiplerin olay yerine ulaşmasına kadar tüm veriler sistemde kaydedildiği için, istatistiksel olarak verimlilik ölçümü yapılabilmektedir,
+- Uluslararası standartlar ve gelişmelerin takip edilerek ülkemizdeki sisteme entegrasyonu sağlanmıştır.
+### 112 AÇM
+- Hakkımızda
+- Genel Müdür
+- Genel Müdür Yardımcısı
+- Daire Başkanı
+- Teşkilat Şeması
+- 112 İl Müdürlükleri
+- Kurumsal Kimlik
+- Mevzuat
+### ÇAĞRI MERKEZLERİ
+### PROJELER
+- Hayat 112 Acil Mobil Uygulaması
+- AFAD Acil Mobil Uygulama Projesi
+- 112 AÇM
+- eCall
+- Engelsiz 112
+- Sms İhbarları
+- Web İhbarları
+### GÜNDEM
+- Duyurular
+- Haberler
+- Kamu Spotları
+- Tanıtım Materyalleri
+- İl Tanıtım Faaliyetleri Örnekleri
+### İLETİŞİM
+- 112 AÇM
+- Hakkımızda
+- Genel Müdür
+- Genel Müdür Yardımcısı
+- Daire Başkanı
+- Teşkilat Şeması
+- 112 İl Müdürlükleri
+- Kurumsal Kimlik
+- Mevzuat
+- ÇAĞRI MERKEZLERİ
+- PROJELER
+- Hayat 112 Acil Mobil Uygulaması
+- AFAD Acil Mobil Uygulama Projesi
+- 112 AÇM
+- eCall
+- Engelsiz 112
+- Sms İhbarları
+- Web İhbarları
+- GÜNDEM
+- Duyurular
+- Haberler
+- Kamu Spotları
+- Tanıtım Materyalleri
+- İl Tanıtım Faaliyetleri Örnekleri
+- İLETİŞİM
+112 Acil Çağrı Merkezini Takip Edin;
+Türkiye Cumhuriyeti İçişleri Bakanlığı İller İdaresi Genel Müdürlüğü
+İdari Şube: +90 312 422 42 50
+Teknik Şube: +90 312 303 99 78
+Kurumsal E-Posta
+© 2026 T.C. İçişleri Bakanlığı İller İdaresi Gen. Müd. Acil Çağrı Hizmetleri Daire Başkanlığı
+Sizlere daha iyi hizmet verebilmek için sitemizde çerezlere yer veriyoruz 🍪 Çerez politikamız hakkında bilgi edinmek için tıklayınız
+### Erişilebilirlik Menüsü (Ctrl + y)
+Erişilebilirlik Menüsü Ctrl + y ile açılır
+- Metni sesli okur
+- Metin satırları arasındaki boşluğu artırır
+- Bağlantıları renkli arka planla vurgular
+- Metin boyutunu artırır
+- Tüm metni sola hizalar
+- Daha büyük bir imleç kullanır
+- Okumayı kolaylaştırmak için yatay bir kılavuz ekler
+- Okuma alanını vurgulamak için maske ekler
+- Disleksi dostu bir yazı tipi uygular
+- Renk kontrastını artırır
+- Renk doygunluğunu kaldırır
+- Renk doygunluğunu azaltır
+- Renk doygunluğunu artırır
+- Tüm resimleri ve arka plan resimlerini gizler
+- Tüm erişilebilirlik ayarlarını sıfırlar.

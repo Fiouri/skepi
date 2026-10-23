@@ -1,6 +1,7 @@
 # Weekly drift check of the public-domain web sources of the emergency cards (CDC, FEMA Ready.gov;
-# decision 2026-10-21): re-fetches each page and compares its text with the committed snapshot
-# (tools/cards-source-check/snapshots/). The CDC asks reusers to check its pages for revisions. Never
+# decision 2026-10-21) and of the official sources of the emergency numbers (pages and PDFs, 2026-10-24):
+# re-fetches each one and compares its text with the committed snapshot (tools/cards-source-check/
+# snapshots/), and reports a number no longer shown. The CDC asks reusers to check its pages for revisions. Never
 # blocks anything: on drift, or when a page cannot be fetched, the job stays green, writes a warning
 # annotation and opens (or comments on) one issue labelled "cards-source-drift" with the changed passages.
 # Nothing is updated automatically: the owner decides, and a card changes only by a reviewed commit.
@@ -30,9 +31,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Re-fetch the CDC and Ready.gov pages and compare them with the snapshots
+      - name: Re-fetch the card and emergency-number sources and compare them with the snapshots
         id: drift
         run: |
+          sudo apt-get install -y -q poppler-utils
           rc=0
           node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts drift --report drift.md || rc=$?
           cat drift.md >> "$GITHUB_STEP_SUMMARY"
@@ -43,7 +45,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "::warning title=Emergency card sources drifted::A CDC or Ready.gov page changed since its snapshot or could not be fetched; see the job summary."
+          echo "::warning title=Emergency card sources drifted::A card or emergency-number source changed since its snapshot or could not be fetched; see the job summary."
           printf '\n[Workflow run](%s)\n' "$RUN_URL" >> drift.md
           gh label create cards-source-drift --color d93f0b --description "A web source of the emergency cards changed" 2>/dev/null || true
           issue=$(gh issue list --label cards-source-drift --state open --json number --jq '.[0].number // empty')

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCatalog, catalogSchema } from '../src/build';
-import { countryManifest, readCountrySources, readRegionIndex, type CountrySources, type RegionIndex } from '../src/countries';
+import { countryManifest, readCountrySources, readRegionIndex, selectParts, type CountrySources, type RegionIndex } from '../src/countries';
 import { REPO_ROOT } from '../src/keys';
 import { parseManifest, type Manifest } from '../src/manifest';
 import { compareWithReport, type PackReport } from '../src/pack';
@@ -63,14 +63,31 @@ describe('countryManifest', () => {
     expect(packRegion(map)).toMatchObject({ iso2: 'GR', name: 'Greece', part: null });
   });
 
-  it('parts of a split country carry their part and the country box', () => {
+  it('parts of a split country carry their part (every subdivision, its own box) and the country box', () => {
     const us = manifest.packs.filter((p) => p.region?.iso2 === 'US' && p.kind === 'pmtiles');
     const country = index.regions.find((r) => r.iso2 === 'US');
     for (const p of us) {
       expect(p.region?.part?.id).toMatch(/^[a-z0-9-]+$/);
       expect(p.region?.bbox).toEqual(country?.bbox);
+      expect(p.region?.part?.bbox).toHaveLength(4);
       expect(p.title.en).toMatch(/^Map: United States of America — /);
     }
+    // 50 states and the District of Columbia, each in exactly one part, named in full.
+    const states = us.flatMap((p) => p.region?.part?.regions ?? []);
+    expect(states).toHaveLength(51);
+    expect(new Set(states).size).toBe(51);
+    expect(us.find((p) => p.id === 'map-us-virginia')?.region?.part?.name).toBe('Virginia, Maryland, West Virginia, District of Columbia, Delaware');
+    const bavaria = manifest.packs.find((p) => p.id === 'map-de-bavaria')?.region?.part;
+    expect(bavaria?.regions).toEqual(expect.arrayContaining(['Bavaria', 'Bayern', 'Thuringia', 'Thüringen']));
+    expect(manifest.packs.find((p) => p.id === 'map-jp-kanto')?.region?.part?.regions).toContain('Tokyo');
+    for (const p of manifest.packs) expect(p.region?.part?.name ?? '').not.toMatch(/ and \d+ more$/);
+  });
+
+  it('selectParts: one part of a split country with its places pack (E2E test catalogs)', () => {
+    const one = selectParts(countryManifest(index, sources, ['CY', 'JP']), ['JP:kanto']);
+    expect(one.packs.map((p) => p.id)).toEqual(['map-cy', 'places-cy', 'map-jp-kanto', 'places-jp']);
+    expect(() => selectParts(manifest, ['JP:tokyo'])).toThrow(/JP has no part tokyo/);
+    expect(() => selectParts(manifest, ['jp:kanto'])).toThrow(/ISO:part/);
   });
 
   it('is a valid manifest (round trip through parseManifest)', () => {

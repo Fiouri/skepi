@@ -1,0 +1,67 @@
+url: https://digital-strategy.ec.europa.eu/en/policies/112
+retrieved: 2026-10-23
+format: html
+file-sha256: 67bc971567723c8a91bee574df3676e76d09a723923464b55a9183227b85d408
+extractor: tools/cards-source-check/src/html.ts (the <main> element, one block per line)
+---
+Need help? 112 is your life-saving number! 112 is the European emergency phone number, available everywhere in the EU, free of charge.
+## How does it work?
+- You can call 112 from fixed and mobile phones to contact any emergency service: an ambulance, the fire brigade or the police.
+- A specially trained operator will answer any 112 call. The operator will either deal with the request directly or transfer the call to the most appropriate emergency service depending on the national organisation of emergency services.
+- Operators in many countries can answer the calls not only in their national language, but also in English or French. If the caller does not know where he is, the operator will identify where the person making the call is physically located and will pass it to the emergency authorities so that these can help immediately.
+- 112 is also used in some countries outside the EU - such as Switzerland and South Africa - and is available worldwide on GSM mobile networks.
+## Do Remember
+- 112 functions alongside existing national emergency numbers. Denmark, Estonia, Finland, Malta, the Netherlands, Portugal, Romania and Sweden have opted for 112 as their only national emergency number.
+- 112 operators respond only to real emergencies. They do not provide traffic and weather reports, general information or answers to queries.
+- Hoax Calls to 112 are a waste the time and money of the emergency operators and can also be dangerous and a criminal offence in most countries.
+## eCall
+New cars are equipped with eCall technology, which automatically dials 112 in the event of a serious road accident and communicates the vehicle's location to the emergency services.
+## EU Rules on 112
+112 became the single European emergency number in 1991. The European Electronic Communications Code ensures that Europeans can call the European emergency number 112 wherever they are in Europe, ensuring:
+- European citizens gain better access to 112 via new technologies
+- operators provide information about caller location to emergency authorities
+- improved access to 112 for people with disabilities
+The Roaming Regulation obliges roaming service providers to send an SMS to people travelling to another EU country with information about the European emergency number 112.
+The European Commission publishes regular reports on the implementation of the European emergency number in EU countries, and as of 2020 the Commission submits the report to the European Parliament and the Council every two years.
+## 112 Day: raising awareness of EU single emergency number
+February 11 is the European 112 Day. On this day, different awareness and networking activities are organised throughout the EU in order to promote the existence and use of Europe's single emergency number.
+## Commission adopts delegated regulation
+The Commission adopted a delegated regulation to improve emergency communications in support of efficient and quick responses to emergencies via 112. The delegated regulation builds upon and supplements these obligations for Member States, with the objective to ensure effective emergency communications in the context of technological migration. Therefore, the delegated regulation:
+- Defines effective emergency communications as the timely communication between the person seeking help in an emergency and the most appropriate public safety answering point, as well as the provision of information conveyed by the person or derived automatically from the device or network, which is defined as contextual information
+- Defines the parameters based on which the national authorities must set out the criteria for accurate and reliable caller location information. The criteria should ensure that caller location is precise enough to allow emergency services to intervene effectively.
+- Establishes requirements to ensure common understanding of equivalent access for users with disabilities. Emergency communications for people with disabilities (alternative solutions to calls, e.g. Total conversation real time text, SMS, , etc.) should be as effective in accessing emergency services as emergency voice calls
+- Enshrines the requirement to route emergency calls and communications to the most appropriate and technically-enabled PSAP, without delay. The delegated regulation also sets a requirement for Member States to prepare and inform the Commission about their roadmap to upgrade the national PSAP system to all IP communications. PSAP systems should be ready for the deployment of voice, text or video-based emergency communications, which are fundamental for alternative emergency communication solutions for people with disabilities
+- The regulation also calls on Member States to cooperate with the Commission to identify common interoperability requirements for emergency communication apps. In this way, emergency communication via apps would be routed to the most appropriate PSAP. Apps may enable life saving emergency communications and provide crucial contextual information
+The Member States are required to report to the Commission and provide updates on the obligations established by the delegated regulation. The delegated regulation is binding and directly applicable in all Member States.
+## More Information:
+Delegated regulation / Corrigendum
+112 on Your Europe website
+112 Implementation & Eurobarometer Reports
+112 awareness raising
+Follow us
+- DigitalEU on X
+## Latest news
+- Report / Study
+- 28 May 2026
+EU study informs of eCall service gaps as 2G/3G networks shut down
+A new study commissioned by the European Commission informs over the future of 112-based eCall, the life-saving emergency system in vehicles, as national mobile operators phase out older 2G and 3G networks and migrate to 4G and 5G networks.
+- Report / Study
+- 18 December 2024
+2024 Report on the implementation of the EU emergency number 112
+The Commission adopted the 2024 report on the effectiveness of the implementation of the European emergency number 112.
+- Press release
+- 10 February 2023
+European 112 Day: raising awareness of the single European emergency number 112
+Tomorrow, 11 February, marks the annual European 112 Day that is dedicated to raising awareness of the EU’s single emergency number 112 and to recognising the work of all those who contribute to the emergency services.
+- Report / Study
+- 30 January 2023
+2022 Report on the implementation of 112 the EU emergency number
+The Commission published the 2022 report on the effectiveness of the implementation of the European emergency number ‘112’.
+Browse 112
+## Related Content
+### Big Picture
+Connectivity
+The EU’s goal is for Europe to be the most connected continent by 2030.
+##### Last update
+23 June 2026
+Print as PDF

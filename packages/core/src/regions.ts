@@ -1,4 +1,4 @@
-import type { BBoxTuple, CatalogPack, PackKind } from './catalog';
+import type { BBoxTuple, CatalogPack, PackKind, RegionPart } from './catalog';
 import { foldText } from './text';
 
 /**
@@ -14,7 +14,7 @@ export interface RegionInfo {
   /** Null for a schema 1 pack outside LEGACY_REGIONS. */
   bbox: BBoxTuple | null;
   center: [number, number] | null;
-  part: { id: string; name: string } | null;
+  part: RegionPart | null;
 }
 
 /** Box and centre of the regions that schema 1 catalogs carry only as a `region:XX` tag. */
@@ -125,11 +125,40 @@ export function listCountries<P extends RegionPackLike>(catalog: { packs: readon
   return out.sort((a, b) => a.name.localeCompare(b.name, 'en') || a.iso2.localeCompare(b.iso2));
 }
 
-/** The country list filtered by what the user typed: name (accents and case folded) or ISO code. */
-export function filterCountries<E extends { iso2: string; name: string }>(list: readonly E[], query: string): E[] {
-  const q = foldText(query).replace(/\s+/g, ' ').trim();
+function folded(query: string): string {
+  return foldText(query).replace(/\s+/g, ' ').trim();
+}
+
+/** The search name of a part that matches the folded query (its group names first), or null. */
+function partTerm(part: RegionPart | null | undefined, q: string): string | null {
+  if (!part || q.length === 0) return null;
+  if (foldText(part.name).includes(q)) return part.name;
+  return part.regions.find((r) => foldText(r).includes(q)) ?? null;
+}
+
+/**
+ * The country list filtered by what the user typed: name (accents and case folded), ISO code, or a
+ * subdivision of a split country's part ("Bayern" finds Germany).
+ */
+export function filterCountries<E extends { iso2: string; name: string; maps?: readonly { pack: Pick<RegionPackLike, 'region'> }[] }>(list: readonly E[], query: string): E[] {
+  const q = folded(query);
   if (q.length === 0) return [...list];
-  return list.filter((c) => foldText(c.name).includes(q) || c.iso2.toLowerCase() === q);
+  return list.filter((c) => foldText(c.name).includes(q) || c.iso2.toLowerCase() === q || (c.maps ?? []).some((m) => partTerm(m.pack.region?.part, q) !== null));
+}
+
+/**
+ * The parts of a split country that the query found by a subdivision rather than by the country
+ * (pack id → the matching name, shown beside the part): empty when the query names the country.
+ */
+export function matchingParts(entry: CountryEntry<RegionPackLike>, query: string): Map<string, string> {
+  const q = folded(query);
+  const out = new Map<string, string>();
+  if (q.length === 0 || entry.maps.length < 2 || foldText(entry.name).includes(q) || entry.iso2.toLowerCase() === q) return out;
+  for (const m of entry.maps) {
+    const term = partTerm(m.pack.region?.part, q);
+    if (term !== null) out.set(m.pack.id, term);
+  }
+  return out;
 }
 
 /**
@@ -144,6 +173,17 @@ export function countryDownloads<P extends RegionPackLike>(entry: CountryEntry<P
 /** Installed pack ids of a country (what "Delete" removes). */
 export function countryInstalledIds(entry: CountryEntry<RegionPackLike>): string[] {
   return [...entry.maps, ...(entry.places ? [entry.places] : [])].flatMap((p) => (p.installed ? [p.installed.id] : []));
+}
+
+/**
+ * What "Delete part" removes: the part's map, and the country's places pack when no other map part of
+ * the country stays installed (places and emergency points serve every installed part).
+ */
+export function partRemovalIds(entry: CountryEntry<RegionPackLike>, mapPackId: string): string[] {
+  const part = entry.maps.find((m) => m.pack.id === mapPackId);
+  if (!part?.installed) return [];
+  const othersLeft = entry.maps.some((m) => m.pack.id !== mapPackId && m.installed !== null);
+  return [part.installed.id, ...(!othersLeft && entry.places?.installed ? [entry.places.installed.id] : [])];
 }
 
 /**
@@ -235,13 +275,24 @@ export function fitZoom(bbox: BBoxTuple): number {
 /** Where the map opened before global maps (Patras, the test region of the Greece packs). */
 export const LEGACY_HOME: { center: [number, number]; zoom: number } = { center: [21.7346, 38.2466], zoom: 12 };
 
+/** The box around boxes that do not cross the antimeridian (null when one does, or for none). */
+function unionBBox(boxes: readonly BBoxTuple[]): BBoxTuple | null {
+  if (boxes.length === 0 || boxes.some((b) => b[0] > b[2])) return null;
+  return [Math.min(...boxes.map((b) => b[0])), Math.min(...boxes.map((b) => b[1])), Math.max(...boxes.map((b) => b[2])), Math.max(...boxes.map((b) => b[3]))];
+}
+
 /**
  * Where the map opens without a place to show: the chosen country (or the first installed one),
- * whole; Greece from a schema 1 catalog on Patras at zoom 12 as before.
+ * whole, or only its installed parts when the installed maps are parts (Bavaria alone opens on
+ * Bavaria); Greece from a schema 1 catalog on Patras at zoom 12 as before. `regions`: the regions of
+ * the installed map packs.
  */
 export function mapHome(regions: readonly RegionInfo[], country: string | null): { center: [number, number]; zoom: number } {
   const own = regions.find((r) => r.iso2 === country) ?? regions[0] ?? null;
   if (!own?.center) return LEGACY_HOME;
   if (own.center === LEGACY_REGIONS[own.iso2]?.center) return { center: own.center, zoom: LEGACY_HOME.zoom };
+  const mine = regions.filter((r) => r.iso2 === own.iso2);
+  const parts = mine.every((r) => r.part !== null) ? unionBBox(mine.flatMap((r) => (r.part ? [r.part.bbox] : []))) : null;
+  if (parts) return { center: [(parts[0] + parts[2]) / 2, (parts[1] + parts[3]) / 2], zoom: fitZoom(parts) };
   return { center: own.center, zoom: own.bbox ? fitZoom(own.bbox) : 6 };
 }

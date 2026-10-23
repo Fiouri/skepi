@@ -186,7 +186,7 @@
       "version": "2026-10-22",
       "file": "map-it-lombardia-20261022.pmtiles",
       "title": {
-        "en": "Map: Italy — Lombardia, Piemonte, Veneto and 4 more"
+        "en": "Map: Italy — Lombardia, Piemonte, Veneto, Emilia-Romagna, Friuli-Venezia Giulia, Trentino-Alto Adige, Valle d'Aosta"
       },
       "lang": [
         "en",
@@ -217,7 +217,73 @@
         ],
         "part": {
           "id": "lombardia",
-          "name": "Lombardia, Piemonte, Veneto and 4 more"
+          "name": "Lombardia, Piemonte, Veneto, Emilia-Romagna, Friuli-Venezia Giulia, Trentino-Alto Adige, Valle d'Aosta",
+          "regions": [
+            "Emilia-Romagna",
+            "Friuli-Venezia Giulia",
+            "Lombardia",
+            "Piemonte",
+            "Trentino-Alto Adige",
+            "Valle d'Aosta",
+            "Veneto",
+            "Piacenza",
+            "Ferrara",
+            "Reggio Emilia",
+            "Parma",
+            "Modena",
+            "Ravenna",
+            "Bologna",
+            "Forlì-Cesena",
+            "Rimini",
+            "Pordenone",
+            "Udine",
+            "Gorizia",
+            "Trieste",
+            "Sondrio",
+            "Como",
+            "Bergamo",
+            "Varese",
+            "Lecco",
+            "Brescia",
+            "Monza and Brianza",
+            "Monza e Brianza",
+            "Milan",
+            "Milano",
+            "Lodi",
+            "Cremona",
+            "Pavia",
+            "Mantua",
+            "Mantova",
+            "Verbano-Cusio-Ossola",
+            "Vercelli",
+            "Biella",
+            "Novara",
+            "Turin",
+            "Asti",
+            "Alessandria",
+            "Cuneo",
+            "Trentino-South Tyrol",
+            "Bozen",
+            "Trentino",
+            "Trento",
+            "Aosta",
+            "Aoste",
+            "Belluno",
+            "Treviso",
+            "Vicenza",
+            "Venice",
+            "Venezia",
+            "Verona",
+            "Padua",
+            "Padova",
+            "Rovigo"
+          ],
+          "bbox": [
+            6.5528,
+            43.6935,
+            13.9441,
+            47.1348
+          ]
         }
       },
       "source": {
@@ -233,7 +299,7 @@
       "version": "2026-10-22",
       "file": "map-it-toscana-20261022.pmtiles",
       "title": {
-        "en": "Map: Italy — Toscana, Abruzzo, Lazio and 10 more"
+        "en": "Map: Italy — Toscana, Abruzzo, Lazio, Apulia, Basilicata, Calabria, Campania, Liguria, Marche, Molise, Sardegna, Sicily, Umbria"
       },
       "lang": [
         "en",
@@ -264,7 +330,103 @@
         ],
         "part": {
           "id": "toscana",
-          "name": "Toscana, Abruzzo, Lazio and 10 more"
+          "name": "Toscana, Abruzzo, Lazio, Apulia, Basilicata, Calabria, Campania, Liguria, Marche, Molise, Sardegna, Sicily, Umbria",
+          "regions": [
+            "Abruzzo",
+            "Apulia",
+            "Basilicata",
+            "Calabria",
+            "Campania",
+            "Lazio",
+            "Liguria",
+            "Marche",
+            "Molise",
+            "Sardegna",
+            "Sicily",
+            "Toscana",
+            "Umbria",
+            "Teramo",
+            "Pescara",
+            "Chieti",
+            "L'Aquila",
+            "Foggia",
+            "Barletta-Andria-Trani",
+            "Barletta-Andria Trani",
+            "Bari",
+            "Brindisi",
+            "Taranto",
+            "Lecce",
+            "Matera",
+            "Potenza",
+            "Cosenza",
+            "Crotone",
+            "Crotene",
+            "Catanzaro",
+            "Vibo Valentia",
+            "Reggio Calabria",
+            "Benevento",
+            "Caserta",
+            "Avellino",
+            "Naples",
+            "Napoli",
+            "Salerno",
+            "Viterbo",
+            "Rieti",
+            "Rome",
+            "Roma",
+            "Frosinone",
+            "Latina",
+            "Genova",
+            "Savona",
+            "La Spezia",
+            "Imperia",
+            "Pesaro and Urbino",
+            "Pesaro e Urbino",
+            "Ancona",
+            "Macerata",
+            "Fermo",
+            "Ascoli Piceno",
+            "Isernia",
+            "Campobasso",
+            "Olbia-Tempio",
+            "Sassari",
+            "Nuoro",
+            "Oristano",
+            "Oristrano",
+            "Ogliastra",
+            "Medio Campidano",
+            "Cagliari",
+            "Carbonia-Iglesias",
+            "Messina",
+            "Palermo",
+            "Trapani",
+            "Enna",
+            "Catania",
+            "Agrigento",
+            "Caltanissetta",
+            "Syracuse",
+            "Siracusa",
+            "Ragusa",
+            "Massa-Carrara",
+            "Lucca",
+            "Pistoia",
+            "Prato",
+            "Florence",
+            "Firenze",
+            "Pisa",
+            "Arezzo",
+            "Siena",
+            "Livorno",
+            "Grosseto",
+            "Perugia",
+            "Terni"
+          ],
+          "bbox": [
+            7.4292,
+            35.4414,
+            18.5657,
+            44.7346
+          ]
         }
       },
       "source": {
@@ -356,7 +518,17 @@
         ],
         "part": {
           "id": "baden-wurttemberg",
-          "name": "Baden-Württemberg, Saarland"
+          "name": "Baden-Württemberg, Saarland",
+          "regions": [
+            "Saarland",
+            "Baden-Württemberg"
+          ],
+          "bbox": [
+            6.2987,
+            47.4836,
+            10.5435,
+            49.8456
+          ]
         }
       },
       "source": {
@@ -403,7 +575,19 @@
         ],
         "part": {
           "id": "bavaria",
-          "name": "Bavaria, Thuringia"
+          "name": "Bavaria, Thuringia",
+          "regions": [
+            "Thuringia",
+            "Bavaria",
+            "Thüringen",
+            "Bayern"
+          ],
+          "bbox": [
+            8.9301,
+            47.2246,
+            13.8665,
+            51.6874
+          ]
         }
       },
       "source": {
@@ -419,7 +603,7 @@
       "version": "2026-10-22",
       "file": "map-de-brandenburg-20261022.pmtiles",
       "title": {
-        "en": "Map: Germany — Brandenburg, Saxony, Saxony-Anhalt and 4 more"
+        "en": "Map: Germany — Brandenburg, Saxony, Saxony-Anhalt, Schleswig-Holstein, Mecklenburg-Western Pomerania, Hamburg, Berlin"
       },
       "lang": [
         "en",
@@ -450,7 +634,25 @@
         ],
         "part": {
           "id": "brandenburg",
-          "name": "Brandenburg, Saxony, Saxony-Anhalt and 4 more"
+          "name": "Brandenburg, Saxony, Saxony-Anhalt, Schleswig-Holstein, Mecklenburg-Western Pomerania, Hamburg, Berlin",
+          "regions": [
+            "Schleswig-Holstein",
+            "Mecklenburg-Western Pomerania",
+            "Hamburg",
+            "Brandenburg",
+            "Berlin",
+            "Saxony-Anhalt",
+            "Saxony",
+            "Mecklenburg-Vorpommern",
+            "Sachsen-Anhalt",
+            "Sachsen"
+          ],
+          "bbox": [
+            7.8299,
+            50.111,
+            15.0715,
+            55.1147
+          ]
         }
       },
       "source": {
@@ -497,7 +699,19 @@
         ],
         "part": {
           "id": "hesse",
-          "name": "Hesse, Rhineland-Palatinate"
+          "name": "Hesse, Rhineland-Palatinate",
+          "regions": [
+            "Hesse",
+            "Rhineland-Palatinate",
+            "Hessen",
+            "Rheinland-Pfalz"
+          ],
+          "bbox": [
+            6.0502,
+            48.9088,
+            10.28,
+            51.7047
+          ]
         }
       },
       "source": {
@@ -544,7 +758,19 @@
         ],
         "part": {
           "id": "lower-saxony",
-          "name": "Lower Saxony, Free Hanseatic Bremen"
+          "name": "Lower Saxony, Free Hanseatic Bremen",
+          "regions": [
+            "Free Hanseatic Bremen",
+            "Lower Saxony",
+            "Bremen",
+            "Niedersachsen"
+          ],
+          "bbox": [
+            6.612,
+            51.2407,
+            11.6302,
+            53.942
+          ]
         }
       },
       "source": {
@@ -591,7 +817,17 @@
         ],
         "part": {
           "id": "north-rhine-westphalia",
-          "name": "North Rhine-Westphalia"
+          "name": "North Rhine-Westphalia",
+          "regions": [
+            "North Rhine-Westphalia",
+            "Nordrhein-Westfalen"
+          ],
+          "bbox": [
+            5.8039,
+            50.2732,
+            9.5111,
+            52.5741
+          ]
         }
       },
       "source": {
@@ -858,7 +1094,17 @@
         ],
         "part": {
           "id": "alaska",
-          "name": "Alaska, Oregon"
+          "name": "Alaska, Oregon",
+          "regions": [
+            "Alaska",
+            "Oregon"
+          ],
+          "bbox": [
+            172.4262,
+            41.9495,
+            -116.405,
+            71.4605
+          ]
         }
       },
       "source": {
@@ -904,7 +1150,18 @@
         ],
         "part": {
           "id": "arizona",
-          "name": "Arizona, Utah, Nevada"
+          "name": "Arizona, Utah, Nevada",
+          "regions": [
+            "Utah",
+            "Nevada",
+            "Arizona"
+          ],
+          "bbox": [
+            -120.0508,
+            31.2772,
+            -108.9974,
+            42.0498
+          ]
         }
       },
       "source": {
@@ -950,7 +1207,17 @@
         ],
         "part": {
           "id": "california",
-          "name": "California, Hawaii"
+          "name": "California, Hawaii",
+          "regions": [
+            "California",
+            "Hawaii"
+          ],
+          "bbox": [
+            -178.3543,
+            18.8564,
+            -114.0695,
+            42.0495
+          ]
         }
       },
       "source": {
@@ -996,7 +1263,19 @@
         ],
         "part": {
           "id": "colorado",
-          "name": "Colorado, Wyoming, North Dakota, South Dakota"
+          "name": "Colorado, Wyoming, North Dakota, South Dakota",
+          "regions": [
+            "North Dakota",
+            "South Dakota",
+            "Wyoming",
+            "Colorado"
+          ],
+          "bbox": [
+            -111.0974,
+            36.9498,
+            -96.4036,
+            49.0388
+          ]
         }
       },
       "source": {
@@ -1042,7 +1321,16 @@
         ],
         "part": {
           "id": "florida",
-          "name": "Florida"
+          "name": "Florida",
+          "regions": [
+            "Florida"
+          ],
+          "bbox": [
+            -87.6764,
+            24.4944,
+            -79.9824,
+            31.0501
+          ]
         }
       },
       "source": {
@@ -1058,7 +1346,7 @@
       "version": "2026-10-22",
       "file": "map-us-georgia-20261022.pmtiles",
       "title": {
-        "en": "Map: United States of America — Georgia, Alabama, Tennessee and 2 more"
+        "en": "Map: United States of America — Georgia, Alabama, Tennessee, Kentucky, Mississippi"
       },
       "lang": [
         "en"
@@ -1088,7 +1376,20 @@
         ],
         "part": {
           "id": "georgia",
-          "name": "Georgia, Alabama, Tennessee and 2 more"
+          "name": "Georgia, Alabama, Tennessee, Kentucky, Mississippi",
+          "regions": [
+            "Kentucky",
+            "Tennessee",
+            "Mississippi",
+            "Alabama",
+            "Georgia"
+          ],
+          "bbox": [
+            -91.707,
+            30.1319,
+            -80.7862,
+            39.1953
+          ]
         }
       },
       "source": {
@@ -1134,7 +1435,18 @@
         ],
         "part": {
           "id": "illinois",
-          "name": "Illinois, Wisconsin, Indiana"
+          "name": "Illinois, Wisconsin, Indiana",
+          "regions": [
+            "Wisconsin",
+            "Illinois",
+            "Indiana"
+          ],
+          "bbox": [
+            -92.9515,
+            36.9317,
+            -84.7355,
+            47.358
+          ]
         }
       },
       "source": {
@@ -1180,7 +1492,19 @@
         ],
         "part": {
           "id": "kansas",
-          "name": "Kansas, Oklahoma, Louisiana, Arkansas"
+          "name": "Kansas, Oklahoma, Louisiana, Arkansas",
+          "regions": [
+            "Kansas",
+            "Oklahoma",
+            "Arkansas",
+            "Louisiana"
+          ],
+          "bbox": [
+            -103.0508,
+            28.8799,
+            -88.7612,
+            40.0501
+          ]
         }
       },
       "source": {
@@ -1196,7 +1520,7 @@
       "version": "2026-10-22",
       "file": "map-us-massachusetts-20261022.pmtiles",
       "title": {
-        "en": "Map: United States of America — Massachusetts, New Jersey, Maine and 4 more"
+        "en": "Map: United States of America — Massachusetts, New Jersey, Maine, Vermont, New Hampshire, Connecticut, Rhode Island"
       },
       "lang": [
         "en"
@@ -1226,7 +1550,22 @@
         ],
         "part": {
           "id": "massachusetts",
-          "name": "Massachusetts, New Jersey, Maine and 4 more"
+          "name": "Massachusetts, New Jersey, Maine, Vermont, New Hampshire, Connecticut, Rhode Island",
+          "regions": [
+            "New Jersey",
+            "Maine",
+            "Vermont",
+            "New Hampshire",
+            "Massachusetts",
+            "Connecticut",
+            "Rhode Island"
+          ],
+          "bbox": [
+            -75.6059,
+            38.8771,
+            -66.9282,
+            47.5089
+          ]
         }
       },
       "source": {
@@ -1272,7 +1611,19 @@
         ],
         "part": {
           "id": "minnesota",
-          "name": "Minnesota, Missouri, Iowa, Nebraska"
+          "name": "Minnesota, Missouri, Iowa, Nebraska",
+          "regions": [
+            "Minnesota",
+            "Iowa",
+            "Nebraska",
+            "Missouri"
+          ],
+          "bbox": [
+            -104.1031,
+            35.9362,
+            -89.0694,
+            49.4192
+          ]
         }
       },
       "source": {
@@ -1318,7 +1669,17 @@
         ],
         "part": {
           "id": "new-york",
-          "name": "New York, Pennsylvania"
+          "name": "New York, Pennsylvania",
+          "regions": [
+            "New York",
+            "Pennsylvania"
+          ],
+          "bbox": [
+            -80.5702,
+            39.6715,
+            -71.8091,
+            45.0594
+          ]
         }
       },
       "source": {
@@ -1364,7 +1725,17 @@
         ],
         "part": {
           "id": "north-carolina",
-          "name": "North Carolina, South Carolina"
+          "name": "North Carolina, South Carolina",
+          "regions": [
+            "North Carolina",
+            "South Carolina"
+          ],
+          "bbox": [
+            -84.3743,
+            31.9826,
+            -75.402,
+            36.659
+          ]
         }
       },
       "source": {
@@ -1410,7 +1781,17 @@
         ],
         "part": {
           "id": "ohio",
-          "name": "Ohio, Michigan"
+          "name": "Ohio, Michigan",
+          "regions": [
+            "Michigan",
+            "Ohio"
+          ],
+          "bbox": [
+            -90.4608,
+            38.3557,
+            -80.4702,
+            48.3551
+          ]
         }
       },
       "source": {
@@ -1456,7 +1837,17 @@
         ],
         "part": {
           "id": "texas",
-          "name": "Texas, New Mexico"
+          "name": "Texas, New Mexico",
+          "regions": [
+            "Texas",
+            "New Mexico"
+          ],
+          "bbox": [
+            -109.0966,
+            25.794,
+            -93.4649,
+            37.0498
+          ]
         }
       },
       "source": {
@@ -1472,7 +1863,7 @@
       "version": "2026-10-22",
       "file": "map-us-virginia-20261022.pmtiles",
       "title": {
-        "en": "Map: United States of America — Virginia, Maryland, West Virginia and 2 more"
+        "en": "Map: United States of America — Virginia, Maryland, West Virginia, District of Columbia, Delaware"
       },
       "lang": [
         "en"
@@ -1502,7 +1893,20 @@
         ],
         "part": {
           "id": "virginia",
-          "name": "Virginia, Maryland, West Virginia and 2 more"
+          "name": "Virginia, Maryland, West Virginia, District of Columbia, Delaware",
+          "regions": [
+            "Maryland",
+            "District of Columbia",
+            "Delaware",
+            "West Virginia",
+            "Virginia"
+          ],
+          "bbox": [
+            -83.7152,
+            36.4898,
+            -74.9955,
+            40.6962
+          ]
         }
       },
       "source": {
@@ -1548,7 +1952,18 @@
         ],
         "part": {
           "id": "washington",
-          "name": "Washington, Montana, Idaho"
+          "name": "Washington, Montana, Idaho",
+          "regions": [
+            "Montana",
+            "Idaho",
+            "Washington"
+          ],
+          "bbox": [
+            -124.7844,
+            41.9495,
+            -103.9894,
+            49.0426
+          ]
         }
       },
       "source": {
@@ -1639,7 +2054,49 @@
         ],
         "part": {
           "id": "chubu",
-          "name": "Chubu, Tohoku, Hokkaido"
+          "name": "Chubu, Tohoku, Hokkaido",
+          "regions": [
+            "Chubu",
+            "Hokkaido",
+            "Tohoku",
+            "Niigata Prefecture",
+            "Niigata",
+            "Toyama Prefecture",
+            "Toyama",
+            "Ishikawa Prefecture",
+            "Ishikawa",
+            "Nagano Prefecture",
+            "Nagano",
+            "Fukui Prefecture",
+            "Fukui",
+            "Gifu Prefecture",
+            "Gifu",
+            "Yamanashi Prefecture",
+            "Yamanashi",
+            "Shizuoka Prefecture",
+            "Shizuoka",
+            "Aichi Prefecture",
+            "Aichi",
+            "Hokkaidō",
+            "Aomori Prefecture",
+            "Aomori",
+            "Akita Prefecture",
+            "Akita",
+            "Iwate Prefecture",
+            "Iwate",
+            "Miyagi Prefecture",
+            "Miyagi",
+            "Yamagata Prefecture",
+            "Yamagata",
+            "Fukushima Prefecture",
+            "Fukushima"
+          ],
+          "bbox": [
+            135.3894,
+            34.5313,
+            145.8747,
+            45.5694
+          ]
         }
       },
       "source": {
@@ -1686,7 +2143,29 @@
         ],
         "part": {
           "id": "kanto",
-          "name": "Kanto"
+          "name": "Kanto",
+          "regions": [
+            "Kanto",
+            "Tochigi Prefecture",
+            "Tochigi",
+            "Gunma Prefecture",
+            "Gunma",
+            "Ibaraki Prefecture",
+            "Ibaraki",
+            "Saitama Prefecture",
+            "Saitama",
+            "Tokyo",
+            "Chiba Prefecture",
+            "Chiba",
+            "Kanagawa Prefecture",
+            "Kanagawa"
+          ],
+          "bbox": [
+            138.3278,
+            24.1622,
+            154.0353,
+            37.1931
+          ]
         }
       },
       "source": {
@@ -1702,7 +2181,7 @@
       "version": "2026-10-22",
       "file": "map-jp-kinki-20261022.pmtiles",
       "title": {
-        "en": "Map: Japan — Kinki, Kyushu, Chugoku and 2 more"
+        "en": "Map: Japan — Kinki, Kyushu, Chugoku, Okinawa, Shikoku"
       },
       "lang": [
         "en",
@@ -1733,7 +2212,67 @@
         ],
         "part": {
           "id": "kinki",
-          "name": "Kinki, Kyushu, Chugoku and 2 more"
+          "name": "Kinki, Kyushu, Chugoku, Okinawa, Shikoku",
+          "regions": [
+            "Chugoku",
+            "Kinki",
+            "Kyushu",
+            "Okinawa",
+            "Shikoku",
+            "Tottori Prefecture",
+            "Tottori",
+            "Shimane Prefecture",
+            "Shimane",
+            "Okayama Prefecture",
+            "Okayama",
+            "Hiroshima Prefecture",
+            "Hiroshima",
+            "Yamaguchi Prefecture",
+            "Yamaguchi",
+            "Kyōto Prefecture",
+            "Kyōto",
+            "Shiga Prefecture",
+            "Shiga",
+            "Hyōgo Prefecture",
+            "Hyōgo",
+            "Ōsaka Prefecture",
+            "Ōsaka",
+            "Mie Prefecture",
+            "Mie",
+            "Nara Prefecture",
+            "Nara",
+            "Wakayama Prefecture",
+            "Wakayama",
+            "Fukuoka Prefecture",
+            "Fukuoka",
+            "Ōita Prefecture",
+            "Ōita",
+            "Saga Prefecture",
+            "Saga",
+            "Nagasaki Prefecture",
+            "Nagasaki",
+            "Kumamoto Prefecture",
+            "Kumamoto",
+            "Miyazaki Prefecture",
+            "Miyazaki",
+            "Kagoshima Prefecture",
+            "Kagoshima",
+            "Okinawa Prefecture",
+            "Kagawa Prefecture",
+            "Kagawa",
+            "Tokushima Prefecture",
+            "Tokushima",
+            "Ehime Prefecture",
+            "Ehime",
+            "Kōchi Prefecture",
+            "Kōchi"
+          ],
+          "bbox": [
+            122.8882,
+            24.2083,
+            136.9743,
+            36.3902
+          ]
         }
       },
       "source": {

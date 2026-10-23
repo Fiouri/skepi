@@ -229,9 +229,17 @@ export const en: Messages = {
     remove: 'Delete',
     removeTitle: (name) => `Delete ${name}?`,
     removeBody: 'Its map and places are removed from this device. You can download them again or receive them from another phone.',
-    parts: 'This country is split into map parts. Download the parts you need:',
+    parts: 'This country is split into map parts. Download all of them or only the parts you need; the places of the whole country come with the first part.',
     part: ({ name, size, installed }) => `${name} · ${size}${installed ? ' · installed' : ''}`,
     downloadPart: 'Download part',
+    allParts: (size) => `Download all parts (${size})`,
+    removePart: 'Delete part',
+    removePartTitle: (name) => `Delete the part ${name}?`,
+    removePartBody: (lastPart) =>
+      lastPart
+        ? "Its map is removed from this device. It is the country's last part, so its places and emergency points are removed too."
+        : 'Its map is removed from this device. The other parts and the places of the country stay.',
+    matches: (name) => `Includes ${name}`,
     places: ({ size, installed }) => `Places and emergency points · ${size}${installed ? ' · installed' : ''}`,
     useForNumbers: 'Use for emergency numbers',
     usedForNumbers: 'Emergency numbers follow this country when your position is unknown.',

@@ -5,6 +5,8 @@ import {
   detectMobileTier,
   filterCountries,
   listCountries,
+  matchingParts,
+  partRemovalIds,
   type CatalogPack,
   type CountryEntry,
 } from '@skepi/core';
@@ -30,7 +32,8 @@ function confirm(title: string, body: string, accept: string, cancel: string): P
  * Packs → "Maps & places" (global maps, decision 2026-10-23): the countries of the signed catalog,
  * searchable, with their download size. Downloads start only when the user presses Download / Update;
  * every pack goes through ContentStore (hash against the signed catalog before it is installed, so
- * before anything opens it). Delete removes all packs of a country; a split country downloads part by part.
+ * before anything opens it). Delete removes all packs of a country; a split country downloads all parts
+ * or part by part (a subdivision in the search finds its part), and a part can be deleted alone.
  */
 export default function MapsScreen() {
   const styles = useStyles();
@@ -91,8 +94,24 @@ export default function MapsScreen() {
     }
   };
 
+  const removePart = async (entry: CountryEntry, mapPackId: string, name: string): Promise<void> => {
+    const ids = partRemovalIds(entry, mapPackId);
+    if (ids.length === 0) return;
+    if (!(await confirm(t.maps.removePartTitle(name), t.maps.removePartBody(ids.length > 1), t.maps.removePart, t.library.cancel))) return;
+    setBusy(true);
+    try {
+      for (const id of ids) await contentStore.remove(id);
+      await refresh();
+    } catch (e) {
+      setMessage({ iso2: entry.iso2, text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const progressOf = (entry: CountryEntry): string | null => {
-    const ids = [...entry.maps, ...(entry.places ? [entry.places] : [])].map((p) => p.pack.id);
+    // The packs of this country downloaded in this session (one part and the places, or all).
+    const ids = [...entry.maps, ...(entry.places ? [entry.places] : [])].map((p) => p.pack.id).filter((id) => downloads[id] !== undefined);
     const running = ids.flatMap((id) => {
       const d = downloads[id];
       return d?.running ? [d] : [];
@@ -119,6 +138,7 @@ export default function MapsScreen() {
     const progress = progressOf(entry);
     const installed = countryInstalledIds(entry).length > 0;
     const all = countryDownloads(entry);
+    const matched = matchingParts(entry, query);
     return (
       <View style={styles.passage} testID={`country-${entry.iso2}`}>
         <Text style={styles.title}>{entry.name}</Text>
@@ -127,29 +147,55 @@ export default function MapsScreen() {
         </Text>
         {split && <Text style={styles.text}>{t.maps.parts}</Text>}
         {split &&
-          entry.maps.map((m) => (
-            <View key={m.pack.id} style={styles.row}>
-              <Text style={[styles.text, { flexShrink: 1 }]}>
-                {t.maps.part({ name: m.pack.region?.part?.name ?? m.pack.title.en, size: formatBytes(m.pack.sizeBytes), installed: m.installed !== null && !m.update })}
-              </Text>
-              {(m.installed === null || m.update) && (
-                <Button
-                  testID={`country-part-${m.pack.id}`}
-                  label={m.update ? t.maps.update(formatBytes(m.pack.sizeBytes)) : t.maps.downloadPart}
-                  onPress={() => void download(entry, countryDownloads(entry, [m.pack.region?.part?.id ?? '']))}
-                  disabled={busy || progress !== null}
-                />
-              )}
-            </View>
-          ))}
+          entry.maps.map((m) => {
+            const name = m.pack.region?.part?.name ?? m.pack.title.en;
+            const term = matched.get(m.pack.id);
+            return (
+              <View key={m.pack.id} testID={`country-part-row-${m.pack.id}`}>
+                <View style={styles.row}>
+                  <Text style={[term ? styles.title : styles.text, { flexShrink: 1 }]} testID={`country-part-name-${m.pack.id}`}>
+                    {t.maps.part({ name, size: formatBytes(m.pack.sizeBytes), installed: m.installed !== null && !m.update })}
+                  </Text>
+                  {(m.installed === null || m.update) && (
+                    <Button
+                      testID={`country-part-${m.pack.id}`}
+                      label={m.update ? t.maps.update(formatBytes(m.pack.sizeBytes)) : t.maps.downloadPart}
+                      onPress={() => void download(entry, countryDownloads(entry, [m.pack.region?.part?.id ?? '']))}
+                      disabled={busy || progress !== null}
+                    />
+                  )}
+                  {m.installed !== null && (
+                    <Button
+                      testID={`country-part-delete-${m.pack.id}`}
+                      label={t.maps.removePart}
+                      tone="danger"
+                      onPress={() => void removePart(entry, m.pack.id, name)}
+                      disabled={busy || progress !== null}
+                    />
+                  )}
+                </View>
+                {term !== undefined && (
+                  <Text style={styles.muted} testID={`country-part-match-${m.pack.id}`}>
+                    {t.maps.matches(term)}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
         {split && entry.places && (
           <Text style={styles.text}>{t.maps.places({ size: formatBytes(entry.places.pack.sizeBytes), installed: entry.places.installed !== null })}</Text>
         )}
         <View style={styles.row}>
-          {all.length > 0 && !split && (
+          {all.length > 0 && (
             <Button
               testID={`country-download-${entry.iso2}`}
-              label={entry.status === 'update' ? t.maps.update(formatBytes(entry.missingBytes)) : t.maps.download(formatBytes(entry.missingBytes))}
+              label={
+                entry.status === 'update'
+                  ? t.maps.update(formatBytes(entry.missingBytes))
+                  : split
+                    ? t.maps.allParts(formatBytes(entry.missingBytes))
+                    : t.maps.download(formatBytes(entry.missingBytes))
+              }
               onPress={() => void download(entry, all)}
               disabled={busy || progress !== null || !catalog}
             />

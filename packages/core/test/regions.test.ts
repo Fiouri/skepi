@@ -12,7 +12,9 @@ import {
   LEGACY_HOME,
   listCountries,
   mapHome,
+  matchingParts,
   packRegion,
+  partRemovalIds,
   type CountryEntry,
   type InstalledLike,
 } from '../src/regions';
@@ -27,6 +29,9 @@ const H = (c: string): string => c.repeat(64);
 const CY: PackRegion = { iso2: 'CY', name: 'Cyprus', bbox: [32.2225, 34.5224, 34.642, 35.7405], center: [33.0842, 34.9133] };
 const US: PackRegion = { iso2: 'US', name: 'United States of America', bbox: [172.4262, 18.8564, -66.9282, 71.4605], center: [-97.4826, 39.5385] };
 const TR: PackRegion = { iso2: 'TR', name: 'Turkey', bbox: [25.6161, 35.7703, 44.8569, 42.1483], center: [34.5083, 39.3454] };
+const DE: PackRegion = { iso2: 'DE', name: 'Germany', bbox: [5.8039, 47.2213, 15.0715, 55.1147], center: [9.6783, 50.9617] };
+const BAVARIA = { id: 'bavaria', name: 'Bavaria, Thuringia', regions: ['Thuringia', 'Bavaria', 'Thüringen', 'Bayern'], bbox: [8.9301, 47.2246, 13.8665, 51.6874] as [number, number, number, number] };
+const HESSE = { id: 'hesse', name: 'Hesse, Rhineland-Palatinate', regions: ['Hesse', 'Rhineland-Palatinate', 'Hessen', 'Rheinland-Pfalz'], bbox: [6.0502, 48.9088, 10.28, 51.7047] as [number, number, number, number] };
 
 function pack(id: string, kind: CatalogPack['kind'], sizeMb: number, extra: Partial<CatalogPack> = {}): CatalogPack {
   return {
@@ -73,10 +78,13 @@ const CATALOG: Catalog = {
     GR_PLACES_OLD,
     pack('map-cy', 'pmtiles', 56, { region: CY }),
     pack('places-cy', 'places', 3, { region: CY }),
-    pack('map-us-west', 'pmtiles', 1400, { region: { ...US, part: { id: 'west', name: 'Pacific, Mountain' } } }),
-    pack('map-us-alaska', 'pmtiles', 900, { region: { ...US, part: { id: 'alaska', name: 'Alaska' } } }),
+    pack('map-us-west', 'pmtiles', 1400, { region: { ...US, part: { id: 'west', name: 'Washington, California', regions: ['Washington', 'California'], bbox: [-124.8, 32.5, -114.1, 49.0] } } }),
+    pack('map-us-alaska', 'pmtiles', 900, { region: { ...US, part: { id: 'alaska', name: 'Alaska', regions: ['Alaska'], bbox: [172.4262, 51.2, -129.9, 71.4605] } } }),
     pack('places-us', 'places', 150, { region: US }),
     pack('map-tr', 'pmtiles', 1300, { region: TR }),
+    pack('map-de-bavaria', 'pmtiles', 1300, { region: { ...DE, part: BAVARIA } }),
+    pack('map-de-hesse', 'pmtiles', 800, { region: { ...DE, part: HESSE } }),
+    pack('places-de', 'places', 44, { region: DE }),
   ],
 };
 const installed = (p: CatalogPack, sha256 = p.sha256): InstalledLike => ({ id: p.id, kind: p.kind, version: p.version, sha256, verified: true });
@@ -105,7 +113,7 @@ describe('packRegion', () => {
 describe('listCountries', () => {
   it('groups map parts and places per country, sorted by name, with sizes', () => {
     const list = listCountries(CATALOG, []);
-    expect(list.map((c) => c.iso2)).toEqual(['CY', 'GR', 'TR', 'US']);
+    expect(list.map((c) => c.iso2)).toEqual(['CY', 'DE', 'GR', 'TR', 'US']);
     const us = list.find((c) => c.iso2 === 'US');
     expect(us?.maps.map((m) => m.pack.id)).toEqual(['map-us-alaska', 'map-us-west']);
     expect(us?.places?.pack.id).toBe('places-us');
@@ -147,8 +155,40 @@ describe('listCountries', () => {
     expect(filterCountries(list, 'cyp').map((c) => c.iso2)).toEqual(['CY']);
     expect(filterCountries(list, 'GREE').map((c) => c.iso2)).toEqual(['GR']);
     expect(filterCountries(list, 'us').map((c) => c.iso2)).toEqual(['CY', 'US']); // Cyprus contains 'us'
-    expect(filterCountries(list, '  ')).toHaveLength(4);
+    expect(filterCountries(list, '  ')).toHaveLength(5);
     expect(filterCountries(list, 'atlantis')).toEqual([]);
+  });
+
+  it('finds a split country by a subdivision of one of its parts, in English or the local name', () => {
+    const list = listCountries(CATALOG, []);
+    expect(filterCountries(list, 'Bayern').map((c) => c.iso2)).toEqual(['DE']);
+    expect(filterCountries(list, 'thuringen').map((c) => c.iso2)).toEqual(['DE']); // ü folded
+    expect(filterCountries(list, 'california').map((c) => c.iso2)).toEqual(['US']);
+    const de = country(list, 'DE');
+    expect([...matchingParts(de, 'bayern')]).toEqual([['map-de-bavaria', 'Bayern']]);
+    expect([...matchingParts(de, 'Rheinland')]).toEqual([['map-de-hesse', 'Rheinland-Pfalz']]);
+    expect([...matchingParts(de, 'hesse, rhine')]).toEqual([['map-de-hesse', 'Hesse, Rhineland-Palatinate']]);
+    // The country itself matches: every part is shown, none singled out.
+    expect(matchingParts(de, 'germ').size).toBe(0);
+    expect(matchingParts(de, 'de').size).toBe(0);
+    expect(matchingParts(de, '').size).toBe(0);
+    expect(matchingParts(country(list, 'CY'), 'cyprus').size).toBe(0);
+  });
+
+  it('one part of a split country: download, then delete it (the places pack goes with the last part)', () => {
+    const fresh = country(listCountries(CATALOG, []), 'DE');
+    expect(countryDownloads(fresh, ['bavaria']).map((p) => p.id)).toEqual(['map-de-bavaria', 'places-de']);
+    const one = country(listCountries(CATALOG, [installed(byId('map-de-bavaria')), installed(byId('places-de'))]), 'DE');
+    expect(one.status).toBe('partial');
+    expect(one.missingBytes).toBe(800 * MB);
+    // "All parts": only what is missing.
+    expect(countryDownloads(one).map((p) => p.id)).toEqual(['map-de-hesse']);
+    expect(partRemovalIds(one, 'map-de-bavaria')).toEqual(['map-de-bavaria', 'places-de']);
+    expect(partRemovalIds(one, 'map-de-hesse')).toEqual([]);
+    const both = country(listCountries(CATALOG, ['map-de-bavaria', 'map-de-hesse', 'places-de'].map((id) => installed(byId(id)))), 'DE');
+    expect(both.status).toBe('installed');
+    expect(partRemovalIds(both, 'map-de-hesse')).toEqual(['map-de-hesse']);
+    expect(countryInstalledIds(both)).toEqual(['map-de-bavaria', 'map-de-hesse', 'places-de']);
   });
 
   it('installedRegions: verified map and places packs the catalog knows', () => {
@@ -212,6 +252,22 @@ describe('countryAt (emergency number of the current position)', () => {
     expect(mapHome([cy, gr], 'GR')).toEqual(LEGACY_HOME);
     expect(mapHome([cy, gr], 'DE')).toEqual({ center: CY.center, zoom: 7 });
     expect(mapHome([], null)).toEqual(LEGACY_HOME);
+  });
+
+  it('mapHome: only the installed parts of a split country', () => {
+    const bavaria = packRegion(byId('map-de-bavaria'));
+    const hesse = packRegion(byId('map-de-hesse'));
+    const places = packRegion(byId('places-de'));
+    if (!bavaria || !hesse || !places) throw new Error('de');
+    expect(mapHome([bavaria], 'DE')).toEqual({ center: [(8.9301 + 13.8665) / 2, (47.2246 + 51.6874) / 2], zoom: fitZoom(BAVARIA.bbox) });
+    const two = mapHome([bavaria, hesse], 'DE');
+    expect(two.center[0]).toBeCloseTo((6.0502 + 13.8665) / 2, 6);
+    expect(two.zoom).toBe(fitZoom([6.0502, 47.2246, 13.8665, 51.7047]));
+    // A whole-country map among them, or a part across the antimeridian: the whole country.
+    expect(mapHome([bavaria, places], 'DE')).toEqual({ center: DE.center, zoom: fitZoom(DE.bbox) });
+    const alaska = packRegion(byId('map-us-alaska'));
+    if (!alaska) throw new Error('us');
+    expect(mapHome([alaska], 'US')).toEqual({ center: US.center, zoom: fitZoom(US.bbox) });
   });
 
   it('fitZoom: a country fills the screen', () => {

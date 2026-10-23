@@ -207,6 +207,11 @@ export interface Messages {
     parts: string;
     part: (p: { name: string; size: string; installed: boolean }) => string;
     downloadPart: string;
+    allParts: (size: string) => string;
+    removePart: string;
+    removePartTitle: (name: string) => string;
+    removePartBody: (lastPart: boolean) => string;
+    matches: (name: string) => string;
     places: (p: { size: string; installed: boolean }) => string;
     useForNumbers: string;
     usedForNumbers: string;

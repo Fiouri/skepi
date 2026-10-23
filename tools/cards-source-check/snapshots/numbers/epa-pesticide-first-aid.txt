@@ -1,0 +1,101 @@
+url: https://19january2017snapshot.epa.gov/pesticide-incidents/first-aid-case-pesticide-exposure_.html
+retrieved: 2026-10-23
+format: html
+file-sha256: 479996136bad31bfcc2d004af754f92597fe075c60772a316d2ff87f1dc99fe2
+extractor: tools/cards-source-check/src/html.ts (the <main> element, one block per line)
+---
+Jump to main content
+# US EPA
+United States Environmental Protection Agency
+Search
+Related Topics:
+- Reporting Pesticide Incidents
+- Facebook
+- Twitter
+- Google+
+- Pinterest
+- Contact Us
+# First Aid in Case of Pesticide Exposure
+## Human Exposure
+If someone has swallowed or inhaled a pesticide or gotten it in the eyes or on the skin:
+- Call 911 if the person is unconscious, having trouble breathing or having convulsions.
+- Check the label for directions on first aid for that product.
+- Call the Poison Control Center at (800) 222-1222 for help with first aid information.
+- The National Pesticide Information Center (NPIC) (800) 858-7378 also can provide information about pesticide products and their toxicity. Exit
+- EPA's publication, Recognition and Management of Pesticide Poisoning provides information about symptoms caused by poisoning with specific pesticides and treatment information.
+## General First Aid Guidelines
+Swallowed poison. Induce vomiting ONLY if emergency personnel on the phone or the product label tells you to do so. It will depend on what the person has swallowed; some petroleum products or caustic poisons will cause more damage if the person is made to vomit. Always keep Syrup of Ipecac on hand (1 ounce for each child in the household) to use to induce vomiting if recommended by emergency personnel. Be sure the date is current.
+Poison in eye. Eye membranes absorb pesticides faster than any other external part of the body; eye damage can occur in a few minutes with some types of pesticides. If poison splashes into an eye, hold the eyelid open and wash quickly and gently with clean running water from the tap or a gentle stream from a hose for at least 15 minutes. If possible, have someone else contact a Poison Control Center for you while the victim is being treated. Do not use eye drops or chemicals or drugs in the wash water.
+Poison on skin. If pesticide splashes on the skin, drench area with water and remove contaminated clothing. Wash skin and hair thoroughly with soap and water. Later, discard contaminated clothing or thoroughly wash it separately from other laundry.
+Inhaled poison. Carry or drag victim to fresh air immediately. If you think you need protection such as a respirator and one is not available to you, call the Fire Department and wait for emergency equipment before entering the area. Loosen victim's tight clothing. If the victim's skin is blue or the victim has stopped breathing, give artificial respiration (if you know how) and call rescue service for help. Open doors and windows so no one else will be poisoned by fumes.
+Top of Page
+## Questions on Pesticides?
+National Pesticide Information Center (NPIC) Exit 1-800-858-7378
+## Resources
+- Poison Prevention
+- Protecting Pets
+Contact Us to ask a question, provide feedback, or report a problem.
+## Main menu
+- Environmental Topics
+- Air
+- Bed Bugs
+- Chemicals and Toxics
+- Climate Change
+- Environmental Information by Location
+- Greener Living
+- Health
+- Land, Waste, and Cleanup
+- Lead
+- Mold
+- Pesticides
+- Radon
+- Water
+- A-Z Index
+- Laws & Regulations
+- By Business Sector
+- By Topic
+- Compliance
+- Enforcement
+- Laws and Executive Orders
+- Policy and Guidance
+- Regulations
+- About EPA
+- EPA Administrator
+- Current Leadership
+- Organization Chart
+- Staff Directory
+- Planning, Budget and Results
+- Jobs and Internships
+- Headquarters Offices
+- Regional Offices
+- Labs and Research Centers
+Discover.
+- Accessibility
+- EPA Administrator
+- Budget & Performance
+- Contracting
+- Grants
+- No FEAR Act Data
+- Privacy and Security
+Connect.
+- Data.gov
+- Inspector General
+- Jobs
+- Newsroom
+- Open Government
+- Regulations.gov
+- Subscribe
+- USA.gov
+- White House
+Ask.
+- Contact Us
+- Hotlines
+- FOIA Requests
+- Frequent Questions
+Follow.
+- Facebook
+- Twitter
+- YouTube
+- Flickr
+- Instagram
+Last updated on March 8, 2016

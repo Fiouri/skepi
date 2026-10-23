@@ -175,8 +175,10 @@ describe('catalog schema 2 (global maps: pack regions)', () => {
   });
 
   it('a split country part and a box across the antimeridian', () => {
-    const us = { iso2: 'US', name: 'United States of America', bbox: [172.4262, 18.8564, -66.9282, 71.4605], center: [-97.4826, 39.5385], part: { id: 'west', name: 'West' } };
-    expect(verify(2, [{ ...MAP, id: 'map-us-west', file: 'map-us-west.pmtiles', region: us }])).toBe('ok');
+    const part = { id: 'alaska', name: 'Alaska, Oregon', regions: ['Alaska', 'Oregon'], bbox: [172.4262, 41.9, -116.4, 71.4605] };
+    const us = { iso2: 'US', name: 'United States of America', bbox: [172.4262, 18.8564, -66.9282, 71.4605], center: [-97.4826, 39.5385], part };
+    expect(verify(2, [{ ...MAP, id: 'map-us-alaska', file: 'map-us-alaska.pmtiles', region: us }])).toBe('ok');
+    expect(parseCatalog({ ...catalog(), schema: 2, packs: [{ ...MAP, id: 'map-us-alaska', file: 'map-us-alaska.pmtiles', region: us }] }).packs[0]?.region?.part).toEqual(part);
   });
 
   it('rejects a region in a schema 1 catalog (what apps before schema 2 see) and unknown schemas', () => {
@@ -193,7 +195,15 @@ describe('catalog schema 2 (global maps: pack regions)', () => {
     expect(bad({ ...MAP.region, bbox: [190, 34, 34, 35] })).toMatch(/^schema/);
     expect(bad({ ...MAP.region, center: [33] })).toMatch(/^schema/);
     expect(bad({ ...MAP.region, center: undefined })).toMatch(/^schema/);
-    expect(bad({ ...MAP.region, part: { id: 'West', name: 'West' } })).toMatch(/^schema/);
+    const part = { id: 'west', name: 'West', regions: ['West'], bbox: [32, 34, 33, 35] };
+    expect(bad({ ...MAP.region, part })).toBe('ok');
+    expect(bad({ ...MAP.region, part: { ...part, id: 'West' } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { id: 'west', name: 'West' } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, regions: [] } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, regions: [''] } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, regions: Array.from({ length: 501 }, (_, i) => `R${String(i)}`) } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, bbox: [32, 35, 33, 34] } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, extra: 1 } })).toMatch(/^schema/);
     expect(bad({ ...MAP.region, extra: true })).toMatch(/^schema/);
     expect(verify(2, [{ ...(catalog().packs[0] as unknown as Record<string, unknown>), region: MAP.region }])).toMatch(/only map and places packs/);
   });

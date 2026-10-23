@@ -1,4 +1,4 @@
-import { checkStorage, countryDownloads, countryInstalledIds, filterCountries, listCountries, type CountryEntry } from '@skepi/core';
+import { checkStorage, countryDownloads, countryInstalledIds, filterCountries, listCountries, matchingParts, partRemovalIds, type CountryEntry } from '@skepi/core';
 import { useMemo, useState } from 'react';
 import { Banner, Button, errorText, formatBytes } from '../components/ui';
 import { useMessages } from '../lib/i18n';
@@ -9,8 +9,9 @@ const MB = 1024 * 1024;
 
 /**
  * Packs → "Maps & places" (global maps, decision 2026-10-23): the countries of the signed catalog,
- * searchable, with download size, free-space check, download, update and delete. Downloads start
- * only on a click; the Rust ContentStore checks every chunk and the whole file against the signed
+ * searchable, with download size, free-space check, download, update and delete (a split country:
+ * all parts or one, a subdivision in the search finds its part, a part can be deleted alone). Downloads
+ * start only on a click; the Rust ContentStore checks every chunk and the whole file against the signed
  * catalog before installing it, so nothing opens unverified.
  */
 export function MapsSection() {
@@ -24,7 +25,8 @@ export function MapsSection() {
   const [progress, setProgress] = useState<Record<string, DownloadProgressJson>>({});
   const [message, setMessage] = useState<{ iso2: string; text: string; tone: 'danger' | 'warning' | 'info' } | null>(null);
   const [confirming, setConfirming] = useState<{ entry: CountryEntry<CatalogPackJson>; todo: CatalogPackJson[]; text: string } | null>(null);
-  const [removing, setRemoving] = useState<CountryEntry<CatalogPackJson> | null>(null);
+  // The country (part: null) or one map part being deleted, awaiting confirmation.
+  const [removing, setRemoving] = useState<{ entry: CountryEntry<CatalogPackJson>; part: { id: string; name: string } | null } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const countries = useMemo(() => listCountries(catalog, packs), [catalog, packs]);
@@ -63,11 +65,11 @@ export function MapsSection() {
     await start(entry, todo);
   };
 
-  const remove = async (entry: CountryEntry<CatalogPackJson>): Promise<void> => {
+  const remove = async (entry: CountryEntry<CatalogPackJson>, part: { id: string } | null): Promise<void> => {
     setRemoving(null);
     setBusy(true);
     try {
-      for (const id of countryInstalledIds(entry)) await ipc.contentRemove(id);
+      for (const id of part ? partRemovalIds(entry, part.id) : countryInstalledIds(entry)) await ipc.contentRemove(id);
       await refresh();
     } catch (e) {
       setMessage({ iso2: entry.iso2, text: errorText(e), tone: 'danger' });
@@ -103,6 +105,7 @@ export function MapsSection() {
         const installed = countryInstalledIds(entry).length > 0;
         const all = countryDownloads(entry);
         const split = entry.maps.length > 1;
+        const matched = matchingParts(entry, query);
         const percent = pr && pr.totalBytes > 0 ? Math.floor((pr.bytes / pr.totalBytes) * 100) : 0;
         return (
           <div key={entry.iso2} className="card stack" data-testid={`country-${entry.iso2}`}>
@@ -112,26 +115,55 @@ export function MapsSection() {
             </span>
             {split && <span>{t.maps.parts}</span>}
             {split &&
-              entry.maps.map((m) => (
-                <div key={m.pack.id} className="row">
-                  <span>{t.maps.part({ name: m.pack.region?.part?.name ?? m.pack.title.en, size: formatBytes(m.pack.sizeBytes), installed: m.installed !== null && !m.update })}</span>
-                  {(m.installed === null || m.update) && (
-                    <Button
-                      testId={`country-part-${m.pack.id}`}
-                      tone="plain"
-                      label={m.update ? t.maps.update(formatBytes(m.pack.sizeBytes)) : t.maps.downloadPart}
-                      disabled={busy || pr !== null}
-                      onClick={() => void download(entry, countryDownloads(entry, [m.pack.region?.part?.id ?? '']))}
-                    />
-                  )}
-                </div>
-              ))}
+              entry.maps.map((m) => {
+                const name = m.pack.region?.part?.name ?? m.pack.title.en;
+                const term = matched.get(m.pack.id);
+                return (
+                  <div key={m.pack.id} className="row" data-testid={`country-part-row-${m.pack.id}`}>
+                    <span>
+                      {term ? <strong>{t.maps.part({ name, size: formatBytes(m.pack.sizeBytes), installed: m.installed !== null && !m.update })}</strong> : t.maps.part({ name, size: formatBytes(m.pack.sizeBytes), installed: m.installed !== null && !m.update })}
+                      {term && (
+                        <span className="muted" data-testid={`country-part-match-${m.pack.id}`}>
+                          {' '}
+                          · {t.maps.matches(term)}
+                        </span>
+                      )}
+                    </span>
+                    {(m.installed === null || m.update) && (
+                      <Button
+                        testId={`country-part-${m.pack.id}`}
+                        tone="plain"
+                        label={m.update ? t.maps.update(formatBytes(m.pack.sizeBytes)) : t.maps.downloadPart}
+                        disabled={busy || pr !== null}
+                        onClick={() => void download(entry, countryDownloads(entry, [m.pack.region?.part?.id ?? '']))}
+                      />
+                    )}
+                    {m.installed !== null && (
+                      <Button
+                        testId={`country-part-delete-${m.pack.id}`}
+                        tone="plain"
+                        label={t.maps.removePart}
+                        disabled={busy || pr !== null}
+                        onClick={() => {
+                          setRemoving({ entry, part: { id: m.pack.id, name } });
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             {split && entry.places && <span>{t.maps.places({ size: formatBytes(entry.places.pack.sizeBytes), installed: entry.places.installed !== null })}</span>}
             <div className="row">
-              {all.length > 0 && !split && (
+              {all.length > 0 && (
                 <Button
                   testId={`country-download-${entry.iso2}`}
-                  label={entry.status === 'update' ? t.maps.update(formatBytes(entry.missingBytes)) : t.maps.download(formatBytes(entry.missingBytes))}
+                  label={
+                    entry.status === 'update'
+                      ? t.maps.update(formatBytes(entry.missingBytes))
+                      : split
+                        ? t.maps.allParts(formatBytes(entry.missingBytes))
+                        : t.maps.download(formatBytes(entry.missingBytes))
+                  }
                   disabled={busy || pr !== null}
                   onClick={() => void download(entry, all)}
                 />
@@ -143,7 +175,7 @@ export function MapsSection() {
                   label={t.maps.remove}
                   disabled={busy || pr !== null}
                   onClick={() => {
-                    setRemoving(entry);
+                    setRemoving({ entry, part: null });
                   }}
                 />
               )}
@@ -189,12 +221,17 @@ export function MapsSection() {
                 </div>
               </div>
             )}
-            {removing?.iso2 === entry.iso2 && (
+            {removing?.entry.iso2 === entry.iso2 && (
               <div className="banner warning stack" role="alertdialog" data-testid="remove-dialog">
-                <strong>{t.maps.removeTitle(entry.name)}</strong>
-                <span>{t.maps.removeBody}</span>
+                <strong>{removing.part ? t.maps.removePartTitle(removing.part.name) : t.maps.removeTitle(entry.name)}</strong>
+                <span>{removing.part ? t.maps.removePartBody(partRemovalIds(entry, removing.part.id).length > 1) : t.maps.removeBody}</span>
                 <div className="row">
-                  <Button testId="remove-accept" tone="danger" label={t.maps.remove} onClick={() => void remove(entry)} />
+                  <Button
+                    testId="remove-accept"
+                    tone="danger"
+                    label={removing.part ? t.maps.removePart : t.maps.remove}
+                    onClick={() => void remove(entry, removing.part)}
+                  />
                   <Button
                     testId="remove-cancel"
                     tone="plain"

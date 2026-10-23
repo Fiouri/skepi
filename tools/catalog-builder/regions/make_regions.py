@@ -191,12 +191,19 @@ def admin1_units(features: list, code: str) -> list:
         rows.append({
             "code": p["adm1_code"],
             "name": p.get("name_en") or p["name"],
+            "local": p["name"],
             "region": p.get("region") or None,
             "sub": p.get("region_sub") or None,
             "lon": round(p["longitude"], 4),
             "lat": round(p["latitude"], 4),
             "geom": shape(f["geometry"]),
         })
+    # An English name two units share (Washington: the state and the District of Columbia) gives
+    # way to the Natural Earth name.
+    shared = {n for n in (r["name"] for r in rows) if sum(1 for o in rows if o["name"] == n) > 1}
+    for r in rows:
+        if r["name"] in shared:
+            r["name"] = r["local"]
     known = [o for o in rows if o["region"] is not None]
     for r in rows:
         if r["region"] is None and known:
@@ -213,8 +220,34 @@ def slug(text: str) -> str:
 
 
 def names_of(group: list) -> str:
-    names = [u["name"] for u in group]
-    return ", ".join(names) if len(names) <= 4 else f"{', '.join(names[:3])} and {len(names) - 3} more"
+    return ", ".join(u["name"] for u in group)
+
+
+def part_names(label: str, rows: list) -> tuple:
+    """The display name of a part and its search names. The planner named a part after its units,
+    largest first (`label`; plans before 2026-10-24 cut it to three names "and N more"): Natural Earth
+    regions (Italy, Japan) when the first name is a region of the part, else the admin-1 units. The
+    display name lists every unit, the label's order first; the search names are the English and
+    local names of every admin-1 unit, and the regions when the part is named after them ("Bayern"
+    finds "Bavaria"; the census regions "West", "South" of the United States are left out)."""
+    lead = [n for n in re.sub(r" and \d+ more$", "", label).split(", ") if n]
+    regions = {r["region"] for r in rows if r["region"]}
+    by_region = bool(lead) and lead[0] in regions and lead[0] not in {r["name"] for r in rows}
+    units = []
+    for r in rows:
+        n = r["region"] if by_region else r["name"]
+        if n and n not in units:
+            units.append(n)
+    missing = [n for n in lead if n not in units]
+    if missing:
+        raise SystemExit(f"part {label!r}: {missing} are not units of the part")
+    name = ", ".join(lead + [n for n in units if n not in lead])
+    search, seen = [], set()
+    for n in [*units, *(x for r in rows for x in (r["name"], r["local"], r["region"] if by_region else None))]:
+        if n and n.casefold() not in seen:
+            seen.add(n.casefold())
+            search.append(n)
+    return name, search
 
 
 class Sizer:
@@ -397,6 +430,7 @@ def cmd_regions(args) -> int:
 
     regions = countries(load(args.ne, "admin0"))
     admin1 = load(args.ne, "admin1") if parts_spec else []
+    parts_named = False
     source = f"Natural Earth {NATURAL_EARTH['version']} ne_10m_admin_0_countries (public domain)"
     entries = []
     for code in sorted(regions):
@@ -430,9 +464,16 @@ def cmd_regions(args) -> int:
                 if missing:
                     raise SystemExit(f"{code}/{part['id']}: unknown admin-1 codes {missing}")
                 pgeom = region_geometry([shape(f["geometry"]) for f in units])
+                rows = [r for r in admin1_units(admin1, code) if r["code"] in codes]
+                pname, search = part_names(part["name"], rows)
+                if pname != part["name"]:
+                    part["name"] = pname
+                    parts_named = True
                 pentry = {
                     "id": part["id"],
-                    "name": part["name"],
+                    "name": pname,
+                    "regions": search,
+                    "bbox": bbox_of(pgeom),
                     "file": f"{lower}-{part['id']}.geojson",
                     "maxzoom": part.get("maxzoom", 15),
                     "admin1": sorted(found),
@@ -454,6 +495,9 @@ def cmd_regions(args) -> int:
         "regions": entries,
     }
     write_json(index_path, index)
+    if parts_named:
+        # Full part names (earlier plans cut them); the plan itself (units, sizes) is unchanged.
+        write_json(parts_path, {**json.load(open(parts_path, encoding="utf-8")), "countries": parts_spec})
     print(f"{len(entries)} regions -> {args.out}", file=sys.stderr)
     return 0
 

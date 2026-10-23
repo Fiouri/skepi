@@ -151,6 +151,30 @@ test('maps & places: search countries, download one, update Greece, delete', asy
   await expect(page.getByTestId('country-status-GR')).toContainText('Installed');
 });
 
+test('maps & places: one part of a split country found by a subdivision, all parts, delete the part', async ({ page }) => {
+  await page.getByTestId('tab-library').click();
+  await page.getByTestId('maps-search').fill('Bayern');
+  await expect(page.getByTestId('country-DE')).toBeVisible();
+  await expect(page.getByTestId('country-CY')).toHaveCount(0);
+  await expect(page.getByTestId('country-part-match-map-de-bavaria')).toContainText('Includes Bayern');
+  await expect(page.getByTestId('country-part-match-map-de-hesse')).toHaveCount(0);
+  await expect(page.getByTestId('country-part-row-map-de-bavaria')).toContainText('Bavaria, Thuringia');
+  await expect(page.getByTestId('country-download-DE')).toContainText('Download all parts');
+  // One part: its map and the country's places, nothing else.
+  await page.getByTestId('country-part-map-de-bavaria').click();
+  await expect(page.getByTestId('country-status-DE')).toContainText('Partly installed');
+  await expect(page.getByTestId('installed-map-de-bavaria')).toBeVisible();
+  await expect(page.getByTestId('installed-places-de')).toBeVisible();
+  await expect(page.getByTestId('installed-map-de-hesse')).toHaveCount(0);
+  await expect(page.getByTestId('country-download-DE')).toContainText('Download all parts (802.0 MB)');
+  // Deleting the last part takes the places with it.
+  await page.getByTestId('country-part-delete-map-de-bavaria').click();
+  await expect(page.getByTestId('remove-dialog')).toContainText('last part');
+  await page.getByTestId('remove-accept').click();
+  await expect(page.getByTestId('country-status-DE')).toContainText('Not installed');
+  await expect(page.getByTestId('installed-places-de')).toHaveCount(0);
+});
+
 test('station: only the selected packs in the manifest, QR pairing, stop', async ({ page }) => {
   await page.getByTestId('tab-station').click();
   await expect(page.getByTestId('firewall-note')).toContainText('private networks');

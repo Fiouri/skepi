@@ -87,13 +87,19 @@ pub struct Title {
     pub el: Option<String>,
 }
 
-/// One part of a country split into several map packs.
+/// One part of a country split into several map packs: the first-level subdivisions it covers
+/// (`regions`: English and local names, for search) and its own bounding box.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegionPart {
     pub id: String,
     pub name: String,
+    pub regions: Vec<String>,
+    pub bbox: [f64; 4],
 }
+
+/// At most this many subdivision names per part (Italy: 110 provinces), as in catalog.ts.
+const PART_REGIONS_MAX: usize = 500;
 
 /// The country of a map or places pack (schema 2). `bbox` is west, south, east, north; west > east
 /// crosses the antimeridian. `center` is longitude, latitude.
@@ -321,22 +327,47 @@ fn coordinate(v: Option<&Value>, path: &str, limit: f64) -> Result<f64, String> 
     }
 }
 
+fn parse_bbox(v: Option<&Value>, path: &str) -> Result<[f64; 4], String> {
+    let a = match v.and_then(Value::as_array) {
+        Some(a) if a.len() == 4 => a,
+        _ => return Err(format!("{path}: expected [west, south, east, north]")),
+    };
+    let bbox = [
+        coordinate(a.first(), &format!("{path}[0]"), 180.0)?,
+        coordinate(a.get(1), &format!("{path}[1]"), 90.0)?,
+        coordinate(a.get(2), &format!("{path}[2]"), 180.0)?,
+        coordinate(a.get(3), &format!("{path}[3]"), 90.0)?,
+    ];
+    if bbox[0] == bbox[2] || bbox[1] >= bbox[3] {
+        return Err(format!("{path}: expected west ≠ east and south < north"));
+    }
+    Ok(bbox)
+}
+
+fn parse_part(v: &Value, path: &str) -> Result<RegionPart, String> {
+    let o = v.as_object().ok_or_else(|| format!("{path}: expected an object"))?;
+    no_extra_keys(o, &["id", "name", "regions", "bbox"], path)?;
+    let list = match o.get("regions").and_then(Value::as_array) {
+        Some(a) if !a.is_empty() && a.len() <= PART_REGIONS_MAX => a,
+        _ => return Err(format!("{path}.regions: expected 1–{PART_REGIONS_MAX} names")),
+    };
+    let regions = list
+        .iter()
+        .enumerate()
+        .map(|(i, r)| text(Some(r), &format!("{path}.regions[{i}]"), None).map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(RegionPart {
+        id: text(o.get("id"), &format!("{path}.id"), Some(&PART_ID))?.to_owned(),
+        name: text(o.get("name"), &format!("{path}.name"), None)?.to_owned(),
+        regions,
+        bbox: parse_bbox(o.get("bbox"), &format!("{path}.bbox"))?,
+    })
+}
+
 fn parse_region(v: &Value, path: &str) -> Result<PackRegion, String> {
     let o = obj(v, path)?;
     no_extra_keys(o, &["iso2", "name", "bbox", "center", "part"], path)?;
-    let bbox_v = match o.get("bbox").and_then(Value::as_array) {
-        Some(a) if a.len() == 4 => a,
-        _ => return Err(format!("{path}.bbox: expected [west, south, east, north]")),
-    };
-    let bbox = [
-        coordinate(bbox_v.first(), &format!("{path}.bbox[0]"), 180.0)?,
-        coordinate(bbox_v.get(1), &format!("{path}.bbox[1]"), 90.0)?,
-        coordinate(bbox_v.get(2), &format!("{path}.bbox[2]"), 180.0)?,
-        coordinate(bbox_v.get(3), &format!("{path}.bbox[3]"), 90.0)?,
-    ];
-    if bbox[0] == bbox[2] || bbox[1] >= bbox[3] {
-        return Err(format!("{path}.bbox: expected west ≠ east and south < north"));
-    }
+    let bbox = parse_bbox(o.get("bbox"), &format!("{path}.bbox"))?;
     let center_v = match o.get("center").and_then(Value::as_array) {
         Some(a) if a.len() == 2 => a,
         _ => return Err(format!("{path}.center: expected [longitude, latitude]")),
@@ -347,17 +378,7 @@ fn parse_region(v: &Value, path: &str) -> Result<PackRegion, String> {
     ];
     let iso2 = text(o.get("iso2"), &format!("{path}.iso2"), Some(&ISO2))?.to_owned();
     let name = text(o.get("name"), &format!("{path}.name"), None)?.to_owned();
-    let part = match o.get("part") {
-        None => None,
-        Some(p) => {
-            let po = p.as_object().ok_or_else(|| format!("{path}.part: expected an object"))?;
-            no_extra_keys(po, &["id", "name"], &format!("{path}.part"))?;
-            Some(RegionPart {
-                id: text(po.get("id"), &format!("{path}.part.id"), Some(&PART_ID))?.to_owned(),
-                name: text(po.get("name"), &format!("{path}.part.name"), None)?.to_owned(),
-            })
-        }
-    };
+    let part = o.get("part").map(|p| parse_part(p, &format!("{path}.part"))).transpose()?;
     Ok(PackRegion { iso2, name, bbox, center, part })
 }
 
@@ -705,15 +726,31 @@ mod tests {
             (r.iso2.as_str(), r.name.as_str(), r.bbox, r.center, r.part.clone()),
             ("CY", "Cyprus", [32.2225, 34.5224, 34.642, 35.7405], [33.0842, 34.9133], None)
         );
-        let us = r#"{"iso2":"US","name":"United States of America","bbox":[172.4262,18.8564,-66.9282,71.4605],"center":[-97.4826,39.5385],"part":{"id":"west","name":"West"}}"#;
+        let us = r#"{"iso2":"US","name":"United States of America","bbox":[172.4262,18.8564,-66.9282,71.4605],"center":[-97.4826,39.5385],"part":{"id":"alaska","name":"Alaska, Oregon","regions":["Alaska","Oregon"],"bbox":[172.4262,41.9,-116.4,71.4605]}}"#;
         assert_eq!(
-            verify_region(2, us, "pmtiles", "map-us-west.pmtiles").expect("part").packs[0]
-                .region
-                .as_ref()
-                .and_then(|r| r.part.clone())
-                .map(|p| p.id),
-            Some("west".into())
+            verify_region(2, us, "pmtiles", "map-us-alaska.pmtiles").expect("part").packs[0].region.as_ref().and_then(|r| r.part.clone()),
+            Some(RegionPart {
+                id: "alaska".into(),
+                name: "Alaska, Oregon".into(),
+                regions: vec!["Alaska".into(), "Oregon".into()],
+                bbox: [172.4262, 41.9, -116.4, 71.4605]
+            })
         );
+        let part = r#""part":{"id":"west","name":"West","regions":["West"],"bbox":[32,34,33,35]}"#;
+        assert!(verify_region(2, &CY.replace("}", &format!(",{part}}}")), "pmtiles", "map-cy.pmtiles").is_ok());
+        let many = (0..501).map(|i| format!("\"R{i}\"")).collect::<Vec<_>>().join(",");
+        for bad_part in [
+            r#""part":{"id":"West","name":"West","regions":["West"],"bbox":[32,34,33,35]}"#.to_owned(),
+            r#""part":{"id":"west","name":"West"}"#.to_owned(),
+            r#""part":{"id":"west","name":"West","regions":[],"bbox":[32,34,33,35]}"#.to_owned(),
+            r#""part":{"id":"west","name":"West","regions":[""],"bbox":[32,34,33,35]}"#.to_owned(),
+            format!(r#""part":{{"id":"west","name":"West","regions":[{many}],"bbox":[32,34,33,35]}}"#),
+            r#""part":{"id":"west","name":"West","regions":["West"],"bbox":[32,35,33,34]}"#.to_owned(),
+            r#""part":{"id":"west","name":"West","regions":["West"],"bbox":[32,34,33,35],"extra":1}"#.to_owned(),
+        ] {
+            let bad = CY.replace("}", &format!(",{bad_part}}}"));
+            assert!(verify_region(2, &bad, "pmtiles", "map-cy.pmtiles").unwrap_err().starts_with("schema"), "{bad}");
+        }
         assert!(verify_region(1, CY, "pmtiles", "map-cy.pmtiles").unwrap_err().contains("unexpected field(s) region"));
         assert!(verify_region(3, CY, "pmtiles", "map-cy.pmtiles").unwrap_err().contains("catalog.schema: expected 1 or 2"));
         assert!(verify_region(2, CY, "zim", "w.zim").unwrap_err().contains("only map and places packs"));
@@ -724,7 +761,6 @@ mod tests {
             CY.replace("[32.2225,34.5224,34.642,35.7405]", "[32,34,32,35]"),
             CY.replace("[32.2225,34.5224,34.642,35.7405]", "[190,34,34,35]"),
             CY.replace("[33.0842,34.9133]", "[33]"),
-            CY.replace("}", r#","part":{"id":"West","name":"West"}}"#),
             CY.replace("}", r#","extra":true}"#),
         ] {
             assert!(verify_region(2, &bad, "pmtiles", "map-cy.pmtiles").unwrap_err().starts_with("schema"), "{bad}");

@@ -44,7 +44,18 @@ export interface PackRegion {
   /** Where a map of the country opens: [longitude, latitude] (Natural Earth label point). */
   center: [number, number];
   /** One part of a country split into several map packs (groups of first-level subdivisions). */
-  part?: { id: string; name: string };
+  part?: RegionPart;
+}
+
+/** A part of a split country: the first-level subdivisions (Natural Earth admin-1) its map covers. */
+export interface RegionPart {
+  id: string;
+  /** Every group the part covers (subdivisions, or regions of them), e.g. "Bavaria, Thuringia". */
+  name: string;
+  /** English and local names of every subdivision and region in the part (search: "Bayern"). */
+  regions: string[];
+  /** The part's own bounding box (where the map opens when only some parts are installed). */
+  bbox: BBoxTuple;
 }
 
 export interface CatalogPack {
@@ -211,25 +222,34 @@ function coordinate(v: unknown, path: string, limit: number): number {
   return v;
 }
 
+function parseBBox(v: unknown, path: string): BBoxTuple {
+  if (!Array.isArray(v) || v.length !== 4) throw new SchemaError(`${path}: expected [west, south, east, north]`);
+  const bbox: BBoxTuple = [coordinate(v[0], `${path}[0]`, 180), coordinate(v[1], `${path}[1]`, 90), coordinate(v[2], `${path}[2]`, 180), coordinate(v[3], `${path}[3]`, 90)];
+  if (bbox[0] === bbox[2] || bbox[1] >= bbox[3]) throw new SchemaError(`${path}: expected west ≠ east and south < north`);
+  return bbox;
+}
+
+/** A split country has at most a few hundred subdivision names per part (Italy: 110 provinces). */
+const PART_REGIONS_MAX = 500;
+
+function parsePart(v: unknown, path: string): RegionPart {
+  if (!isRecord(v)) throw new SchemaError(`${path}: expected an object`);
+  noExtraKeys(v, ['id', 'name', 'regions', 'bbox'], path);
+  if (!Array.isArray(v.regions) || v.regions.length === 0 || v.regions.length > PART_REGIONS_MAX) {
+    throw new SchemaError(`${path}.regions: expected 1–${String(PART_REGIONS_MAX)} names`);
+  }
+  const regions = v.regions.map((r, i) => str(r, `${path}.regions[${String(i)}]`));
+  return { id: str(v.id, `${path}.id`, PART_ID), name: str(v.name, `${path}.name`), regions, bbox: parseBBox(v.bbox, `${path}.bbox`) };
+}
+
 function parseRegion(v: unknown, path: string): PackRegion {
   if (!isRecord(v)) throw new SchemaError(`${path}: expected an object`);
   noExtraKeys(v, ['iso2', 'name', 'bbox', 'center', 'part'], path);
-  if (!Array.isArray(v.bbox) || v.bbox.length !== 4) throw new SchemaError(`${path}.bbox: expected [west, south, east, north]`);
-  const bbox: BBoxTuple = [
-    coordinate(v.bbox[0], `${path}.bbox[0]`, 180),
-    coordinate(v.bbox[1], `${path}.bbox[1]`, 90),
-    coordinate(v.bbox[2], `${path}.bbox[2]`, 180),
-    coordinate(v.bbox[3], `${path}.bbox[3]`, 90),
-  ];
-  if (bbox[0] === bbox[2] || bbox[1] >= bbox[3]) throw new SchemaError(`${path}.bbox: expected west ≠ east and south < north`);
+  const bbox = parseBBox(v.bbox, `${path}.bbox`);
   if (!Array.isArray(v.center) || v.center.length !== 2) throw new SchemaError(`${path}.center: expected [longitude, latitude]`);
   const center: [number, number] = [coordinate(v.center[0], `${path}.center[0]`, 180), coordinate(v.center[1], `${path}.center[1]`, 90)];
   const region: PackRegion = { iso2: str(v.iso2, `${path}.iso2`, ISO2), name: str(v.name, `${path}.name`), bbox, center };
-  if (v.part !== undefined) {
-    if (!isRecord(v.part)) throw new SchemaError(`${path}.part: expected an object`);
-    noExtraKeys(v.part, ['id', 'name'], `${path}.part`);
-    region.part = { id: str(v.part.id, `${path}.part.id`, PART_ID), name: str(v.part.name, `${path}.part.name`) };
-  }
+  if (v.part !== undefined) region.part = parsePart(v.part, `${path}.part`);
   return region;
 }
 

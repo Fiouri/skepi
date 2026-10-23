@@ -23,7 +23,23 @@ const NAMED: Readonly<Record<string, string>> = {
   deg: '\u00b0', frac12: '\u00bd', frac14: '\u00bc', frac34: '\u00be', times: '\u00d7', reg: '\u00ae', copy: '\u00a9',
   trade: '\u2122', bull: '\u2022', middot: '\u00b7', ensp: '\u2002', emsp: '\u2003', thinsp: '\u2009', zwnj: '\u200c',
   zwj: '\u200d', laquo: '\u00ab', raquo: '\u00bb', eacute: '\u00e9', ntilde: '\u00f1', prime: '\u2032', Prime: '\u2033',
+  ...latin1Letters(),
 };
+
+/**
+ * The HTML 4 names of the Latin-1 letters (U+00C0–U+00FF except × and ÷): official pages in other
+ * languages write them as references (112.gov.tr: "&Uuml;lkemizde", "&ccedil;ağrı").
+ */
+function latin1Letters(): Record<string, string> {
+  const names =
+    'Agrave Aacute Acirc Atilde Auml Aring AElig Ccedil Egrave Eacute Ecirc Euml Igrave Iacute Icirc Iuml ETH Ntilde Ograve Oacute Ocirc Otilde Ouml - Oslash Ugrave Uacute Ucirc Uuml Yacute THORN szlig ' +
+    'agrave aacute acirc atilde auml aring aelig ccedil egrave eacute ecirc euml igrave iacute icirc iuml eth ntilde ograve oacute ocirc otilde ouml - oslash ugrave uacute ucirc uuml yacute thorn yuml';
+  const out: Record<string, string> = {};
+  names.split(' ').forEach((name, i) => {
+    if (name !== '-') out[name] = String.fromCodePoint(0xc0 + i);
+  });
+  return out;
+}
 
 /** Decodes numeric and the common named character references; unknown names stay as written. */
 export function decodeEntities(text: string): string {

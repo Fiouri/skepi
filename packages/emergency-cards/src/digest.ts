@@ -1,9 +1,10 @@
-// Node only (build gates and tools; never imported by the apps): the digest that ties
-// source-check.lock.json to the exact card steps tools/cards-source-check verified.
+// Node only (build gates and tools; never imported by the apps): the digests that tie
+// source-check.lock.json to the exact card steps and emergency numbers tools/cards-source-check verified.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CARDS } from './index';
+import { COUNTRY_NUMBERS, type CountryNumbers } from './numbers';
 import type { CardSource, EmergencyCard } from './schema';
 import { SOURCES } from './sources';
 
@@ -23,6 +24,9 @@ export interface SourceCheckLock {
   cardsDigest: string;
   cards: number;
   steps: number;
+  /** SHA-256 over every country's numbers, sources, quotes and pins (`numbersDigest`). */
+  numbersDigest: string;
+  countries: number;
 }
 
 export const SOURCE_CHECK_LOCK = fileURLToPath(new URL('../source-check.lock.json', import.meta.url));
@@ -48,12 +52,18 @@ export function cardsDigest(cards: readonly EmergencyCard[] = CARDS): string {
   return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }
 
-export function expectedLock(cards: readonly EmergencyCard[] = CARDS): SourceCheckLock {
+export function numbersDigest(countries: readonly CountryNumbers[] = COUNTRY_NUMBERS): string {
+  return createHash('sha256').update(JSON.stringify(countries), 'utf8').digest('hex');
+}
+
+export function expectedLock(cards: readonly EmergencyCard[] = CARDS, countries: readonly CountryNumbers[] = COUNTRY_NUMBERS): SourceCheckLock {
   return {
     sources: lockedSources(cards),
     cardsDigest: cardsDigest(cards),
     cards: cards.length,
     steps: cards.reduce((n, c) => n + c.steps.length, 0),
+    numbersDigest: numbersDigest(countries),
+    countries: countries.length,
   };
 }
 
@@ -65,12 +75,17 @@ export function readLock(path: string = SOURCE_CHECK_LOCK): SourceCheckLock | nu
   }
 }
 
-/** Null when the committed lock records a passed source check of exactly these cards; else why not. */
-export function lockProblem(cards: readonly EmergencyCard[] = CARDS, path: string = SOURCE_CHECK_LOCK): string | null {
+/** Null when the committed lock records a passed source check of exactly these cards and numbers; else why not. */
+export function lockProblem(
+  cards: readonly EmergencyCard[] = CARDS,
+  path: string = SOURCE_CHECK_LOCK,
+  countries: readonly CountryNumbers[] = COUNTRY_NUMBERS,
+): string | null {
   const lock = readLock(path);
   if (lock === null) return `no source-check lock at ${path}`;
-  const expected = expectedLock(cards);
+  const expected = expectedLock(cards, countries);
   if (JSON.stringify(lock.sources) !== JSON.stringify(expected.sources)) return 'the lock was written for other sources';
   if (lock.cardsDigest !== expected.cardsDigest) return 'the card steps differ from the last passed cards-source-check';
+  if (lock.numbersDigest !== expected.numbersDigest) return 'the emergency numbers differ from the last passed cards-source-check';
   return null;
 }

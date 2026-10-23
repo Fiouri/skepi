@@ -16,7 +16,7 @@ export interface RegionIndexEntry {
   bbox: [number, number, number, number];
   center: [number, number];
   file: string;
-  parts?: { id: string; name: string; file: string; maxzoom: number }[];
+  parts?: { id: string; name: string; regions: string[]; bbox: [number, number, number, number]; file: string; maxzoom: number }[];
   measured?: Record<string, { build: string; bytes: number; tiles: number | null }>;
 }
 
@@ -56,6 +56,30 @@ function protomapsDate(build: string): string {
   return `${build.slice(0, 4)}-${build.slice(4, 6)}-${build.slice(6, 8)}`;
 }
 
+/**
+ * Keeps only the given parts of split countries (`JP:kanto` → map-jp-kanto, with places-jp): the E2E
+ * signs a test catalog with one part of a split country. Countries not named keep every part.
+ */
+export function selectParts(manifest: Manifest, parts: readonly string[]): Manifest {
+  const wanted = new Map<string, Set<string>>();
+  for (const spec of parts) {
+    const m = spec.match(/^([A-Z]{2}):([a-z0-9][a-z0-9-]*)$/);
+    if (!m?.[1] || !m[2]) throw new Error(`--parts: expected ISO:part (JP:kanto), got ${spec}`);
+    wanted.set(m[1], (wanted.get(m[1]) ?? new Set()).add(m[2]));
+  }
+  const packs = manifest.packs.filter((p) => {
+    const part = p.region?.part;
+    const keep = p.region ? wanted.get(p.region.iso2) : undefined;
+    return !part || !keep || keep.has(part.id);
+  });
+  for (const [iso2, ids] of wanted) {
+    for (const id of ids) {
+      if (!packs.some((p) => p.region?.iso2 === iso2 && p.region.part?.id === id)) throw new Error(`--parts: ${iso2} has no part ${id}`);
+    }
+  }
+  return { ...manifest, packs };
+}
+
 /** Manifest entries (map pack or parts, places pack) of the given countries. */
 export function countryManifest(index: RegionIndex, sources: CountrySources, isoCodes: readonly string[]): Manifest {
   const packs: ManifestPack[] = [];
@@ -75,7 +99,7 @@ export function countryManifest(index: RegionIndex, sources: CountrySources, iso
     const region: PackRegion = { iso2, name: entry.name, bbox: entry.bbox, center: entry.center };
     const lang = [...new Set(['en', src.locale])];
     const mapAttribution = `© OpenStreetMap contributors · Protomaps basemap ${sources.protomaps.basemapVersion} (build ${build}) · ${boundaryNote}`;
-    const maps = entry.parts && entry.parts.length > 0 ? entry.parts : [{ id: null, name: null, file: entry.file, maxzoom: 15 }];
+    const maps = entry.parts && entry.parts.length > 0 ? entry.parts : [{ id: null, name: null, regions: [], bbox: entry.bbox, file: entry.file, maxzoom: 15 }];
     for (const part of maps) {
       const id = part.id ? `map-${lower}-${part.id}` : `map-${lower}`;
       const file = `${id}-${build}.pmtiles`;
@@ -93,7 +117,7 @@ export function countryManifest(index: RegionIndex, sources: CountrySources, iso
         attribution: mapAttribution,
         minTier: 'T0',
         tags: ['map', `region:${iso2}`],
-        region: part.id && part.name ? { ...region, part: { id: part.id, name: part.name } } : region,
+        region: part.id && part.name ? { ...region, part: { id: part.id, name: part.name, regions: part.regions, bbox: part.bbox } } : region,
         source: { kind: 'pmtiles-extract', buildUrl: `https://build.protomaps.com/${build}.pmtiles`, region: `catalog/regions/${part.file}`, maxzoom: part.maxzoom },
       });
     }

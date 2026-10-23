@@ -1,0 +1,206 @@
+url: https://www.govt.nz/browse/law-crime-and-justice/crimes-and-emergencies/111-emergency-service/
+retrieved: 2026-10-23
+format: html
+file-sha256: a8fa9c034a6c2b4e21727efc4b158a7ef91541885a5048e7771b5a19f918e8da
+extractor: tools/cards-source-check/src/html.ts (the <main> element, one block per line)
+---
+Skip to main content
+/ Te Kāwanatanga o Aotearoa
+Search Govt.nz
+- Home /
+- Law, crime and justice /
+- Crimes and emergencies /
+- 111 emergency service
+Skip to main content
+- 111 emergency service
+- Report a crime that's not an emergency
+- Help for victims of crime
+## Crimes and emergencies
+- 111 emergency service
+- Report a crime that's not an emergency
+- Help for victims of crime
+# 111 emergency service
+If you need help from the police, the fire service, or you need an ambulance, dial 111 and the emergency operator will connect you to the right place.
+Call 111 if you’re in an emergency.
+Not safe to talk? Stay on the line.
+If there’s a serious risk that people could be injured or property damaged, do not hesitate to call 111.
+Accessible option for 111
+## When you’re in an emergency
+Call 111 if you cannot decide whether your situation is an emergency.
+### Help with deciding who to call
+- Examples of emergencies — for police, fire and ambulance services.
+- Non-emergency contacts — options for police, fire and medical services.
+### Examples of emergencies
+#### Police examples of emergencies
+Police emergencies — example situations for a 111 call
+Ask for the police when:
+- people are injured or in danger
+- there is a serious, immediate or imminent risk to life or property
+- a crime is being or has just been committed, and the offenders are still at the scene or have just left.
+#### Fire examples of emergencies
+Fire emergencies — example situations for a 111 call
+Ask for the fire service if you:
+- have fire or smoke in your home — get out and stay out
+- see or smell a fire in your home or another building
+- witness a car crash, including car fires and when people are trapped
+- notice a gas leak from a broken pipe — move away from the leak to where there is no smell
+- or your property are in serious danger from storm damage.
+#### Medical examples of emergencies
+Medical emergencies needing an ambulance — example situations for a 111 call
+Ask for an ambulance if someone has:
+- difficulty breathing
+- chest pain — this can feel like a weight or a squeezing feeling in your chest
+- fainted or gone unconscious
+- a life-threatening mental health situation
+- had a stroke — they may have suddenly gone weak, had their vision change, become dizzy or have trouble talking
+- severe pain anywhere
+- bleeding that will not stop.
+## Non-emergency contacts
+For situations that are not emergencies, use the contact options below.
+If you’re deaf, hard of hearing or find it hard to communicate by phone, you can use the New Zealand Relay Service (NZ Relay) to contact these services.
+Do not use NZ Relay for urgent 111 emergencies.
+NZ Relay
+### Police contacts for non-emergencies
+To report non-emergency situations to the NZ Police, use either:
+- the Police Non-Emergency service
+- other NZ Police contacts.
+### Fire contacts for non-emergencies
+To report fire-related situations that do not need an immediate response, either:
+- send general enquiries and questions — Fire and Emergency NZ
+- report your concern with your local council — Local Government NZ
+- contact your local Emergency Management Committee — National Emergency Agency.
+### Medical contacts for non-emergencies
+For situations that are not urgent, call Healthline for advice. It’s free and its healthcare professionals can help you decide, for example, if you should see your regular doctor or go to a hospital.
+Healthline — Health NZ | Te Whatu Ora
+#### Mental health contacts
+If you’re struggling with your mental health, contact for:
+- a life-threatening situation: 111 or go to your nearest hospital — Ministry of Health
+- an emergency: your local crisis assessment team for mental health — Health NZ | Te Whatu Ora
+- general help: the Mental Health Support Line — 1737.org.nz.
+## What happens when you call 111
+If it’s safe to talk, tell the 111 operator which main service you need, either:
+- police
+- fire
+- ambulance.
+More than 1 emergency service provider might respond, depending on your situation.
+### Not safe to talk? Stay on the line.
+Without talking, follow the instructions from call-takers and menus.
+Press numbers and buttons when asked.
+### During the call
+- Listen and follow the prompts of the emergency services call-taker.
+- Some questions might be repeated, so the call-taker can make sure they have the right information.
+- If the situation needs an immediate response, help may be sent while the call-taker asks you more questions.
+### Police emergency call
+If you can, get to safety before calling.
+#### On the call — police emergency
+On the call, you’ll be asked:
+- what your emergency is — what is happening that needs the police to attend?
+- where the emergency is — where do the police need to go?
+- how long ago it happened
+- what is happening now
+- to confirm your name, address and contact details.
+Examples of questions you might also be asked
+- Where is the person causing concern now?
+- Do they have weapons?
+- If that person has left, which way did they go and how did they leave?
+- Who are they? What do they look like and how are they dressed?
+- What’s the number plate and description of their vehicle?
+- What else is happening?
+##### More information — NZ Police
+111 Police emergency — NZ Police
+### Fire emergency call
+When there’s fire or smoke, get out and stay out — get to safety.
+#### On the call — fire emergency
+On the call, you’ll be asked:
+- where the emergency is
+- what is happening
+- for your nearest intersection or cross-street
+- which town or city is nearest to the incident
+- if rural, what the name of the property is
+- more questions by the call-taker, depending on what is happening.
+Examples of questions about the nature of the incident
+- What is on fire?
+- Are there hazardous substances?
+- Is anyone else involved, injured or trapped by the fire?
+- Other questions about the incident, as the call-taker gets more information.
+##### More information — Fire and Emergency NZ
+What to do if you see a fire — Fire and Emergency NZ
+### Ambulance emergency call
+Be safe: if there are any hazards, try to get away from them before calling.
+#### On the call — ambulance emergency
+Based on the nature of your call being either an accident or emergency, you’ll be asked for the:
+- exact address of the emergency
+- confirmation of the phone number you’re calling from — if you have an extension number, give that too
+- details of exactly what happened
+- answers to questions about the person needing care.
+Examples of questions about the person needing care
+- Are you with the patient?
+- How old is the patient?
+- Is the patient awake?
+- Is the patient breathing?
+These questions allow the emergency ambulance service to prioritise their response to the most life-threatening incidents.
+##### More information — ambulance services
+- St. John Ambulance — Calling an ambulance
+- Wellington Free Ambulance — Help in an emergency
+### Give the exact address on emergency calls
+The more information you can give about the emergency’s location, the better. Try to give the:
+- house number
+- street name
+- nearest intersection
+- suburb and city — or your Rural Address Property Identification (RAPID) number if you have one
+- if you’re on the move, give as many details as you can, such as street names, well-known buildings, bridges and geographical features.
+## Accessibility option for 111 emergencies
+Use ‘111 TXT’.
+This service is for people who have difficulty hearing or talking on the phone.
+Register for 111 TXT — NZ Police
+### More information about 111 TXT
+Check the NZ Police website for information about:
+- using 111 TXT
+- 111 TXT Rules
+- changing ‘My Registration’.
+## Overseas emergencies
+New Zealand embassies can help you if something goes wrong while you’re outside NZ.
+Emergency help when you’re overseas
+## Teach children about calling 111
+Download these fun activities which teach children when to make 111 emergency calls.
+111 emergency resources for children — NZ Police
+## More information — emergency call services
+Spark NZ operates the platform for answering initial 111 calls, before sending emergency calls to the right service. Visit the Ministry of Business, Innovation and Employment (MBIE) website for more information about emergency call services.
+Emergency call services — MBIE
+## Who to contact for more help
+If you need more help or have questions about the information or services on this page, contact one of the following agencies.
+New Zealand Police
+Contact and agency details
+Fire and Emergency New Zealand
+Contact and agency details
+Health New Zealand
+Contact and agency details
+Ministry of Business, Innovation and Employment
+Contact and agency details
+## Utility links and page information
+Share by
+- Email
+Was this page helpful?
+Yes No Partly
+Thanks, do you want to tell us more?
+Do not enter personal information. All fields are optional.
+What did you come here to do?
+What needs fixing?
+How can we improve this information?
+Last updated 21 October 2024
+## About Govt.nz
+- The Govt.nz app
+- The Govt.nz website
+## Contact NZ government
+- A-Z of government agencies
+- Contact details by topic
+## Using this website
+- Accessibility
+- Copyright
+- Terms of use
+- Privacy
+## The Govt.nz app
+— Download the app today to access key government services securely, quickly, and all in one place.
+- Get it on Google Play
+- Download on the App Store
+/ Te Kāwanatanga o Aotearoa

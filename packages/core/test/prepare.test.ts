@@ -100,7 +100,7 @@ describe('planPreset with country packs (global maps)', () => {
     name: iso2,
     bbox: [0, 0, 1, 1],
     center: [0.5, 0.5],
-    ...(part ? { part: { id: part, name: part } } : {}),
+    ...(part ? { part: { id: part, name: part, regions: [part], bbox: [0, 0, 1, 1] as [number, number, number, number] } } : {}),
   });
   // Schema 1 Greece packs (tagged default, as in catalogs up to sequence 3) and schema 2 countries.
   const COUNTRIES: CatalogPack[] = [

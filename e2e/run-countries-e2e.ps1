@@ -1,8 +1,10 @@
 <#
 .SYNOPSIS
-  Global maps E2E (decision 2026-10-23): two pilot countries downloaded from the local HTTPS test mirror,
-  then map, places and emergency POIs of both offline (airplane mode), then one country deleted.
-  1. Builds (or reuses from the catalog-builder cache) the country packs of -Countries with the pinned
+  Global maps E2E (decision 2026-10-23): two pilot countries and one part of a split pilot country
+  (Japan: Kanto) downloaded from the local HTTPS test mirror, then map, places and emergency POIs offline
+  (airplane mode), then one country and the part deleted.
+  1. Builds (or reuses from the catalog-builder cache) the country packs of -Countries (only the -Parts
+     of split countries named there, each with its country's places pack) with the pinned
      inputs of catalog/regions/sources.json, and signs a schema 2 test catalog (sequence 5, the TEST key
      in %LOCALAPPDATA%\skepi\keys, never a release key) whose packs point at https://127.0.0.1:8443/maps/.
   2. Starts e2e/mirror/server.mjs (mode "countries", packs streamed from the cache), `adb reverse
@@ -18,7 +20,9 @@ param(
   [ValidatePattern('^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$')]
   [string]$AppId = 'org.skepi.app.dev',
   [ValidatePattern('^[A-Z]{2}(,[A-Z]{2})*$')]
-  [string]$Countries = 'CY,GR',
+  [string]$Countries = 'CY,GR,JP',
+  [ValidatePattern('^[A-Z]{2}:[a-z0-9-]+(,[A-Z]{2}:[a-z0-9-]+)*$')]
+  [string]$Parts = 'JP:kanto',
   [string]$Python = (Join-Path $env:LOCALAPPDATA 'skepi\venv-packs\Scripts\python.exe'),
   # Optional: a debug APK to install (adb install -r) under the device lock before the flow.
   [string]$Apk = '',
@@ -40,7 +44,7 @@ if (Test-Path $Python) { $env:SKEPI_PYTHON = $Python }
 # 1. Country packs (cache) and the signed schema 2 test catalog.
 $manifest = Join-Path $out 'countries-manifest.json'
 $catalogDir = Join-Path $out 'countries-catalog'
-& node @cli countries --iso $Countries --mirror 'https://127.0.0.1:8443/maps/' --out $manifest
+& node @cli countries --iso $Countries --parts $Parts --mirror 'https://127.0.0.1:8443/maps/' --out $manifest
 if ($LASTEXITCODE -ne 0) { throw 'catalog countries failed' }
 & node @cli build --manifest $manifest --key $testKey --out $catalogDir `
   --previous (Join-Path $root 'e2e\mirror\catalogs\good\catalog.json') --sequence 5
@@ -122,7 +126,7 @@ try {
   if ($foreign.Count -gt 0 -or $withQuery.Count -gt 0) { Write-Error 'The app requested something other than the mirror.'; exit 4 }
   if ($maps.Count -eq 0) { Write-Error 'No country pack was downloaded from the mirror.'; exit 5 }
   if ($egress -ne 0) { Write-Error "The app's UID moved $egress bytes over a real network interface."; exit 6 }
-  Write-Host 'COUNTRIES E2E PASS (two countries from the mirror, offline map/places/POIs, delete; only the mirror contacted)'
+  Write-Host 'COUNTRIES E2E PASS (two countries and one part of a split country from the mirror, offline map/places/POIs, delete; only the mirror contacted)'
 } finally {
   $deviceLocks | ForEach-Object { Exit-DeviceLock $_ }
 }

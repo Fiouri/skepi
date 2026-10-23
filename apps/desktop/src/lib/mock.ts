@@ -59,9 +59,19 @@ const PACKS: PackRow[] = [
 
 const CY = { iso2: 'CY', name: 'Cyprus', bbox: [32.2225, 34.5224, 34.642, 35.7405] as [number, number, number, number], center: [33.0842, 34.9133] as [number, number] };
 const GR = { iso2: 'GR', name: 'Greece', bbox: [19.5766, 34.7666, 28.2898, 41.7996] as [number, number, number, number], center: [21.7257, 39.4928] as [number, number] };
+const DE = { iso2: 'DE', name: 'Germany', bbox: [5.8039, 47.2213, 15.0715, 55.1147] as [number, number, number, number], center: [9.6783, 50.9617] as [number, number] };
+// Two of Germany's six parts (catalog/regions/index.json).
+const DE_BAVARIA = {
+  ...DE,
+  part: { id: 'bavaria', name: 'Bavaria, Thuringia', regions: ['Thuringia', 'Bavaria', 'Thüringen', 'Bayern'], bbox: [8.9301, 47.2246, 13.8665, 51.6874] as [number, number, number, number] },
+};
+const DE_HESSE = {
+  ...DE,
+  part: { id: 'hesse', name: 'Hesse, Rhineland-Palatinate', regions: ['Hesse', 'Rhineland-Palatinate', 'Hessen', 'Rheinland-Pfalz'], bbox: [6.0502, 48.9088, 10.28, 51.7047] as [number, number, number, number] },
+};
 
 /** A country map or places pack of a schema 2 catalog (global maps). */
-const regional = (id: string, kind: 'pmtiles' | 'places', sizeBytes: number, region: typeof CY, sha: string): CatalogPackJson => ({
+const regional = (id: string, kind: 'pmtiles' | 'places', sizeBytes: number, region: NonNullable<CatalogPackJson['region']>, sha: string): CatalogPackJson => ({
   id,
   kind,
   version: '2026-10-22',
@@ -86,6 +96,9 @@ const CATALOG_PACKS: CatalogPackJson[] = [
   // A newer Greece map than the installed one (an update) and the installed places pack.
   regional('map-gr', 'pmtiles', 509_905_529, GR, '3'),
   regional('places-gr', 'places', 5_292_032, GR, 'd'),
+  regional('map-de-bavaria', 'pmtiles', 1_300_000_000, DE_BAVARIA, '4'),
+  regional('map-de-hesse', 'pmtiles', 802_000_000, DE_HESSE, '5'),
+  regional('places-de', 'places', 43_900_000, DE, '6'),
   {
     id: 'wikipedia_en_medicine_mini',
     kind: 'zim',
