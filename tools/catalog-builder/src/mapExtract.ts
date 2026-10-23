@@ -67,6 +67,8 @@ export async function pmtilesCli(cacheDir: string, log: (line: string) => void):
   return exe;
 }
 
+const EXTRACT_ATTEMPTS = 3;
+
 export interface ExtractOptions {
   buildUrl: string;
   /** Region GeoJSON, relative to the repository root. */
@@ -84,12 +86,22 @@ export async function extractMap(opts: ExtractOptions): Promise<string> {
   if (!existsSync(region)) throw new Error(`missing region ${region}`);
   const exe = await pmtilesCli(opts.cacheDir, opts.log);
   const partial = `${opts.out}.partial`;
-  await rm(partial, { force: true });
-  try {
-    await run(exe, ['extract', opts.buildUrl, partial, `--region=${region}`, `--maxzoom=${String(opts.maxzoom)}`], opts.log);
-  } catch (e) {
+  // Range reads from the build server fail now and then ("unexpected EOF", many parallel CI jobs):
+  // the extract starts again from scratch, a few times.
+  for (let attempt = 1; ; attempt += 1) {
     await rm(partial, { force: true });
-    throw new Error(`pmtiles extract failed (Protomaps daily builds expire: pick a current build): ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    try {
+      await run(exe, ['extract', opts.buildUrl, partial, `--region=${region}`, `--maxzoom=${String(opts.maxzoom)}`], opts.log);
+      break;
+    } catch (e) {
+      await rm(partial, { force: true });
+      if (attempt < EXTRACT_ATTEMPTS) {
+        opts.log(`pmtiles extract failed (attempt ${String(attempt)} of ${String(EXTRACT_ATTEMPTS)}), retrying in ${String(30 * attempt)} s`);
+        await new Promise((resolve) => setTimeout(resolve, 30_000 * attempt));
+        continue;
+      }
+      throw new Error(`pmtiles extract failed (Protomaps daily builds expire: pick a current build): ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    }
   }
   await rename(partial, opts.out);
   return opts.out;
