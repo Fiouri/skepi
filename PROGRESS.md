@@ -1,6 +1,14 @@
-**Current:** F-Droid inclusion — v0.1.2-preview published 2026-10-22 (signed APK 80fd1071…ac628, signature-copy check PASS); fdroiddata MR 53588 updated 2026-10-23 with its recipe, in review
-**Next step:** wait for Licaon_Kter's reply on `-PskepiPreview=true`; if he wants it dropped, dispatch `android-repro` with the changed recipe and change it only if `fdroid-build` stays at 9857b660…12c1
-**Last session:** 2026-10-23 — release and MR update recorded; signed v0.1.2-preview APK smoke-tested on the S23 before publishing (Maestro 9/9, airplane mode)
+**Current:** Global maps (owner decision 2026-10-23) — pilot done on branch `feat/global-maps` (not merged): 8 countries built and measured in CI, nothing uploaded or signed; F-Droid MR 53588 for v0.1.2-preview still in review
+**Next step:** owner: review/merge `feat/global-maps`, then publish the pilot packs before the pinned inputs expire (~2026-11-05) or re-pin a new date — upload + offline signing steps in `tools/catalog-builder/README.md` → "Country packs"; still waiting for Licaon_Kter on `-PskepiPreview=true`
+**Last session:** 2026-10-23 — global maps pilot: regions for 239 countries, split rule, CI pack pipeline (39/39 packs, reproducible), catalog schema 2, Maps & places on mobile + desktop; pnpm verify 49/49, Rust, Android + desktop release builds, Playwright 16/16, Maestro S23 countries flow PASS, CI incl. iOS green
+
+## Global maps pilot 2026-10-23 (branch `feat/global-maps`, not merged, nothing published)
+
+- Done: `catalog/regions/<iso2>.geojson` for 239 countries (Natural Earth v5.1.2, pinned) + index with box/centre/z15 sizes; split rule from measured sizes (≤ 1.5 GB at z15 = one pack, else admin-1 parts by bisection, each ≤ 1.5 GB; US 16, DE 6, JP 3, IT 2 parts); `catalog countries` → `catalog/countries.json` (pinned Protomaps 20261022, Geofabrik 261022); `catalog pack` + reports, places boundary filter, osmium pre-filter, `.github/workflows/packs.yml` (no secrets), `prepare --reports`; catalog schema 2 (`region`) in TS + Rust; Packs → Maps & places (mobile `app/maps.tsx`, desktop `screens/Maps.tsx`), one style over all installed maps, places/POIs over all countries, emergency number of the position's installed country, T1 storage warnings, onboarding takes only the user's country; Greece ids kept (installed packs become updates). Report: `docs/global-maps-pilot.md`.
+- Measured: pilot maps 31.74 GB (31 packs, largest 1.42 GB) + places 222 MB; CI run 40005452133 39/39 green, 30 min wall, 143 runner-min, places-us 25.5 min / 12.4 GB disk; projection for all countries ≈ 147 GB maps + ≈ 1 GB places, ≈ 550 assets.
+- Verified: pnpm verify 49/49; cargo fmt/clippy/test desktop-core; Android `assembleRelease` (unsigned preview: cards 111/111, permission allowlist PASS, APK 50.7 MB); `tauri build` MSI + NSIS; Playwright 16/16; Maestro on the S23 (device lock, airplane mode) `e2e/run-countries-e2e.ps1` PASS (CY + GR from the local mirror, map/places/POIs of both offline, CY deleted; 0 bytes egress); CI run 40000021067 green incl. ios-build + ios-e2e; 37/37 packs byte-identical across two CI runs, CY/GR identical to the Windows builds.
+- Open risks: pinned inputs expire ~2 weeks; a schema 2 catalog needs the new app (old apps keep theirs); JP/TR not in the emergency-number dataset (112 + note); multi-country rendering not measured on T1; iOS downloads still unsupported.
+- Device testing: S23 (Android) + Windows 11 desktop; iOS Simulator in CI.
 
 ## v0.1.2-preview published, MR 53588 updated 2026-10-22/23
 
