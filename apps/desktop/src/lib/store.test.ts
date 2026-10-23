@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DeviceInfo, PackRow } from './ipc';
-import { activeProfile, installedModels, newestVerified } from './store';
+import { activeProfile, installedModels, verifiedPacks } from './store';
 
 const gguf: PackRow = {
   id: 'qwen2.5-1.5b-instruct-q4_0',
@@ -48,8 +48,8 @@ describe('desktop profile and power cap', () => {
     expect(activeProfile({ device: small, packs: [gguf], simulateT1: false, powerCap: 'full' }).profile.effectiveTier).toBe('T2');
   });
 
-  it('only verified map packs are used, newest first', () => {
+  it('only verified map packs are used, every installed country, by pack id', () => {
     const map = (id: string, version: string, verified: boolean): PackRow => ({ ...gguf, id, kind: 'pmtiles', version, verified });
-    expect(newestVerified([map('a', '2025', true), map('b', '2026', true), map('c', '2027', false)], 'pmtiles').map((p) => p.id)).toEqual(['b', 'a']);
+    expect(verifiedPacks([map('map-gr', '2025', true), map('map-cy', '2026', true), map('map-it', '2027', false)], 'pmtiles').map((p) => p.id)).toEqual(['map-cy', 'map-gr']);
   });
 });

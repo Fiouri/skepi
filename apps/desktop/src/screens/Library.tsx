@@ -1,8 +1,10 @@
+import { packRegion } from '@skepi/core';
 import { useState } from 'react';
 import { Banner, Button, errorText, formatBytes } from '../components/ui';
 import { useMessages } from '../lib/i18n';
 import { ipc, type CatalogPackJson, type DownloadProgressJson, type PackRow } from '../lib/ipc';
 import { useApp } from '../lib/store';
+import { MapsSection } from './Maps';
 
 /**
  * Packs: the signed catalog, installed packs (integrity check, removal, consent for unverified ZIMs),
@@ -24,7 +26,8 @@ export function LibraryScreen() {
 
   const cat = catalog?.catalog ?? null;
   const installed = new Set(packs.map((p) => p.id));
-  const available = (cat?.packs ?? []).filter((p) => !installed.has(p.id));
+  // Country map and places packs are offered per country in Maps & places.
+  const available = (cat?.packs ?? []).filter((p) => !installed.has(p.id) && packRegion(p) === null);
 
   const guard = async (id: string, work: () => Promise<string | null>): Promise<void> => {
     setBusy(true);
@@ -132,6 +135,8 @@ export function LibraryScreen() {
           {message.text}
         </Banner>
       )}
+
+      <MapsSection />
 
       <h2>{t.library.installed}</h2>
       {packs.length === 0 && <p className="muted">{t.library.none}</p>}

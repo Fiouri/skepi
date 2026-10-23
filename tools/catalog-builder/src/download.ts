@@ -5,7 +5,8 @@ import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 
 /**
- * The only network code of the catalog-builder (dev machine, never in the app or CI): official
+ * The only network code of the catalog-builder (maintainer machine, and the public-input pack builds
+ * of .github/workflows/packs.yml, which hold no secret; never in the app): official
  * downloads into the local cache with resume, and the publisher's checksum file. Allowed by an
  * ESLint override for this file only (architecture: network access only in ContentStore / tooling).
  */

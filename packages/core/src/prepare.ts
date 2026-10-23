@@ -1,10 +1,13 @@
 import type { CatalogPack, CatalogTier } from './catalog';
+import { packRegion } from './regions';
 
 /**
  * Onboarding "Get prepared": a storage budget maps to a preset bundle of catalog packs. English
  * defaults first (English-first product), then the AI model when the device tier runs one, then the
  * locale's own packs (the largest that still fits, e.g. the full Greek Wikipedia on 8 GB and the top
- * articles on 2 GB). Nothing here touches the network: the plan is handed to ContentStore.
+ * articles on 2 GB), then the map and places of the user's country (global maps, 2026-10-23: never
+ * another country's, whatever its tags say). Nothing here touches the network: the plan is handed to
+ * ContentStore.
  */
 
 export const STORAGE_PRESETS_GB = [2, 8, 32] as const;
@@ -42,6 +45,8 @@ export interface PresetInput {
   installedIds: ReadonlySet<string>;
   /** Test catalog (debug builds against the local mirror): only packs tagged `test` take part. */
   testCatalog: boolean;
+  /** Country chosen at onboarding (ISO 3166-1 alpha-2): its map and places packs join the preset. */
+  country: string | null;
 }
 
 function tierAllows(device: CatalogTier, minTier: CatalogTier): boolean {
@@ -69,7 +74,14 @@ export function planPreset(input: PresetInput): PresetPlan {
   };
 
   const langs = new Set(['en', input.locale]);
-  const candidates = input.packs.filter((p) => (input.testCatalog ? p.tags.includes('test') : !p.tags.includes('test')));
+  // Map and places packs belong to a country: only the user's country takes part (step 4).
+  const regional = (p: CatalogPack): boolean => packRegion(p) !== null;
+  for (const p of input.packs) {
+    if (regional(p) && packRegion(p)?.iso2 !== input.country) skipped.push({ id: p.id, reason: 'alternative' });
+  }
+  const candidates = input.packs.filter(
+    (p) => (input.testCatalog ? p.tags.includes('test') : !p.tags.includes('test')) && (!regional(p) || packRegion(p)?.iso2 === input.country),
+  );
   const allowed = candidates.filter((p) => {
     // T0 devices load no model, whatever the pack's minimum tier says.
     if (!tierAllows(input.tier, p.minTier) || (p.kind === 'gguf' && input.tier === 'T0')) {
@@ -84,7 +96,7 @@ export function planPreset(input: PresetInput): PresetPlan {
       if (!take(p)) skipped.push({ id: p.id, reason: 'budget' });
     }
   } else {
-    const defaults = allowed.filter((p) => p.tags.includes('default'));
+    const defaults = allowed.filter((p) => p.tags.includes('default') && !regional(p));
     // 1. English content defaults (encyclopedia, medical), smallest first.
     for (const p of defaults.filter((x) => x.kind !== 'gguf').sort((a, b) => a.sizeBytes - b.sizeBytes)) {
       if (!take(p)) skipped.push({ id: p.id, reason: 'budget' });
@@ -108,6 +120,19 @@ export function planPreset(input: PresetInput): PresetPlan {
         if (pick) take(pick);
         for (const p of bySize) if (p !== pick) skipped.push({ id: p.id, reason: pick ? 'alternative' : 'budget' });
       }
+    }
+    // 4. The country's places pack, then its map when the whole map fits (a country split into
+    //    several map packs is chosen part by part in Maps & places).
+    const own = allowed.filter(regional);
+    for (const p of own.filter((x) => x.kind === 'places')) {
+      if (!take(p)) skipped.push({ id: p.id, reason: 'budget' });
+    }
+    const maps = own.filter((x) => x.kind === 'pmtiles');
+    const mapBytes = maps.reduce((n, p) => n + (input.installedIds.has(p.id) ? 0 : p.sizeBytes), 0);
+    const mapsFit = maps.length === 1 && used + mapBytes <= usable;
+    for (const p of maps) {
+      if (input.installedIds.has(p.id) || mapsFit) take(p);
+      else skipped.push({ id: p.id, reason: 'budget' });
     }
     // Packs that are neither defaults nor locale packs (e.g. the Q4_K_M model) are alternatives.
     for (const p of allowed) {

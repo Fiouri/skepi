@@ -2,6 +2,7 @@ import { Camera, GeoJSONSource, Layer, Map, NetworkManager, type CameraRef, type
 import {
   chooseHeading,
   compassPoint,
+  distanceKm,
   EMERGENCY_CATEGORIES,
   fixState,
   followStep,
@@ -13,6 +14,8 @@ import {
   LOCATION_INTERVAL_MS,
   LOCATION_INTERVAL_MS_BLACKOUT,
   locationFeatures,
+  mapHome,
+  multiSourceStyle,
   placeTitle,
   poisToGeoJson,
   smoothHeading,
@@ -34,11 +37,12 @@ import baseStyle from '../../../assets/map/style.json';
 import { Button, useStyles } from '../../components/ui';
 import { llama, useContent } from '../../lib/content';
 import { useMessages } from '../../lib/i18n';
-import { placesAttribution, poisInView, syncPlacesPacks } from '../../lib/places';
+import { countryOfPosition, placesAttribution, poisInView, syncPlacesPacks } from '../../lib/places';
 import { usePrefs } from '../../lib/prefs';
 
-// Patras / Achaia (test region of the Greece packs).
-const PATRAS: [number, number] = [21.7346, 38.2466];
+/** The country of the position is looked up again after this distance or time (not on every fix). */
+const COUNTRY_RECHECK_KM = 1;
+const COUNTRY_RECHECK_MS = 60_000;
 /** Below this zoom the POI layer stays empty (thousands of points would hide the map). */
 const POI_MIN_ZOOM = 10;
 const FOCUS_ZOOM = 15;
@@ -48,12 +52,12 @@ const LOCATE_ZOOM = 15;
 const LOCATION_BLUE = '#0a84ff';
 const LOCATION_GREY = '#6b7280';
 
-function offlineStyle(pmtilesPath: string): StyleSpecification {
-  const style = JSON.parse(JSON.stringify(baseStyle)) as StyleSpecification;
-  const source = style.sources.protomaps;
-  if (source?.type !== 'vector') throw new Error('style: protomaps vector source missing');
-  source.url = `pmtiles://file://${pmtilesPath}`;
-  return style;
+/** The bundled style over every installed, verified map pack (one source each; core multiSourceStyle). */
+function offlineStyle(packs: readonly { id: string; path: string }[]): StyleSpecification | null {
+  return multiSourceStyle(
+    baseStyle as unknown as StyleSpecification,
+    packs.map((p) => ({ id: p.id, url: `pmtiles://file://${p.path}` })),
+  );
 }
 
 function num(v: string | string[] | undefined): number | null {
@@ -94,10 +98,13 @@ export default function MapScreen() {
   const styles = useStyles();
   const t = useMessages();
   const params = useLocalSearchParams<{ lat?: string; lon?: string; title?: string }>();
-  const pmtilesPath = useContent((s) => s.pmtilesPath);
+  const mapPacks = useContent((s) => s.mapPacks);
+  const placesPacks = useContent((s) => s.placesPacks);
   const placesPaths = useContent((s) => s.placesPaths);
   const status = useContent((s) => s.status);
   const blackout = usePrefs((s) => s.blackout);
+  const country = usePrefs((s) => s.country);
+  const setPositionCountry = usePrefs((s) => s.setPositionCountry);
   const camera = useRef<CameraRef>(null);
   const [renderMs, setRenderMs] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
@@ -127,7 +134,10 @@ export default function MapScreen() {
   const [follow, setFollow] = useState<FollowState>(INITIAL_FOLLOW);
   const followRef = useRef<FollowState>(INITIAL_FOLLOW);
   const fixRef = useRef<LocationFix | null>(null);
-  const zoomRef = useRef(focus ? FOCUS_ZOOM : 12);
+  // Without a place to show: the chosen country (or the first installed one), whole.
+  const home = useMemo(() => mapHome(mapPacks.flatMap((p) => (p.region ? [p.region] : [])), country), [mapPacks, country]);
+  const zoomRef = useRef(focus ? FOCUS_ZOOM : home.zoom);
+  const countryCheck = useRef<{ lat: number; lon: number; at: number } | null>(null);
   const active = focused && appActive;
 
   // T1: model and map never share memory; MapLibre treated as offline (zero egress).
@@ -276,7 +286,7 @@ export default function MapScreen() {
     };
   }, [view, enabled, placesPaths]);
 
-  const mapStyle = useMemo(() => (pmtilesPath ? offlineStyle(pmtilesPath) : null), [pmtilesPath]);
+  const mapStyle = useMemo(() => offlineStyle(mapPacks), [mapPacks]);
   const geojson = useMemo(() => poisToGeoJson(pois), [pois]);
   const focusGeojson = useMemo(
     () =>
@@ -286,6 +296,18 @@ export default function MapScreen() {
     [focus],
   );
   const puckState = fixState(fix, now, blackout ? STALE_AFTER_MS_BLACKOUT : STALE_AFTER_MS);
+
+  // Emergency numbers follow the installed country of a live position (memory only).
+  useEffect(() => {
+    if (!fix || puckState !== 'live') return;
+    const last = countryCheck.current;
+    if (last && Date.now() - last.at < COUNTRY_RECHECK_MS && distanceKm(last.lat, last.lon, fix.latitude, fix.longitude) < COUNTRY_RECHECK_KM) return;
+    countryCheck.current = { lat: fix.latitude, lon: fix.longitude, at: Date.now() };
+    const packs = [...mapPacks.map((p) => ({ ...p, kind: 'pmtiles' as const })), ...placesPacks.map((p) => ({ ...p, kind: 'places' as const }))];
+    void countryOfPosition(packs, fix.latitude, fix.longitude).then(setPositionCountry, () => {
+      setPositionCountry(null);
+    });
+  }, [fix, puckState, mapPacks, placesPacks, setPositionCountry]);
   const heading = chooseHeading(compass, puckState === 'live' ? fix : null);
   const zoom = view?.zoom ?? zoomRef.current;
   const locationGeojson = useMemo(
@@ -341,13 +363,14 @@ export default function MapScreen() {
           setSelected(null);
         }}
       >
-        <Camera ref={camera} initialViewState={{ center: focus ? [focus.lon, focus.lat] : PATRAS, zoom: focus ? FOCUS_ZOOM : 12 }} />
+        <Camera ref={camera} initialViewState={{ center: focus ? [focus.lon, focus.lat] : home.center, zoom: focus ? FOCUS_ZOOM : home.zoom }} />
         <GeoJSONSource
           id="skepi-pois"
           data={geojson}
           onPress={(e) => {
-            const id = e.nativeEvent.features[0]?.id;
-            const hit = pois.find((p) => p.id === id) ?? null;
+            // The feature id is the index in `pois` (poisToGeoJson): row ids repeat across packs.
+            const id = Number(e.nativeEvent.features[0]?.id);
+            const hit = Number.isInteger(id) ? (pois[id] ?? null) : null;
             if (hit) {
               e.stopPropagation();
               setSelected(hit);

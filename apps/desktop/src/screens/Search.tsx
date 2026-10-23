@@ -8,7 +8,7 @@ import { Banner, errorText, UnverifiedLabel } from '../components/ui';
 import { useMessages } from '../lib/i18n';
 import { ipc } from '../lib/ipc';
 import { searchAllPlaces, type PlaceHit } from '../lib/places';
-import { knowledge, newestVerified, ragArchives, useApp } from '../lib/store';
+import { knowledge, verifiedPacks, ragArchives, useApp } from '../lib/store';
 
 interface Timing {
   kind: 'suggest' | 'fulltext';
@@ -31,7 +31,7 @@ export function SearchScreen() {
   const [timing, setTiming] = useState<Timing | null>(null);
   const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
-  const placesIds = newestVerified(packs, 'places').map((p) => p.id);
+  const placesIds = verifiedPacks(packs, 'places').map((p) => p.id);
   const placesKey = placesIds.join(',');
 
   const run = async (q: string, kind: Timing['kind']): Promise<void> => {

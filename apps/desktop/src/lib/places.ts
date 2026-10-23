@@ -1,4 +1,4 @@
-import { emergencyPois, readPlacesMeta, searchPlaces, type BBox, type EmergencyCategory, type Place, type PlacesQuery } from '@skepi/core';
+import { emergencyPois, mergePlaces, rankPlaces, readPlacesMeta, searchPlaces, type BBox, type EmergencyCategory, type Place, type PlacesQuery } from '@skepi/core';
 import { ipc } from './ipc';
 
 /**
@@ -13,20 +13,14 @@ export interface PlaceHit extends Place {
   packId: string;
 }
 
+/** Every installed country's places pack, ranked together; a place in two packs (border strips) once. */
 export async function searchAllPlaces(packIds: readonly string[], text: string, limit = 8): Promise<PlaceHit[]> {
-  const out: PlaceHit[] = [];
-  for (const packId of packIds) {
-    const hits = await searchPlaces(queryFor(packId), text, limit);
-    out.push(...hits.map((h) => ({ ...h, packId })));
-    if (out.length >= limit) break;
-  }
-  return out.slice(0, limit);
+  const lists = await Promise.all(packIds.map(async (packId) => (await searchPlaces(queryFor(packId), text, limit)).map((h) => ({ ...h, packId }))));
+  return rankPlaces(text, mergePlaces(lists)).slice(0, limit);
 }
 
 export async function poisInView(packIds: readonly string[], bbox: BBox, categories: readonly EmergencyCategory[]): Promise<Place[]> {
-  const out: Place[] = [];
-  for (const packId of packIds) out.push(...(await emergencyPois(queryFor(packId), bbox, categories)));
-  return out;
+  return mergePlaces(await Promise.all(packIds.map((packId) => emergencyPois(queryFor(packId), bbox, categories))));
 }
 
 export async function placesAttribution(packIds: readonly string[]): Promise<string[]> {

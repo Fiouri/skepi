@@ -47,6 +47,8 @@ export interface Messages {
     defaultNumber: string;
     noGuarantee: string;
     country: (name: string) => string;
+    /** The country of the current position decided the numbers (global maps). */
+    fromPosition: (name: string) => string;
     cards: string;
   };
   /** Emergency cards: verbatim IFRC excerpts (the steps are package data, never UI strings). */
@@ -186,6 +188,34 @@ export interface Messages {
     rejectedModels: (files: string) => string;
     rejectedMaps: (files: string) => string;
     networkLog: (p: { count: number; hosts: string }) => string;
+    mapsAndPlaces: string;
+    mapsAndPlacesHint: string;
+  };
+  /** Packs → "Maps & places": countries of the signed catalog (global maps, 2026-10-23). */
+  maps: {
+    title: string;
+    search: string;
+    noCatalog: string;
+    none: string;
+    status: Record<'available' | 'partial' | 'installed' | 'update', string>;
+    size: (size: string) => string;
+    download: (size: string) => string;
+    update: (size: string) => string;
+    remove: string;
+    removeTitle: (name: string) => string;
+    removeBody: string;
+    parts: string;
+    part: (p: { name: string; size: string; installed: boolean }) => string;
+    downloadPart: string;
+    places: (p: { size: string; installed: boolean }) => string;
+    useForNumbers: string;
+    usedForNumbers: string;
+    warnTitle: string;
+    warnLarge: (size: string) => string;
+    warnLowSpace: (free: string) => string;
+    warnAccept: string;
+    progress: (p: { done: number; total: number; phase: string; percent: number }) => string;
+    verifiedBeforeOpening: string;
   };
   search: {
     placeholder: string;

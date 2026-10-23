@@ -1,4 +1,14 @@
-import { EMERGENCY_CATEGORIES, placeTitle, poisToGeoJson, type BBox, type EmergencyCategory, type Place } from '@skepi/core';
+import {
+  EMERGENCY_CATEGORIES,
+  installedRegions,
+  mapHome,
+  multiSourceStyle,
+  placeTitle,
+  poisToGeoJson,
+  type BBox,
+  type EmergencyCategory,
+  type Place,
+} from '@skepi/core';
 import { POI_COLORS, POI_OUTLINE } from '@skepi/ui-tokens';
 import { addProtocol, Map as MapLibre, NavigationControl, type GeoJSONSource, type MapLayerMouseEvent, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -8,23 +18,23 @@ import { useNav } from '../App';
 import { useMessages } from '../lib/i18n';
 import { pmtilesUrl } from '../lib/maps';
 import { placesAttribution, poisInView } from '../lib/places';
-import { llama, newestVerified, useApp } from '../lib/store';
+import { llama, useApp, verifiedPacks } from '../lib/store';
 
-// Patras / Achaia (test region of the Greece packs).
-const PATRAS: [number, number] = [21.7346, 38.2466];
 /** Below this zoom the POI layer stays empty (thousands of points would hide the map). */
 const POI_MIN_ZOOM = 10;
 
-/** The bundled Protomaps style with local glyphs/sprites (app origin) and the verified pack's tiles. */
-function offlineStyle(tilesUrl: string): StyleSpecification {
-  const style = JSON.parse(JSON.stringify(baseStyle)) as StyleSpecification;
+/**
+ * The bundled Protomaps style with local glyphs/sprites (app origin) over every verified map pack: one
+ * source per installed country (core multiSourceStyle).
+ */
+function offlineStyle(sources: readonly { id: string; url: string }[]): StyleSpecification {
+  const base = JSON.parse(JSON.stringify(baseStyle)) as StyleSpecification;
   const origin = window.location.origin;
-  style.glyphs = `${origin}/map/fonts/{fontstack}/{range}.pbf`;
-  style.sprite = `${origin}/map/sprites/light`;
-  const source = style.sources.protomaps;
-  if (source?.type !== 'vector') throw new Error('style: protomaps vector source missing');
-  source.url = tilesUrl;
-  return style;
+  base.glyphs = `${origin}/map/fonts/{fontstack}/{range}.pbf`;
+  base.sprite = `${origin}/map/sprites/light`;
+  const style = multiSourceStyle(base as unknown as Parameters<typeof multiSourceStyle>[0], sources);
+  if (!style) throw new Error('style: no map pack');
+  return style as unknown as StyleSpecification;
 }
 
 export function MapScreen() {
@@ -32,6 +42,8 @@ export function MapScreen() {
   const focus = useNav((s) => s.mapFocus);
   const packs = useApp((s) => s.packs);
   const status = useApp((s) => s.status);
+  const catalog = useApp((s) => s.catalog?.catalog ?? null);
+  const country = useApp((s) => s.country);
   const container = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapLibre | null>(null);
   const [ready, setReady] = useState<number | null>(null);
@@ -41,8 +53,14 @@ export function MapScreen() {
   const [pois, setPois] = useState<Place[]>([]);
   const [selected, setSelected] = useState<Place | null>(null);
   const [attribution, setAttribution] = useState<string[]>([]);
-  const mapPack = newestVerified(packs, 'pmtiles')[0] ?? null;
-  const placesIds = useMemo(() => newestVerified(packs, 'places').map((p) => p.id), [packs]);
+  const mapIds = useMemo(() => verifiedPacks(packs, 'pmtiles').map((p) => p.id), [packs]);
+  const mapKey = mapIds.join(',');
+  const placesIds = useMemo(() => verifiedPacks(packs, 'places').map((p) => p.id), [packs]);
+  // Without a place to show: the chosen country (or the first installed one), whole.
+  const home = useMemo(() => {
+    const regions = installedRegions(catalog, packs);
+    return mapHome(mapIds.flatMap((id) => regions.get(id) ?? []), country);
+  }, [catalog, packs, mapIds, country]);
   const placesKey = placesIds.join(',');
   const poisRef = useRef<Place[]>([]);
   poisRef.current = pois;
@@ -53,17 +71,20 @@ export function MapScreen() {
   }, []);
 
   useEffect(() => {
-    if (!mapPack || !container.current) return;
+    if (mapIds.length === 0 || !container.current) return;
     const started = performance.now();
     const m = new MapLibre({
       container: container.current,
       style: offlineStyle(
-        pmtilesUrl(mapPack.id, (name, handler) => {
-          addProtocol(name, handler);
-        }),
+        mapIds.map((id) => ({
+          id,
+          url: pmtilesUrl(id, (name, handler) => {
+            addProtocol(name, handler);
+          }),
+        })),
       ),
-      center: focus ? [focus.lon, focus.lat] : PATRAS,
-      zoom: focus ? 15 : 12,
+      center: focus ? [focus.lon, focus.lat] : home.center,
+      zoom: focus ? 15 : home.zoom,
       attributionControl: false,
     });
     map.current = m;
@@ -105,17 +126,18 @@ export function MapScreen() {
       setFailed(e.error.message);
     });
     m.on('click', 'pois', (e: MapLayerMouseEvent) => {
+      // The feature id is the index in the POI list (poisToGeoJson): row ids repeat across packs.
       const id = e.features?.[0]?.id;
-      setSelected((cur) => (typeof id === 'number' ? (poisRef.current.find((p) => p.id === id) ?? cur) : cur));
+      setSelected((cur) => (typeof id === 'number' ? (poisRef.current[id] ?? cur) : cur));
     });
     return () => {
       observer.disconnect();
       m.remove();
       map.current = null;
     };
-    // The map is rebuilt only for another pack or another focus place.
+    // The map is rebuilt only for other packs or another focus place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapPack?.id, focus]);
+  }, [mapKey, focus]);
 
   useEffect(() => {
     const ids = placesKey ? placesKey.split(',') : [];
@@ -149,7 +171,7 @@ export function MapScreen() {
     src?.setData(poisToGeoJson(pois));
   }, [pois]);
 
-  if (status === 'ready' && !mapPack) {
+  if (status === 'ready' && mapIds.length === 0) {
     return (
       <div className="map-bar">
         <p className="muted" data-testid="map-missing">

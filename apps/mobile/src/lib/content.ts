@@ -1,8 +1,10 @@
 import type { InstalledModel, InstalledPack, LoadedModel } from '@skepi/contracts';
 import {
+  installedRegions,
   resolveInferenceProfile,
   SYSTEM_PROMPT,
   type ArchiveRef,
+  type RegionInfo,
   type Catalog,
   type InferenceBackend,
   type InferenceProfile,
@@ -30,6 +32,13 @@ import { LlamaEngine } from './llamaEngine';
 export const knowledge = createZimKnowledgeEngine();
 export const llama = new LlamaEngine();
 
+/** An installed, verified map or places pack with its country (from the signed catalog). */
+export interface RegionalPack {
+  id: string;
+  path: string;
+  region: RegionInfo | null;
+}
+
 /** The open archive of an installed pack: unverified packs carry a permanent label. */
 export type OpenArchive = ZimArchiveInfo & { packId: string; verified: boolean };
 
@@ -49,9 +58,13 @@ interface ContentState {
   reconcile: ReconcileReport | null;
   archives: OpenArchive[];
   models: InstalledModel[];
-  /** The verified map pack (newest first); unverified map files are never opened. */
-  pmtilesPath: string | null;
-  /** Verified places packs (search and the emergency POI layer). */
+  /**
+   * Verified map packs, every installed country at once (one style, one source each; global maps).
+   * Unverified map files are never opened.
+   */
+  mapPacks: RegionalPack[];
+  /** Verified places packs (search, the emergency POI layer and the country of a position). */
+  placesPacks: RegionalPack[];
   placesPaths: string[];
   cpu: CpuInfo | null;
   totalRamMb: number;
@@ -122,7 +135,8 @@ export const useContent = create<ContentState>((set, get) => ({
   reconcile: null,
   archives: [],
   models: [],
-  pmtilesPath: null,
+  mapPacks: [],
+  placesPacks: [],
   placesPaths: [],
   cpu: null,
   totalRamMb: 0,
@@ -152,15 +166,22 @@ export const useContent = create<ContentState>((set, get) => ({
     const models = packs
       .filter((p) => p.kind === 'gguf' && p.verified)
       .map((p) => ({ id: p.path.split('/').pop() ?? p.id, path: p.path, sizeBytes: p.sizeBytes }));
-    // Only packs of a valid signed catalog render or are searched (newest version first).
-    const newest = (kind: 'pmtiles' | 'places'): InstalledPack[] =>
-      packs.filter((p) => p.kind === kind && p.verified).sort((a, b) => b.version.localeCompare(a.version) || a.id.localeCompare(b.id));
+    // Only packs verified against a signed catalog render or are searched; every installed country
+    // at once, in a stable order (pack id).
+    const regions = installedRegions(get().catalog?.catalog ?? null, packs);
+    const verified = (kind: 'pmtiles' | 'places'): RegionalPack[] =>
+      packs
+        .filter((p) => p.kind === kind && p.verified)
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map((p) => ({ id: p.id, path: p.path, region: regions.get(p.id) ?? null }));
+    const placesPacks = verified('places');
     set({
       packs,
       archives,
       models,
-      pmtilesPath: newest('pmtiles')[0]?.path ?? null,
-      placesPaths: newest('places').map((p) => p.path),
+      mapPacks: verified('pmtiles'),
+      placesPacks,
+      placesPaths: placesPacks.map((p) => p.path),
     });
   },
   adoptCatalog: async (source) => {
@@ -171,6 +192,8 @@ export const useContent = create<ContentState>((set, get) => ({
     if (!chosen.catalog || !chosen.accepted) return rejection;
     await writeAcceptedCatalog(chosen.accepted);
     set({ catalog: current ? { ...current, catalog: chosen.catalog, origin: 'update', sha256: chosen.sha256 } : null });
+    // The new catalog may name the country of installed map and places packs.
+    await get().refresh();
     return null;
   },
   bootstrap: async () => {

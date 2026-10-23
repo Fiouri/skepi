@@ -1,0 +1,17 @@
+{
+  "comment": "Pinned inputs of the country map and places packs (tools/catalog-builder `catalog countries`). Protomaps daily builds and Geofabrik dated extracts are kept for about two weeks only: a pack is rebuilt from these inputs only while they exist; afterwards the built pack (mirror + the maintainer's cache) is the copy. Pick a new build and date together, then regenerate catalog/countries.json.",
+  "protomaps": { "build": "20261022", "basemapVersion": "4.15.2", "md5": "psbfbv+304fdON2I61p+Tg==", "b3sum": "94c819e7f124431d338cac53018459d86d7bd6bd9ca1f2f015daccd7c2ae3b93" },
+  "geofabrik": { "date": "261022" },
+  "mirror": "https://github.com/Fiouri/skepi/releases/download/packs-20261022/",
+  "countries": {
+    "CY": { "geofabrik": "europe/cyprus", "locale": "el" },
+    "DE": { "geofabrik": "europe/germany", "locale": "de" },
+    "GR": { "geofabrik": "europe/greece", "locale": "el", "title": { "el": "Ελλάδα" } },
+    "IT": { "geofabrik": "europe/italy", "locale": "it" },
+    "JP": { "geofabrik": "asia/japan", "locale": "ja" },
+    "PT": { "geofabrik": "europe/portugal", "locale": "pt" },
+    "TR": { "geofabrik": "europe/turkey", "locale": "tr" },
+    "US": { "geofabrik": "north-america/us", "locale": "en" }
+  },
+  "pilot": ["GR", "CY", "IT", "DE", "PT", "TR", "US", "JP"]
+}

@@ -1,6 +1,7 @@
 import {
   CATALOG_CHUNK_SIZE,
   CATALOG_SCHEMA,
+  CATALOG_SCHEMA_REGIONS,
   KEY_LIST_SCHEMA,
   parseCatalog,
   parseKeyList,
@@ -93,7 +94,7 @@ async function packFile(pack: ManifestPack, opts: MeasureOptions): Promise<{ pat
       if (md5 !== upstream) throw new Error(`${pack.id}: OSM extract MD5 ${md5} does not match the publisher's ${upstream} (${pbf})`);
       // The candidate list is kept beside the pack: rebuilding the pack does not re-read the PBF.
       const ndjson = `${out}.ndjson`;
-      if (!existsSync(ndjson)) await extractOsm(pbf, ndjson, source.locale);
+      if (!existsSync(ndjson)) await extractOsm(pbf, ndjson, source.locale, { ...(source.boundary ? { boundary: source.boundary } : {}), log });
       const report = await writePlacesPack(await readCandidates(ndjson), out, { region: source.region, locale: source.locale, source: source.url });
       log(`${pack.id}: ${String(report.rows)} places ${JSON.stringify(report.byCategory)}`);
     }
@@ -104,24 +105,24 @@ async function packFile(pack: ManifestPack, opts: MeasureOptions): Promise<{ pat
   return { path, upstream };
 }
 
-async function md5File(path: string): Promise<string> {
+export async function md5File(path: string): Promise<string> {
   const h = createHash('md5');
   for await (const chunk of createReadStream(path) as AsyncIterable<Buffer>) h.update(chunk);
   return h.digest('hex');
 }
 
-/** Measures every pack (SHA-256, 64 MB chunk hashes) and checks it against the publisher's checksum. */
-export async function measurePacks(opts: MeasureOptions): Promise<CatalogPack[]> {
+/** Builds or downloads one pack, measures it and checks it against the publisher's checksum. */
+export async function measurePack(p: ManifestPack, opts: MeasureOptions): Promise<{ pack: CatalogPack; path: string }> {
   const log = opts.log ?? (() => undefined);
-  const packs: CatalogPack[] = [];
-  for (const p of opts.manifest.packs) {
-    const { path, upstream } = await packFile(p, opts);
-    const digest = await digestFile(path, p.chunkSize ?? CATALOG_CHUNK_SIZE);
-    if (upstream !== null && upstream !== digest.sha256) {
-      throw new Error(`${p.id}: SHA-256 ${digest.sha256} does not match the publisher's ${upstream} (${path})`);
-    }
-    log(`${p.id}: ${String(digest.sizeBytes)} bytes, sha256 ${digest.sha256}${upstream ? ' (matches upstream)' : ' (local file)'}`);
-    packs.push({
+  const { path, upstream } = await packFile(p, opts);
+  const digest = await digestFile(path, p.chunkSize ?? CATALOG_CHUNK_SIZE);
+  if (upstream !== null && upstream !== digest.sha256) {
+    throw new Error(`${p.id}: SHA-256 ${digest.sha256} does not match the publisher's ${upstream} (${path})`);
+  }
+  log(`${p.id}: ${String(digest.sizeBytes)} bytes, sha256 ${digest.sha256}${upstream ? ' (matches upstream)' : ' (local file)'}`);
+  return {
+    path,
+    pack: {
       id: p.id,
       kind: p.kind,
       version: p.version,
@@ -137,14 +138,26 @@ export async function measurePacks(opts: MeasureOptions): Promise<CatalogPack[]>
       attribution: p.attribution,
       minTier: p.minTier,
       tags: p.tags,
-    });
-  }
+      ...(p.region ? { region: p.region } : {}),
+    },
+  };
+}
+
+/** Measures every pack (SHA-256, 64 MB chunk hashes) and checks it against the publisher's checksum. */
+export async function measurePacks(opts: MeasureOptions): Promise<CatalogPack[]> {
+  const packs: CatalogPack[] = [];
+  for (const p of opts.manifest.packs) packs.push((await measurePack(p, opts)).pack);
   return packs;
+}
+
+/** Schema 2 as soon as one pack has a region (apps before global maps reject it as a whole). */
+export function catalogSchema(packs: readonly CatalogPack[]): Catalog['schema'] {
+  return packs.some((p) => p.region !== undefined) ? CATALOG_SCHEMA_REGIONS : CATALOG_SCHEMA;
 }
 
 /** The canonical bytes of a catalog (stable key order, 2-space JSON, trailing newline): what is signed. */
 export function serializeCatalog(catalog: Catalog): Uint8Array {
-  const ordered: Catalog = { schema: CATALOG_SCHEMA, sequence: catalog.sequence, issuedAt: catalog.issuedAt, keyId: catalog.keyId, packs: catalog.packs };
+  const ordered: Catalog = { schema: catalogSchema(catalog.packs), sequence: catalog.sequence, issuedAt: catalog.issuedAt, keyId: catalog.keyId, packs: catalog.packs };
   parseCatalog(ordered);
   return utf8(`${JSON.stringify(ordered, null, 2)}\n`);
 }
@@ -167,7 +180,7 @@ export async function prepareCatalog(opts: PrepareOptions): Promise<{ bytes: Uin
   const sequence = nextSequence(opts.previousSequence, opts.sequence);
   const packs = await measurePacks(opts);
   const catalog: Catalog = {
-    schema: CATALOG_SCHEMA,
+    schema: catalogSchema(packs),
     sequence,
     issuedAt: opts.issuedAt ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
     keyId: opts.keyId,

@@ -2,7 +2,7 @@
 
 **S.K.E.P.I.** = **S**urvival **K**nowledge & **E**mergency **P**ocket **I**ntelligence. *Skepi* (σκέπη) is Greek for shelter, protection.
 
-> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`; Phase 3a (Windows desktop app with Tauri 2 and Station mode) — report `docs/phase-3a-report.md`; Phase 3b-0 (Apple builds in CI: iOS Simulator and macOS desktop, no Mac, no signing) — report `docs/phase-3b0-report.md`; **Developer Preview `v0.1.0-preview`** (Android + Windows; preview build mode, About, problem reports, held-out set 2 rules) — report `docs/preview-report.md`; **owner decisions 2026-10-21** (legal/compliance: IFRC-sourced emergency cards, no AI summary on medical intent, one intended-purpose statement, non-commercial rule, AI-generated marker; live location and heading on the map; water, earthquake, fire and flood cards from CDC and FEMA Ready.gov public-domain pages) — research: [`docs/legal-research.md`](legal-research.md). This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
+> Status: Phase 0 complete (GO); Phase 1a (foundation and security hardening) complete; Phase 1b (two-layer answers, latency, citation hardening) complete — report `docs/phase-1b-report.md`; Phase 1c (retrieval parity, signed catalog, downloads, import) — report `docs/phase-1c-report.md`, threat model `docs/threat-model.md`; Phase 1d (structural injection filter, release guards, emergency cards, onboarding, blackout mode, tools) — report `docs/phase-1d-report.md`, Phase 1 gate `docs/phase-1-gate.md`; Phase 2a (P2P sharing, places and map packs, English-only gates; Android) — report `docs/phase-2a-report.md`; Phase 3a (Windows desktop app with Tauri 2 and Station mode) — report `docs/phase-3a-report.md`; Phase 3b-0 (Apple builds in CI: iOS Simulator and macOS desktop, no Mac, no signing) — report `docs/phase-3b0-report.md`; **Developer Preview `v0.1.0-preview`** (Android + Windows; preview build mode, About, problem reports, held-out set 2 rules) — report `docs/preview-report.md`; **owner decisions 2026-10-21** (legal/compliance: IFRC-sourced emergency cards, no AI summary on medical intent, one intended-purpose statement, non-commercial rule, AI-generated marker; live location and heading on the map; water, earthquake, fire and flood cards from CDC and FEMA Ready.gov public-domain pages) — research: [`docs/legal-research.md`](legal-research.md); **global maps** (owner decision 2026-10-23: a map and a places pack for every country, chosen in Packs → "Maps & places", catalog schema 2; pilot of 8 countries built and measured, not published) — report [`docs/global-maps-pilot.md`](global-maps-pilot.md). This file is the source of truth for Claude Code. The two diagrams of the Claude Doc are rendered here as text.
 
 ## Vision and principles
 
@@ -99,7 +99,8 @@ Platform-specific code lives behind an interface from `packages/contracts`, so c
 /native
   /kiwix             Pinned versions + checksums (Maven AAR; CoreKiwix.xcframework for iOS + macOS; libzim 9.7.0 Windows build; fetch scripts)
 /tools
-  /catalog-builder   Builds and signs catalog.json (keygen, pin, build, keylist, verify; key never in the repo or CI)
+  /catalog-builder   Builds and signs catalog.json (keygen, pin, build, prepare, sign, keylist, verify; key never in the repo or CI);
+                     country packs: regions/ (Natural Earth regions, map parts), `countries` (manifest), `pack` (one pack + report, CI)
   /rag-eval          Answer evaluation against golden sets
   /bench             Benchmarks: tokens/s, latency, energy
   /cards-source-check  Downloads the IFRC guidelines PDF (pinned URL + SHA-256, never committed), extracts it with pdftotext and fails unless every card step is an exact substring of the cited page (whitespace/hyphenation/quote normalisation only); CDC / Ready.gov steps against the committed dated text snapshots (`snapshots/`, URL, retrieval date, SHA-256 of the fetched HTML), one block under the cited heading; `drift` re-fetches the pages (weekly CI job)
@@ -283,14 +284,14 @@ Every answer comes in **two layers**, both built only from passages found on the
 
 ## Offline maps
 
-Maps are vector tiles in one PMTiles file per region, rendered by MapLibre directly from disk, with no tile server or network request. MapLibre Native supports local `pmtiles://file://` on Android from 11.7.0 and on iOS from 6.10.0; maplibre-react-native currently wraps Android 13.2.0 / iOS 6.26.0. Validated offline on Android in Phase 0 (render 327 ms with Greek labels); iOS still needs one test with a local file on a real iPhone.
+Maps are vector tiles in one PMTiles file per country (or per part of a large country), rendered by MapLibre directly from disk, with no tile server or network request; every installed country is on the map at once (global maps, below). MapLibre Native supports local `pmtiles://file://` on Android from 11.7.0 and on iOS from 6.10.0; maplibre-react-native currently wraps Android 13.2.0 / iOS 6.26.0. Validated offline on Android in Phase 0 (render 327 ms with Greek labels); iOS still needs one test with a local file on a real iPhone.
 
 | Component | Implementation |
 | --- | --- |
-| Map data | Protomaps basemap (OpenStreetMap), cut per region with `pmtiles extract` from a pinned daily build in the catalog-builder (`pmtiles-extract` source; daily builds expire, so the extract is kept and mirrored by the project). First pack: Greece (`map-gr`, build 20261005, Geofabrik boundary, z0–15, 507 MB). Only a verified pack renders. |
+| Map data | Protomaps basemap (OpenStreetMap), cut per country with `pmtiles extract` from a pinned daily build over the country's Natural Earth region (`pmtiles-extract` source; daily builds expire, so the extract is kept and mirrored by the project). First pack: Greece (`map-gr`, build 20261005, Geofabrik boundary, z0–15, 507 MB); from global maps every country (`map-<iso2>` or `map-<iso2>-<part>`, build 20261022). Only verified packs render. |
 | Style, fonts, sprites | Bundled. Fonts cover Latin, Greek and the scripts of shipped locales. Style rewritten at runtime with absolute file paths. |
-| Place search | SQLite FTS5 per region (`places-gr`: 37k places, 5.3 MB) from a dated Geofabrik extract (`osm-places` source: pyosmium → `@skepi/core` `classifyOsm` → folded names of name, name:en, name:<locale>, plus an English kind word), opened read-only. Home search queries articles, cards and places together; results show the English name with the local name. |
-| Emergency POIs | Hospitals, pharmacies, fire stations, police, drinking water, shelters (incl. emergency assembly points and mountain huts) from the same places pack, as a GeoJSON layer with per-category filters (zoom ≥ 10, visible area only). ODbL attribution in the pack and on the map. |
+| Place search | SQLite FTS5 per country (`places-gr`: 37k places, 5.3 MB; `places-<iso2>`) from a dated Geofabrik extract (`osm-places` source: optional `osmium tags-filter` (CI) → pyosmium → objects inside the country's region only (shapely, `boundary`) → `@skepi/core` `classifyOsm` → folded names of name, name:en, name:<locale>, plus an English kind word), opened read-only. Home search queries articles, cards and the places of every installed country together (ranked together; an object in two packs — border strips — once); results show the English name with the local name. |
+| Emergency POIs | Hospitals, pharmacies, fire stations, police, drinking water, shelters (incl. emergency assembly points and mountain huts) from the places packs of every installed country, as a GeoJSON layer with per-category filters (zoom ≥ 10, visible area only; feature id = index in the merged list). ODbL attribution in the pack and on the map. |
 | User position | Live on the map (decision 2026-10-21): the GNSS fixes of `expo-emergency-tools` (`startLocationUpdates`, GPS provider on Android, CoreLocation on iOS; no new dependency, no Play Services or fused provider) and its compass. The map draws a puck, the accuracy circle and a heading cone from the compass (rotation vector, or accelerometer + magnetometer; exponential smoothing across the 0/360 wrap, magnetic north, no declination), or the course over ground when the compass is unavailable and the user moves faster than walking (> 2.5 m/s). "My location": the first press centres, the next press toggles follow mode; panning the map leaves it. No fix yet: "Waiting for GPS…" with the satellites in use and the note that the first fix can take minutes offline; a fix older than 15 s (45 s in blackout mode) turns the puck grey ("Last known position"). The coordinates panel (decimal + DMS, heading) stays under the map. Logic in `packages/core/src/location.ts` (unit-tested); desktop: hidden (no GNSS). Tools keeps the one-shot fix for copying or sending by SMS. |
 | User places | Meeting points, water sources and notes in SQLite. Export to GeoJSON and share via P2P. |
 | Desktop | MapLibre GL JS in the webview; pmtiles JS reads through a custom Tauri protocol serving range requests from disk. |
@@ -305,6 +306,65 @@ Maps are vector tiles in one PMTiles file per region, rendered by MapLibre direc
 | Blackout mode, follow (fixes every 15 s, compass ≤ 1/s) | 201 mA | 217 mAh/h |
 
 GNSS + compass cost: **+117 mA (+131 mAh/h, ≈ 3% of the 3,900 mAh battery per hour)** at the normal rate, **+35 mA (+44 mAh/h)** in blackout mode. The compass starts only once location updates run (no heading without a position).
+
+**Global maps (owner decision 2026-10-23).** The user picks a country, downloads its map and places
+packs, and uses them offline; any number of countries can be installed.
+
+- **Regions.** One `catalog/regions/<iso2>.geojson` per country, generated by
+  `tools/catalog-builder/regions/make_regions.py` from Natural Earth v5.1.2 admin-0 (public domain,
+  pinned by SHA-256): units grouped by `ISO_A2_EH`; the few units without an ISO code are covered by
+  listed regions (Northern Cyprus, the UN buffer zone and the UK bases → CY, Somaliland → SO, …;
+  geographic coverage for people on the ground, not a position on sovereignty); 0.05° buffer (coasts and
+  a border strip in both neighbours' packs), simplified, snapped to 1e-4°. `index.json` carries the name,
+  the bounding box (west > east across the antimeridian: United States, Russia, Fiji) and the Natural
+  Earth label point. 239 regions.
+- **Split rule (measured, build 20261022).** At z15 the 239 countries total 142.7 GB; 17 exceed 1.9 GB
+  (US 17.0, CA 16.0, RU 13.0, FR 5.6, DE 5.5, CN 5.2, BR 4.3, IN 3.2, NO 3.0, PL 3.0, IT 2.7, GB 2.6,
+  JP 2.6, SE 2.4, ES 2.3, AU 2.1, UA 2.0 GB); z14 is ≈ 48% of z15. Rule: a country ≤ 1.5 GB at z15 is one
+  pack; a larger one is split into **parts** of neighbouring admin-1 subdivisions (Natural Earth regions
+  when each fits, e.g. Italy's 20) by recursive bisection along the longer axis until every part measures
+  ≤ 1.5 GB at z15 (dry run of the part's own polygon); a subdivision that alone exceeds 1.5 GB is a part at
+  the highest zoom that fits. 1.5 GB keeps ~25% headroom under GitHub's 2 GB release-asset limit, and
+  every part keeps z15 detail. Places packs stay one per country (the United States: one).
+- **Pipeline.** `catalog/regions/sources.json` pins the inputs (Protomaps build 20261022 with its MD5,
+  Geofabrik extracts of 2026-10-22 with the publisher's MD5, the mirror release `packs-20261022`, the
+  Geofabrik path and `name:<locale>` per country); `catalog countries` generates the manifest
+  (`catalog/countries.json`: `map-<iso2>[-<part>]`, `places-<iso2>`, region metadata, ODbL licence,
+  OpenStreetMap / Protomaps / Natural Earth attribution). `.github/workflows/packs.yml` builds one pack
+  per job (no secrets, no signing; hash-pinned pyosmium/shapely wheels, pinned go-pmtiles) and writes a
+  report per pack (file, size, SHA-256, chunk hashes, licence, attribution, inputs, tool versions, wall
+  time, peak memory, disk). The maintainer measures the packs again (`prepare --reports`: refused unless
+  they equal the CI reports) and signs offline (`tools/catalog-builder/README.md`). Inputs expire within
+  about two weeks; the built packs are the copy.
+- **Catalog schema 2.** Map and places packs carry `region` `{ iso2, name, bbox, center, part? }`
+  (`packages/core/src/catalog.ts`, the Rust port in `crates/desktop-core/src/catalog.rs`, both strict).
+  An app before schema 2 rejects such a catalog as a whole and keeps its own, so a country pack never
+  reaches an app that renders only one map; schema 1 catalogs stay valid (Greece from the `region:GR`
+  tag, `LEGACY_REGIONS`).
+- **Packs → "Maps & places"** (mobile `app/maps.tsx`, desktop `screens/Maps.tsx`, logic in
+  `packages/core/src/regions.ts`): countries of the signed catalog, searchable by name or ISO code, with
+  their size and state (not installed, partly installed, installed, update available = an installed pack
+  id with other bytes in the catalog); a split country lists its parts, each downloadable, with the
+  places pack. Download (only on the user's press), with ContentStore's free-space rule (size + 10% +
+  1 GB, for the whole country) and, on T0/T1, a warning before ≥ 1 GB or when less than 4 GB would stay
+  free (`checkStorage`); every pack is hashed against the signed catalog before it is installed. Update
+  downloads beside the old file, which is deleted after the swap. Delete removes all packs of the
+  country. "Use for emergency numbers" makes it the chosen country. The generic Library list no longer
+  shows country packs.
+- **One map, all countries.** `multiSourceStyle` (core) gives every verified map pack its own vector
+  source and repeats each layer of the bundled style per pack in style order (all water under all roads
+  under all labels); with one pack the style is the bundled one. The map opens on the chosen country
+  (or the first installed), whole (`mapHome`, `fitZoom`); Greece from a schema 1 catalog on Patras as
+  before.
+- **Emergency number of the position.** On the map, a live fix is checked (every km or minute) against
+  the installed countries: bounding boxes filter, the nearest settlement of each candidate's places
+  pack within 50 km decides (`countryAt`, `nearestSettlementKm`); the numbers follow that country while
+  it is known (memory only, never stored or sent), else the chosen country. Countries without a dataset
+  entry keep the 112 default with its "check the local number" note.
+- **Migration.** Installed `map-gr` / `places-gr` keep their ids: the new catalog's Greece packs are
+  updates of them; nothing in app.db changes.
+- **P2P.** Country packs are ordinary catalog packs: a receiver adopts the host's newer schema 2
+  catalog and takes them as verified; without a catalog that knows them they are refused.
 
 **Out of scope:** turn-by-turn navigation (Organic Maps and CoMaps already do it well).
 
@@ -346,7 +406,8 @@ Every file the app opens (ZIM, GGUF, PMTiles, places DB) corresponds to an entry
 - `sequence` always increases. The app rejects a catalog with a lower `sequence` than the one it holds (anti-rollback). No reliance on wall-clock time offline.
 - The build ships an embedded catalog, so a phone that never touched the internet can verify packs received via P2P.
 - Hashes are computed by `/tools/catalog-builder` after downloading from the official source. The private signing key never enters CI.
-- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app (later phase; Phase 1c ships the embedded catalog and a catalog-update path tested against the local mirror). Map and places packs are built by the catalog-builder and mirrored as GitHub release assets (`packs-2026-10`).
+- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app (later phase; Phase 1c ships the embedded catalog and a catalog-update path tested against the local mirror). Map and places packs are built by the catalog-builder (country packs: one CI job each, `.github/workflows/packs.yml`) and mirrored as GitHub release assets (`packs-2026-10`; country packs `packs-20261022`, not uploaded yet).
+- Schema 2 (global maps, 2026-10-23): map and places packs may carry `"region": { "iso2": "CY", "name": "Cyprus", "bbox": [32.2225, 34.5224, 34.642, 35.7405], "center": [33.0842, 34.9133] }` (and `"part": { "id", "name" }` for a part of a split country); the builder writes schema 2 only when a pack has a region.
 - Embedded per build type: debug = test catalog + test keys (`catalog/embedded/debug`, `catalog/keys/test.json`); release = real-key catalog + release keys. A release build fails unless the embedded catalog verifies with the release keys (`skepiCheckReleaseCatalog`).
 - The newest accepted catalog is kept in internal storage and re-verified on every start; the highest accepted `sequence` lives in app.db.
 
@@ -572,7 +633,7 @@ Non-negotiables (decision 2026-10-21, replacing "human-reviewed"): first-aid and
 - Numbers with units must appear verbatim in the cited source, or the sentence is removed.
 - No doctor persona in the system prompt.
 
-**Emergency numbers:** per country, bundled. Default 112 (EU and many other countries). Example, Greece: 112, EKAB 166, Fire 199, Police 100. Country chosen at onboarding, not from the network. The app never promises that 112 works without a SIM.
+**Emergency numbers:** per country, bundled. Default 112 (EU and many other countries). Example, Greece: 112, EKAB 166, Fire 199, Police 100. Country chosen at onboarding (or with "Use for emergency numbers" in Maps & places), not from the network; while the map has a live fix inside an installed country, that country's numbers (global maps). The app never promises that 112 works without a SIM.
 
 ## UX and emergency features
 
@@ -676,7 +737,7 @@ No PR merges without a green gate: typecheck, lint, unit tests, release build an
 | Native modules | JUnit + instrumentation (Android), XCTest (iOS), `cargo test` | ZIM open/search on a small fixture, viewer sealing (schemes blocked, JS off, CSP, path traversal), streaming hash |
 | AI quality | `/tools/rag-eval` with llama.cpp on CPU in CI | Golden sets (English gated; Greek items only with `--greek`, reported and never gated until after v1) incl. an adversarial set: citation precision, refusal without source, no number/unit absent from the source, summary coverage floors per language, tokens per character; a held-out adversarial set reported separately and never used for tuning |
 | Retrieval parity | `e2e/run-parity.ps1` (phone) + `tools/rag-eval` parity; iOS Simulator in CI (`ios-e2e`: `e2e/ios/parity.yaml`, `parity.ts --reference`) | The English questions (Greek with `-IncludeGreek`) through retrieval only on the device and in rag-eval: identical search lists, fused hits, article text hashes, ranked chunks and sources. Coverage: S23 ↔ rag-eval ↔ desktop (108/108, hardening run); iOS Simulator ↔ the stored S23, desktop and rag-eval runs (`tools/rag-eval/parity-reference`, 108/108 since the Phase 3b-0 follow-up), nightly and on `ios-e2e` PRs |
-| E2E Android | Maestro on emulator and device | Onboarding, search, article, Layer 1 + AI answer with sources, map, places/POIs, card, live map position (`map-location.yaml`, debug build with the mock GNSS provider, `run-e2e.ps1 -MockLocation`) — in airplane mode; P2P between two emulators on one virtual Wi-Fi (`e2e/run-p2p.ps1`, `-wifi-server-port`/`-wifi-client-port`) with faults (corrupted chunk, drop + resume, tampering host, bad-signature and older catalogs). The phone and the emulators are shared with other projects: every device script takes a per-device lock (`scripts/device-lock.ps1`, `%LOCALAPPDATA%\device-locks\`) and waits while another session drives the device |
+| E2E Android | Maestro on emulator and device | Onboarding, search, article, Layer 1 + AI answer with sources, map, places/POIs, card, live map position (`map-location.yaml`, debug build with the mock GNSS provider, `run-e2e.ps1 -MockLocation`) — in airplane mode; global maps (`e2e/run-countries-e2e.ps1`: a schema 2 test catalog, two pilot countries from the local mirror, then map, places and POIs of both in airplane mode, one country deleted, only the mirror contacted); P2P between two emulators on one virtual Wi-Fi (`e2e/run-p2p.ps1`, `-wifi-server-port`/`-wifi-client-port`) with faults (corrupted chunk, drop + resume, tampering host, bad-signature and older catalogs). The phone and the emulators are shared with other projects: every device script takes a per-device lock (`scripts/device-lock.ps1`, `%LOCALAPPDATA%\device-locks\`) and waits while another session drives the device |
 | E2E iOS | Maestro on the iOS Simulator in CI (`e2e/ios`, Phase 3b-0; job `ios-e2e`) | Secure-storage failure (unsigned build), onboarding, search, article, Ask Layer 1, emergency number before Layer 1, cards, map from provisioned packs, the map position from a simulated fix (puck + coordinates; heading needs a device), retrieval parity (no model); AI, hardware tools, P2P and downloads skipped with reasons (report) |
 | E2E desktop | Playwright on the web UI with mocked commands (`apps/desktop/e2e/desktop.spec.ts`); tauri-driver smoke on the real Windows build (`e2e/tauri-smoke.mjs`); Station E2E desktop → phone (`e2e/run-station.ps1`); online egress of the whole process tree, idle and in use through UI Automation (`apps/desktop/e2e/egress.mjs --expect-none`) | Main flows, viewer sealing in the real WebView2 (scripts off, IPC denied, CSP, external links as text), AI on the GPU, map, zero egress (app process + webview net log), "Station" mode |
 | Rust (desktop) | `cargo fmt`, `cargo clippy -D warnings`, `cargo test` (`crates/*`, `apps/desktop/src-tauri`) | Catalog parity with TypeScript (`catalog/verification-expectations.json`), Station over pinned TLS 1.3, mirror downloads, SQLCipher + migrations, DPAPI, text extraction, viewer protocol; inference on the tiny GGUF (`--ignored`, needs the model) |
@@ -856,6 +917,10 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Thermal throttling and battery drain | Useless in a real blackout | Guards, blackout mode, measured cost in the UI |
 | Catalog key theft | Malicious content with an official signature | Offline key, backup key, rotation procedure |
 | One developer maintains 4 platforms | Slow progress, burnout | Android first, then iOS, then desktop (Windows and macOS) |
+| Pinned map/places inputs expire (Protomaps ≈ 2 weeks, Geofabrik ≈ 1 week) | A pack cannot be rebuilt byte for byte later | Packs are kept (mirror + maintainer cache); a new build date and extract date are pinned together and every pack rebuilt; CI reports record inputs and tool versions |
+| ~143 GB of country maps, ~470 assets | Mirror size, CI time, maintainer download before signing | One GitHub release (≤ 1000 assets, ≤ 2 GB each); CI in batches of ≤ 256 packs; signing needs the packs once (prepare --reports) |
+| Many installed countries = many style layers (71 per pack) | Slower map rendering on T1 phones | Packs render only where they have tiles; measured on the S23 with two countries; T1 to be measured |
+| Emergency numbers: countries outside the bundled dataset (e.g. Japan, Turkey) | 112 shown with "check the local number" | Dataset extension needs sourced entries (owner) |
 
 **Decisions**
 
@@ -882,6 +947,9 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Non-commercial | No paid features, ads, analytics or data collection; donations only without consideration (keeps the PLD 2024/2853 and CRA open-source exclusions; 2026-10-21). |
 | AI-generated text | Visible label on every AI summary; shared or copied text with an AI summary carries "AI-generated summary" (AI Act Art. 50; 2026-10-21). |
 | Catalog hosting | Own domain CNAME'd to GitHub Pages, raw GitHub fallback in the app. |
+| Global maps | Every country gets a map pack and a places pack from Natural Earth regions (public domain), the pinned Protomaps daily build and dated Geofabrik extracts; built in CI one pack per job without secrets, signed offline; chosen in Packs → "Maps & places"; all installed countries on one map; emergency numbers follow the installed country of the position (2026-10-23). |
+| Catalog schema 2 | Map and places packs carry `region` (ISO code, name, box, centre, part); older apps reject the whole catalog and keep theirs (strict schema kept; 2026-10-23). |
+| Map pack size | One pack per country up to 1.5 GB at z15; larger countries in parts of admin-1 subdivisions (bisection, each ≤ 1.5 GB measured at z15; a lower zoom only for a single subdivision over the limit), ~25% under GitHub's 2 GB asset limit (2026-10-23, from the dry-run sizes of build 20261022). |
 | Name | **Project S.K.E.P.I.** (Survival Knowledge & Emergency Pocket Intelligence), always written with the dots of the initials; users see "S.K.E.P.I." (Android label, desktop window, About screens, store texts, F-Droid `AutoName`, privacy policy). Identifiers stay `SKEPI`/`skepi`: `org.skepi.app`, `org.skepi.desktop`, the repository, crates, packages, file names, the Tauri `productName` (it names the Windows installers, install folder, registry key and WiX upgrade code, so changing it would install 0.1.1 next to 0.1.0) and the signing key. TMview search (2026-10-16): no "SKEPI" or "ΣΚΕΠΗ" mark. Closest: "SKEP'IA" (SKEZI SAS, FR; WIPO 1815336 + FR 5030813; EU incl. GR, and CH; classes 9 "AI software for data extraction, filtering and analysis" and 42 SaaS; registered 2024, until 2034); "SKEP" (QAD Inc., WIPO 660765, classes 9/42, 13 countries without GR, expired 2026-09-12, in its grace period); "SKEPIA" (NEVS, SE only); "SKEPP", "SKEPTIC", "Skeptify" (EU, further away); "SKEPIS" (US filing). No trademark registration planned; the risk that a rename is needed later is accepted (owner, 2026-10-16). |
 
 **Open**

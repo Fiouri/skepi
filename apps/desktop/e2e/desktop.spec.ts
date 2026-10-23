@@ -104,6 +104,11 @@ test('emergency: numbers and cards (IFRC, Ready.gov) without any pack', async ({
 test('map: offline PMTiles through the maps protocol, emergency POIs and filters', async ({ page }) => {
   await page.getByTestId('tab-map').click();
   await expect(page.getByTestId('map-status')).toContainText('offline PMTiles', { timeout: 30_000 });
+  // Global maps: the map opens on the whole country (Greece, schema 2 region), too far out for POIs.
+  await expect(page.getByTestId('poi-count')).toContainText('Zoom in to see emergency points');
+  await page.evaluate(() => {
+    (window as unknown as { __skepiMap: { jumpTo: (o: { center: [number, number]; zoom: number }) => void } }).__skepiMap.jumpTo({ center: [21.7346, 38.2466], zoom: 12 });
+  });
   await expect(page.getByTestId('poi-count')).toContainText('2 emergency points');
   await page.getByTestId('poi-filter-hospital').uncheck();
   await expect(page.getByTestId('map-attribution')).toContainText('OpenStreetMap');
@@ -120,6 +125,30 @@ test('library: download with progress, consent for an unverified pack, catalog u
   await expect(page.getByTestId('consent-local-0123456789ab')).toHaveCount(0);
   await page.getByTestId('check-update').click();
   await expect(page.getByTestId('library-message')).toContainText('Catalog updated to 4');
+});
+
+test('maps & places: search countries, download one, update Greece, delete', async ({ page }) => {
+  await page.getByTestId('tab-library').click();
+  await expect(page.getByTestId('maps-section')).toBeVisible();
+  // Country packs are listed per country, not in the generic list.
+  await expect(page.getByTestId('available-map-cy')).toHaveCount(0);
+  await expect(page.getByTestId('country-status-GR')).toContainText('Update available');
+  await page.getByTestId('maps-search').fill('cypr');
+  await expect(page.getByTestId('country-GR')).toHaveCount(0);
+  await expect(page.getByTestId('country-status-CY')).toContainText('Not installed');
+  await page.getByTestId('country-download-CY').click();
+  await expect(page.getByTestId('country-status-CY')).toContainText('Installed');
+  await expect(page.getByTestId('installed-map-cy')).toBeVisible();
+  await expect(page.getByTestId('installed-places-cy')).toBeVisible();
+  await page.getByTestId('country-select-CY').click();
+  await expect(page.getByTestId('country-selected-CY')).toBeVisible();
+  await page.getByTestId('country-delete-CY').click();
+  await page.getByTestId('remove-accept').click();
+  await expect(page.getByTestId('country-status-CY')).toContainText('Not installed');
+  await expect(page.getByTestId('installed-map-cy')).toHaveCount(0);
+  await page.getByTestId('maps-search').fill('greece');
+  await page.getByTestId('country-download-GR').click();
+  await expect(page.getByTestId('country-status-GR')).toContainText('Installed');
 });
 
 test('station: only the selected packs in the manifest, QR pairing, stop', async ({ page }) => {

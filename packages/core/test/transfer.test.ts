@@ -191,6 +191,37 @@ describe('offers', () => {
   });
 });
 
+describe('country packs over P2P (global maps)', () => {
+  const region = { iso2: 'CY', name: 'Cyprus', bbox: [32.2225, 34.5224, 34.642, 35.7405] as [number, number, number, number], center: [33.0842, 34.9133] as [number, number] };
+  const map = pack({ id: 'map-cy', kind: 'pmtiles', file: 'map-cy-20261022.pmtiles', tags: ['map', 'region:CY'], region });
+  const places = pack({ id: 'places-cy', kind: 'places', file: 'places-cy-20261022.sqlite', sha256: 'e'.repeat(64), tags: ['places', 'region:CY'], region });
+  // A schema 2 catalog from a host with global maps.
+  const v2 = (sequence: number): { bytes: Uint8Array; signature: string } => {
+    const catalog: Catalog = { schema: 2, sequence, issuedAt: '2026-10-23T00:00:00Z', keyId: 'cat-test-a', packs: [map, places] };
+    const bytes = utf8(`${JSON.stringify(catalog, null, 2)}\n`);
+    return { bytes, signature: signBytes(bytes, keyA.secretKey) };
+  };
+
+  it('a receiver adopts the host catalog with the country packs, then takes them as verified', () => {
+    const host = v2(5);
+    const d = evaluateHostCatalog({ bytes: toBase64(host.bytes), signature: host.signature }, trusted, { sequence: 3, sha256: null });
+    expect(d.kind).toBe('adopt');
+    if (d.kind !== 'adopt') return;
+    expect(d.catalog.packs.map((p) => p.region?.iso2)).toEqual(['CY', 'CY']);
+    const offers: ShareablePack[] = [map, places].map((p) => ({ id: p.id, kind: p.kind, version: p.version, title: p.title.en, sizeBytes: p.sizeBytes, sha256: p.sha256, verified: true }));
+    const decisions = classifyOffers(buildManifest(offers, host, toBase64), d.catalog, []);
+    expect(decisions.map((x) => [x.offer.id, x.status, x.autoSelect])).toEqual([
+      ['map-cy', 'verified', true],
+      ['places-cy', 'verified', true],
+    ]);
+  });
+
+  it('a receiver whose catalog does not know them refuses the map and places files', () => {
+    const offers: ShareablePack[] = [{ id: map.id, kind: 'pmtiles', version: map.version, title: 'x', sizeBytes: map.sizeBytes, sha256: map.sha256, verified: true }];
+    expect(classifyOffers(buildManifest(offers, null, toBase64), signed(3, [pack()]).catalog, [])[0]).toMatchObject({ status: 'refused' });
+  });
+});
+
 describe('receiveChunks', () => {
   const entry = pack();
   const total = chunkCount(entry);
