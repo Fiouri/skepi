@@ -337,15 +337,27 @@ packs, and uses them offline; any number of countries can be installed.
   they equal the CI reports) and signs offline (`tools/catalog-builder/README.md`). Inputs expire within
   about two weeks; the built packs are the copy.
 - **Catalog schema 2.** Map and places packs carry `region` `{ iso2, name, bbox, center, part? }`
-  (`packages/core/src/catalog.ts`, the Rust port in `crates/desktop-core/src/catalog.rs`, both strict).
-  An app before schema 2 rejects such a catalog as a whole and keeps its own, so a country pack never
+  (`packages/core/src/catalog.ts`, the Rust port in `crates/desktop-core/src/catalog.rs`, both strict);
+  a part is `{ id, name, regions, bbox }`: its full name (every subdivision or region it covers), the
+  English and local names of its Natural Earth admin-1 units (for search: "Bayern", "Tokyo") and its own
+  box. An app before schema 2 rejects such a catalog as a whole and keeps its own, so a country pack never
   reaches an app that renders only one map; schema 1 catalogs stay valid (Greece from the `region:GR`
   tag, `LEGACY_REGIONS`).
+- **How installed apps get catalogs (checked 2026-10-24).** Release builds up to v0.1.2-preview have
+  no catalog update source: `catalog/sources/` holds only `debug.json` (the local test mirror), the
+  Android release variant and the iOS bundle copy no `sources.json`, and the desktop release build has
+  `SOURCES = None`. They never fetch a catalog over the network; they use the embedded one (sequence 3,
+  schema 1: Greece, Wikipedia, models) and a newer one only from a P2P host, where a schema 2 catalog
+  is rejected whole. So no separate update path is needed for them, and a schema 2 catalog reaches
+  users only embedded in an app release that reads it (or over P2P from such an app).
 - **Packs → "Maps & places"** (mobile `app/maps.tsx`, desktop `screens/Maps.tsx`, logic in
   `packages/core/src/regions.ts`): countries of the signed catalog, searchable by name or ISO code, with
   their size and state (not installed, partly installed, installed, update available = an installed pack
-  id with other bytes in the catalog); a split country lists its parts, each downloadable, with the
-  places pack. Download (only on the user's press), with ContentStore's free-space rule (size + 10% +
+  id with other bytes in the catalog). A split country lists its parts (full name, size, state) with
+  "Download all parts" and one "Download part" / "Delete part" per part; a subdivision in the search
+  ("Bayern") finds the country and marks its part ("Includes Bayern", `matchingParts`). The country's
+  places pack comes with the first part and goes with the last (`partRemovalIds`); map, places search and
+  emergency points work with any subset of parts. Download (only on the user's press), with ContentStore's free-space rule (size + 10% +
   1 GB, for the whole country) and, on T0/T1, a warning before ≥ 1 GB or when less than 4 GB would stay
   free (`checkStorage`); every pack is hashed against the signed catalog before it is installed. Update
   downloads beside the old file, which is deleted after the swap. Delete removes all packs of the
@@ -354,8 +366,9 @@ packs, and uses them offline; any number of countries can be installed.
 - **One map, all countries.** `multiSourceStyle` (core) gives every verified map pack its own vector
   source and repeats each layer of the bundled style per pack in style order (all water under all roads
   under all labels); with one pack the style is the bundled one. The map opens on the chosen country
-  (or the first installed), whole (`mapHome`, `fitZoom`); Greece from a schema 1 catalog on Patras as
-  before.
+  (or the first installed), whole (`mapHome`, `fitZoom`), or on its installed parts only (the union of
+  their boxes; a part across the antimeridian opens the whole country); Greece from a schema 1 catalog
+  on Patras as before.
 - **Emergency number of the position.** On the map, a live fix is checked (every km or minute) against
   the installed countries: bounding boxes filter, the nearest settlement of each candidate's places
   pack within 50 km decides (`countryAt`, `nearestSettlementKm`); the numbers follow that country while
@@ -406,8 +419,9 @@ Every file the app opens (ZIM, GGUF, PMTiles, places DB) corresponds to an entry
 - `sequence` always increases. The app rejects a catalog with a lower `sequence` than the one it holds (anti-rollback). No reliance on wall-clock time offline.
 - The build ships an embedded catalog, so a phone that never touched the internet can verify packs received via P2P.
 - Hashes are computed by `/tools/catalog-builder` after downloading from the official source. The private signing key never enters CI.
-- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app (later phase; Phase 1c ships the embedded catalog and a catalog-update path tested against the local mirror). Map and places packs are built by the catalog-builder (country packs: one CI job each, `.github/workflows/packs.yml`) and mirrored as GitHub release assets (`packs-2026-10`; country packs `packs-20261022`, not uploaded yet).
-- Schema 2 (global maps, 2026-10-23): map and places packs may carry `"region": { "iso2": "CY", "name": "Cyprus", "bbox": [32.2225, 34.5224, 34.642, 35.7405], "center": [33.0842, 34.9133] }` (and `"part": { "id", "name" }` for a part of a split country); the builder writes schema 2 only when a pack has a region.
+- Hosting: our own domain CNAME'd to GitHub Pages, with a raw GitHub fallback in the app (later phase; Phase 1c ships the embedded catalog and a catalog-update path tested against the local mirror; release builds have no update URL yet, see "How installed apps get catalogs"). Map and places packs are built by the catalog-builder (country packs: one CI job each, `.github/workflows/packs.yml`) and mirrored as GitHub release assets (`packs-2026-10`; country packs `packs-20261022`, not uploaded yet).
+- Pack generations (decision 2026-10-24): one GitHub release per generation, `packs-<Protomaps build>` (`packs-20261022`). A refresh uploads the new generation, then the new signed catalog is published (embedded in an app release; at the update URL once one exists), and only then the previous generation's release assets are deleted. Kept at any time: exactly the newest generation plus the one the embedded catalog of the current app release references (today `packs-2026-10`, v0.1.x). Sizes per release: `packs-2026-10` 2 assets, 512.5 MB (Greece map 507.2 MB, places 5.3 MB); pilot `packs-20261022` 39 assets (31 map packs + 8 places packs), 31.96 GB; a full generation ≈ 550 assets (≈ 310 map packs + 239 places packs), ≈ 148 GB. GitHub limits: each asset < 2 GiB (packs ≤ 1.5 GB by the split rule), ≤ 1000 assets per release; GitHub states no limit on a release's total size or bandwidth. Steps: `tools/catalog-builder/README.md` → "Retire the previous generation". An app release older than the current one keeps its embedded catalog (no update URL), so once its generation is deleted its downloads fail; P2P from a phone with the packs still works.
+- Schema 2 (global maps, 2026-10-23): map and places packs may carry `"region": { "iso2": "CY", "name": "Cyprus", "bbox": [32.2225, 34.5224, 34.642, 35.7405], "center": [33.0842, 34.9133] }` (and `"part": { "id": "bavaria", "name": "Bavaria, Thuringia", "regions": ["Thuringia", "Bavaria", "Thüringen", "Bayern"], "bbox": [8.9301, 47.2246, 13.8665, 51.6874] }` for a part of a split country); the builder writes schema 2 only when a pack has a region.
 - Embedded per build type: debug = test catalog + test keys (`catalog/embedded/debug`, `catalog/keys/test.json`); release = real-key catalog + release keys. A release build fails unless the embedded catalog verifies with the release keys (`skepiCheckReleaseCatalog`).
 - The newest accepted catalog is kept in internal storage and re-verified on every start; the highest accepted `sequence` lives in app.db.
 
@@ -633,7 +647,11 @@ Non-negotiables (decision 2026-10-21, replacing "human-reviewed"): first-aid and
 - Numbers with units must appear verbatim in the cited source, or the sentence is removed.
 - No doctor persona in the system prompt.
 
-**Emergency numbers:** per country, bundled. Default 112 (EU and many other countries). Example, Greece: 112, EKAB 166, Fire 199, Police 100. Country chosen at onboarding (or with "Use for emergency numbers" in Maps & places), not from the network; while the map has a live fix inside an installed country, that country's numbers (global maps). The app never promises that 112 works without a SIM.
+**Emergency numbers:** per country, bundled (`packages/emergency-cards/src/numbers.ts`). Default 112 (EU and many other countries). Example, Greece: 112, EKAB 166, Fire 199, Police 100. Country chosen at onboarding (or with "Use for emergency numbers" in Maps & places), not from the network; while the map has a live fix inside an installed country, that country's numbers (global maps). The app never promises that 112 works without a SIM.
+
+- **Sources, checked like the card sources (2026-10-24).** Every entry cites official sources with the retrieval date; a checked source pins the committed text snapshot of the page or PDF (`tools/cards-source-check/snapshots/numbers/<id>.txt`: URL, date, SHA-256 of the fetched file; text hash in the dataset) and the verbatim quotes that state each number. `cards-source-check` (CI, offline) fails unless every quote is in its snapshot and shows the numbers it claims, and every number of a country is shown by a quote of one of its sources; the numbers are bound into `source-check.lock.json` (`numbersDigest`), which every release build checks (`skepiCheckEmergencyCards`, the iOS build phase); the weekly drift job re-fetches the sources. Countries whose official pages refuse automated requests are listed in `UNCHECKED_NUMBER_COUNTRIES` (AU, CA); no other entry can be added without a checked source.
+- **Coverage.** 35 of the 239 countries of the global maps (the 27 EU member states, Switzerland, United Kingdom, United States, Canada, Australia, New Zealand, Japan, Türkiye). Japan has no single number: 119 (fire, ambulance) is the main number, police 110, coast guard 118 (NPA, FDMA, Japan Coast Guard); Türkiye: 112 for every service (Ministry of Interior, 112.gov.tr).
+- **Filling the rest (plan).** Only official national sources: the national emergency service, telecom regulator or interior / health ministry, on a government domain, in the national language if need be (the quote stays verbatim, an English gloss in a comment); for EU member states the European Commission. Never Wikipedia or other compiled lists; the ITU list of national emergency numbers only to find the national source, never cited. Batches of about 20 countries per reviewed change, largest populations and travel destinations first (China, India, Indonesia, Brazil, Mexico, Russia, South Africa, South Korea, Egypt, Thailand, …): `cards-source-check snapshot-number`, quotes, `--write-lock`, CODEOWNERS review. A country without an official source that can be snapshotted keeps "112 — check the local number".
 
 ## UX and emergency features
 
@@ -920,7 +938,7 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | Pinned map/places inputs expire (Protomaps ≈ 2 weeks, Geofabrik ≈ 1 week) | A pack cannot be rebuilt byte for byte later | Packs are kept (mirror + maintainer cache); a new build date and extract date are pinned together and every pack rebuilt; CI reports record inputs and tool versions |
 | ~143 GB of country maps, ~470 assets | Mirror size, CI time, maintainer download before signing | One GitHub release (≤ 1000 assets, ≤ 2 GB each); CI in batches of ≤ 256 packs; signing needs the packs once (prepare --reports) |
 | Many installed countries = many style layers (71 per pack) | Slower map rendering on T1 phones | Packs render only where they have tiles; measured on the S23 with two countries; T1 to be measured |
-| Emergency numbers: countries outside the bundled dataset (e.g. Japan, Turkey) | 112 shown with "check the local number" | Dataset extension needs sourced entries (owner) |
+| Emergency numbers: 204 of 239 countries outside the bundled dataset | 112 shown with "check the local number" | Filled in batches from official national sources only, each checked by `cards-source-check` ("Emergency numbers") |
 
 **Decisions**
 
@@ -948,7 +966,11 @@ The project hinged on the libkiwix binding and small-model quality; Phase 0 clea
 | AI-generated text | Visible label on every AI summary; shared or copied text with an AI summary carries "AI-generated summary" (AI Act Art. 50; 2026-10-21). |
 | Catalog hosting | Own domain CNAME'd to GitHub Pages, raw GitHub fallback in the app. |
 | Global maps | Every country gets a map pack and a places pack from Natural Earth regions (public domain), the pinned Protomaps daily build and dated Geofabrik extracts; built in CI one pack per job without secrets, signed offline; chosen in Packs → "Maps & places"; all installed countries on one map; emergency numbers follow the installed country of the position (2026-10-23). |
-| Catalog schema 2 | Map and places packs carry `region` (ISO code, name, box, centre, part); older apps reject the whole catalog and keep theirs (strict schema kept; 2026-10-23). |
+| Catalog schema 2 | Map and places packs carry `region` (ISO code, name, box, centre, part); older apps reject the whole catalog and keep theirs (strict schema kept; 2026-10-23). A part carries its full name, the English and local names of its admin-1 units and its own box (2026-10-24, before any schema 2 catalog was published). |
+| Parts of split countries | Download all parts or any one of them; a subdivision in the search finds its part; the country's places pack comes with the first part and goes with the last; the map opens on the installed parts (review 2026-10-24). |
+| Catalog updates of v0.1.x | Release builds up to v0.1.2-preview have no catalog update URL and never fetch a catalog, so no separate schema 1 path is served for them (checked 2026-10-24). |
+| Pack generations | One GitHub release per pack generation; after the new signed catalog is published, the previous generation's assets are deleted, keeping exactly the newest generation and the one the current app release's embedded catalog references (2026-10-24). |
+| Emergency number sources | Official national sources only (EU: the European Commission), never Wikipedia or compiled lists; every number proven by a verbatim quote of a committed snapshot, checked in CI and bound to the release builds' source-check lock; unreachable sources only via `UNCHECKED_NUMBER_COUNTRIES` (2026-10-24). |
 | Map pack size | One pack per country up to 1.5 GB at z15; larger countries in parts of admin-1 subdivisions (bisection, each ≤ 1.5 GB measured at z15; a lower zoom only for a single subdivision over the limit), ~25% under GitHub's 2 GB asset limit (2026-10-23, from the dry-run sizes of build 20261022). |
 | Name | **Project S.K.E.P.I.** (Survival Knowledge & Emergency Pocket Intelligence), always written with the dots of the initials; users see "S.K.E.P.I." (Android label, desktop window, About screens, store texts, F-Droid `AutoName`, privacy policy). Identifiers stay `SKEPI`/`skepi`: `org.skepi.app`, `org.skepi.desktop`, the repository, crates, packages, file names, the Tauri `productName` (it names the Windows installers, install folder, registry key and WiX upgrade code, so changing it would install 0.1.1 next to 0.1.0) and the signing key. TMview search (2026-10-16): no "SKEPI" or "ΣΚΕΠΗ" mark. Closest: "SKEP'IA" (SKEZI SAS, FR; WIPO 1815336 + FR 5030813; EU incl. GR, and CH; classes 9 "AI software for data extraction, filtering and analysis" and 42 SaaS; registered 2024, until 2034); "SKEP" (QAD Inc., WIPO 660765, classes 9/42, 13 countries without GR, expired 2026-09-12, in its grace period); "SKEPIA" (NEVS, SE only); "SKEPP", "SKEPTIC", "Skeptify" (EU, further away); "SKEPIS" (US filing). No trademark registration planned; the risk that a rename is needed later is accepted (owner, 2026-10-16). |
 

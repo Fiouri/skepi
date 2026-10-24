@@ -128,8 +128,8 @@ inputs, and CI builds one pack per job.
 | `regions/make_regions.py` | `regions`: one `catalog/regions/<iso2>.geojson` per country from Natural Earth v5.1.2 admin-0 (public domain; SHA-256 pinned in the script), grouped by `ISO_A2_EH`, units without an ISO code assigned by `EXTRA_UNITS` (coverage, not sovereignty), 0.05° buffer, simplified (0.005°), snapped to 1e-4°; `index.json` (name, bounding box — west > east across the antimeridian —, label point, measured sizes, parts). `units` / `plan`: map parts of large countries (below). `measured`: records dry-run sizes in `index.json`. |
 | `regions/measure_regions.py` | Sizes without downloading: `pmtiles extract --dry-run` of the pinned build over region files (reads only the archive directories). |
 | `catalog/regions/sources.json` | Pinned inputs: Protomaps build (date, basemap version, MD5/BLAKE3 of the planet file), Geofabrik extract date, the mirror (GitHub release) and per country the Geofabrik path and the `name:<locale>` language. |
-| `catalog/regions/parts.json` | Map parts of countries over the limit: admin-1 codes, max zoom, measured size. |
-| `catalog/countries.json` | Generated manifest (`catalog countries --pilot` or `--iso GR,CY,…`); a test keeps it equal to the generator's output. |
+| `catalog/regions/parts.json` | Map parts of countries over the limit: admin-1 codes, max zoom, measured size, full name. `regions` adds to each part in `index.json` its own box and the English and local names of its admin-1 units (the app's part search). |
+| `catalog/countries.json` | Generated manifest (`catalog countries --pilot` or `--iso GR,CY,…`; `--parts JP:kanto` keeps only that part of a split country, for E2E test catalogs); a test keeps it equal to the generator's output. |
 | `places/requirements-ci.txt` | The places tools with the SHA-256 of every wheel (CI). |
 | `.github/workflows/packs.yml` | One job per pack (≤ 256 per run): build, measure, `<id>.report.json` + `<id>.ci.json`; packs are uploaded only with `upload_packs`. |
 
@@ -194,8 +194,26 @@ The release key never enters CI; CI has no secret at all. Steps for a new countr
    one download's SHA-256 against the catalog, then move `catalog.json` + `.sig` into
    `catalog/embedded/release` (next app release) and, once catalog hosting exists, to the update URL.
 
+6. **Retire the previous generation** (only after step 5 is released: the new catalog is embedded in a
+   published app release, or served at the update URL once one exists). Keep exactly the newest
+   generation and the one `catalog/embedded/release/catalog.json` of the current app release
+   references; delete every other `packs-*` release's assets:
+   ```powershell
+   git grep -c "releases/download/packs-20261022/" catalog/embedded/release/catalog.json   # must print nothing for the generation to delete
+   gh release view packs-20261022 --json assets --jq '.assets | length, (map(.size) | add)'
+   gh release delete packs-20261022 --yes --cleanup-tag
+   ```
+   An older app release keeps its own embedded catalog (release builds have no update URL), so its
+   downloads of a deleted generation fail; phones that hold those packs can still share them over P2P.
+
+**Assets per release.** `packs-2026-10` (Greece, embedded in v0.1.0–v0.1.2): 2 assets, 512.5 MB.
+Pilot `packs-20261022`: 39 assets (31 map packs, 8 places packs), 31.96 GB, largest 1.42 GB. A full
+generation of 239 countries: ≈ 550 assets (≈ 310 map packs, 239 places packs), ≈ 148 GB. GitHub: each
+asset < 2 GiB, ≤ 1000 assets per release, no stated limit on a release's total size or bandwidth.
+
 A schema 2 catalog is rejected as a whole by apps before global maps (v0.1.2-preview and older keep
-their embedded catalog): ship it with the app release that reads it.
+their embedded catalog; their release builds have no catalog update URL and never fetch one): ship it
+with the app release that reads it.
 
 ## Release builds
 
