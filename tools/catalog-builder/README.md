@@ -195,21 +195,39 @@ The release key never enters CI; CI has no secret at all. Steps for a new countr
    `catalog/embedded/release` (next app release) and, once catalog hosting exists, to the update URL.
 
 6. **Retire old generations** (only after step 5 is released: the new catalog is embedded in a
-   published app release, or served at the update URL once one exists). Keep the newest generation and
-   every generation that the embedded catalog (`catalog/embedded/release/catalog.json`) of the **last
-   two app releases** references; delete every other `packs-*` release's assets. Today v0.1.2-preview
-   and v0.1.1-preview both embed `packs-2026-10`, so it stays.
+   published app release, or served at the update URL once one exists). Keep the **newest generation in
+   full**. From every older `packs-*` release keep only the assets that the embedded catalog
+   (`catalog/embedded/release/catalog.json`) of the **last two app releases** references by URL, delete
+   every other asset, and delete the release once none of its assets is referenced. Today v0.1.2-preview
+   and v0.1.1-preview both embed the Greece map and places pack of `packs-2026-10`, so those two assets
+   (all of that release) stay. Run it as a dry run first (`$apply = $false`: it only prints what it would
+   keep and delete), then with `$apply = $true`:
    ```powershell
-   # The generation to delete must appear in neither of the last two releases' embedded catalogs.
-   $tags = git tag --list 'v*' --sort=-creatordate | Select-Object -First 2
-   foreach ($t in $tags) { git show "${t}:catalog/embedded/release/catalog.json" | Select-String -SimpleMatch 'releases/download/packs-20261022/' }   # must print nothing
-   gh release view packs-20261022 --json assets --jq '.assets | length, (map(.size) | add)'
-   gh release delete packs-20261022 --yes --cleanup-tag
+   $newest = 'packs-20261022'   # the generation just published (sources.json -> mirror): never touched
+   $apply = $false              # dry run first; $true deletes
+   $keep = @{}                  # "<release>/<asset>" referenced by the last two app releases
+   foreach ($t in (git tag --list 'v*' --sort=-creatordate | Select-Object -First 2)) {
+     $catalog = (git show "${t}:catalog/embedded/release/catalog.json") -join "`n" | ConvertFrom-Json
+     foreach ($u in $catalog.packs.urls) {
+       if ($u -match '/releases/download/(packs-[^/]+)/([^/]+)$') { $keep["$($Matches[1])/$($Matches[2])"] = $t }
+     }
+   }
+   foreach ($r in (gh release list --limit 200 --json tagName --jq '.[].tagName' | Where-Object { $_ -like 'packs-*' -and $_ -ne $newest })) {
+     $assets = @(gh release view $r --json assets --jq '.assets[].name')
+     $drop = @($assets | Where-Object { -not $keep.ContainsKey("$r/$_") })
+     "${r}: $($assets.Count - $drop.Count) referenced (kept), $($drop.Count) to delete" + $(if ($drop.Count -eq $assets.Count) { ', then the release' } else { '' })
+     if (-not $apply) { continue }
+     foreach ($a in $drop) { gh release delete-asset $r $a --yes }
+     if ($drop.Count -eq $assets.Count) { gh release delete $r --yes --cleanup-tag }
+   }
    ```
-   An app release older than the last two keeps its own embedded catalog (release builds have no update
-   URL), so its downloads of a deleted generation fail; phones that hold those packs can still share
-   them over P2P. Storage: at most three generations at once (newest + two embedded), ≈ 3 × 148 GB once
-   every country is published.
+   (Dry run on 2026-10-24: `packs-2026-10: 2 referenced (kept), 0 to delete`.) An app release older
+   than the last two keeps its own embedded catalog (release builds have no update URL), so its
+   downloads of a deleted asset fail; phones that hold those packs can still share them over P2P.
+   **Worst-case total:** the newest generation (≈ 148 GB once every country is published) plus the
+   older assets the two embedded catalogs reference; if both releases embed a full, different older
+   generation, that is ≈ 3 × 148 GB ≈ 444 GB (GitHub states no limit on release size). Today: the
+   newest generation + 512.5 MB.
 
 **Assets per release.** `packs-2026-10` (Greece, embedded in v0.1.0–v0.1.2): 2 assets, 512.5 MB.
 Pilot `packs-20261022`: 39 assets (31 map packs, 8 places packs), 31.96 GB, largest 1.42 GB. A full
