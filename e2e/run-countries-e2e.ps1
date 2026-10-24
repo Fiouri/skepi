@@ -94,6 +94,11 @@ try {
     Invoke-Adb reverse tcp:8443 tcp:8443 | Out-Null
     Invoke-Adb logcat -c
     $before = Get-UidBytes $uid
+    # A dozing screen behind the keyguard keeps the app from drawing (app-ready.yaml times out).
+    Invoke-Adb shell input keyevent KEYCODE_WAKEUP | Out-Null
+    Invoke-Adb shell wm dismiss-keyguard | Out-Null
+    Start-Sleep -Seconds 2
+    if ((Invoke-Adb shell dumpsys window) -match 'isKeyguardShowing=true') { throw "$Serial is locked behind a secure keyguard: unlock it, then re-run" }
     Push-Location $root
     try {
       $maestroArgs = @('test', 'e2e/countries.yaml', '-e', "APP_ID=$AppId", '--format', 'junit', '--output', (Join-Path $out 'report-countries.xml'), '--test-output-dir', $out)
