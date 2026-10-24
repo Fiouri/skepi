@@ -6,7 +6,8 @@
 
 - Done: owner signed catalog sequence 4 offline (`734e90cd…c6bc`); embedded in `catalog/embedded/release`; version 0.2.0-preview / versionCode 5 / iOS build 5 / desktop 0.2.0-preview (WiX 0.2.0); CHANGELOG, `changelogs/5.txt`, store description, README, `docs/release-notes/v0.2.0-preview.md`; CI `draft-packs` job (iOS E2E reads map-gr/places-gr from the draft); all glyph ranges bundled (iOS map flows failed with "Failed to load glyph range 1024-1279" on the new Greece extract, which reaches Cyrillic labels); countries flow waits for "Installed" (race with "Partly installed").
 - Verified: pnpm verify 49/49; cargo fmt/clippy/test; cards-source-check PASS (111 steps, 35 countries' numbers); Android `assembleRelease` unsigned preview (versionCode 5, catalog OK seq 4, cards 111/111, permission allowlist PASS, 55.9 MB); `tauri build` MSI 42.79 MiB, NSIS 26.66 MiB; Playwright 17/17; Maestro S23 (device lock) countries flow PASS with the real CI-built files from the local mirror (CY, GR, JP Kanto), 0 bytes egress; CI run 40129038033 green incl. ios-build and ios-e2e (9/9 flows, parity PASS).
-- Open: owner steps (packs release publish, tag, sign, publish, fdroiddata recipe); Crimea coverage decision to confirm.
+- Release candidate: commit `4faad7c0e9cdd3fcf0994b95a56abd3e8c471f82`; android-repro run 40140411948 (recipe at `fd57c98`): builds (a), (b) and `fdroid build` byte-identical, unsigned SHA-256 `a65f61242952bea358ce73c5e1d3c54ab002102566cbfa7cd4a06fd4f95df70d`, artifact `skepi-0.2.0-preview-vc5-4faad7c0e9cd-unsigned`; recipe in `docs/fdroid/org.skepi.app.yml` (only the 0.2.0-preview build, as for 0.1.2).
+- Open: owner steps (publish `packs-20261024`, tag, sign, signature-copy check, smoke test, publish, fdroiddata MR update); Crimea coverage decision to confirm.
 
 ## v0.2.0-preview: full country generation 2026-10-24 (branch `release/0.2.0-preview`, not merged)
 
