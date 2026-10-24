@@ -155,7 +155,7 @@ $pm = "$env:LOCALAPPDATA\skepi\cache\pmtiles-1.31.2\pmtiles.exe"
   --limit 1500000000 --pmtiles $pm --out catalog/regions
 & $py -I tools/catalog-builder/regions/make_regions.py regions --ne $ne --out catalog/regions
 # Every country's extracts and language (Geofabrik index-v1.json and CLDR territoryInfo.json, pinned in the script):
-& $py -I tools/catalog-builder/regions/sources_all.py --geofabrik $env:TEMP\skepi\index-v1.json --cldr $env:TEMP\skepi	erritoryInfo.json --regions catalog/regions
+& $py -I tools/catalog-builder/regions/sources_all.py --geofabrik $env:TEMP\skepi\index-v1.json --cldr $env:TEMP\skepi\territoryInfo.json --regions catalog/regions
 node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts countries --all   # or --pilot, --iso GR,CY,…
 ```
 
