@@ -1,3 +1,4 @@
+import { distanceKm } from './regions';
 import { foldText } from './text';
 
 /**
@@ -106,6 +107,11 @@ export interface Place {
   importance: number;
   lat: number;
   lon: number;
+  /**
+   * OSM object (`n123`, `w45`, `r6`): the same object in two packs (border strips are in both
+   * countries' packs) is shown once.
+   */
+  osmKey?: string;
 }
 
 /** Shown in English with the local name beside it (architecture: names in English with local names). */
@@ -177,7 +183,10 @@ export function placesMatch(text: string): string | null {
 
 function rowToPlace(r: Record<string, unknown>): Place {
   const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
+  const osmType = str(r.osm_type);
+  const osmId = r.osm_id;
   return {
+    ...(osmType !== null && (typeof osmId === 'number' || typeof osmId === 'bigint') ? { osmKey: `${osmType}${String(osmId)}` } : {}),
     id: Number(r.id),
     name: typeof r.name === 'string' ? r.name : '',
     nameEn: str(r.name_en),
@@ -190,7 +199,7 @@ function rowToPlace(r: Record<string, unknown>): Place {
   };
 }
 
-const SELECT = 'p.id, p.name, p.name_en, p.name_local, p.category, p.kind, p.importance, p.lat, p.lon';
+const SELECT = 'p.id, p.osm_type, p.osm_id, p.name, p.name_en, p.name_local, p.category, p.kind, p.importance, p.lat, p.lon';
 /** FTS candidates read before re-ranking (exact names first, then importance). */
 const CANDIDATES = 200;
 
@@ -206,6 +215,11 @@ export async function searchPlaces(query: PlacesQuery, text: string, limit = 20)
       'WHERE places_fts MATCH ? ORDER BY bm25(places_fts), p.id LIMIT ?',
     [match, CANDIDATES],
   );
+  return rankPlaces(text, rows.map(rowToPlace)).slice(0, limit);
+}
+
+/** Search order: a folded name equal to the query, then a name starting with it, then importance. Stable. */
+export function rankPlaces<T extends Place>(text: string, places: readonly T[]): T[] {
   const q = foldText(text).replace(/\s+/g, ' ').trim();
   const rank = (p: Place): number => {
     const names = [p.name, p.nameEn, p.nameLocal].flatMap((n) => (n ? [foldText(n)] : []));
@@ -213,11 +227,29 @@ export async function searchPlaces(query: PlacesQuery, text: string, limit = 20)
     if (names.some((n) => n.startsWith(q))) return 1;
     return 2;
   };
-  return rows
-    .map((r, i) => ({ p: rowToPlace(r), i }))
+  return places
+    .map((p, i) => ({ p, i }))
     .sort((a, b) => rank(a.p) - rank(b.p) || b.p.importance - a.p.importance || a.i - b.i)
-    .slice(0, limit)
     .map((x) => x.p);
+}
+
+/**
+ * Places from several packs (one per installed country) as one list: the same OSM object once (the
+ * first pack that has it), in pack order. Search results are ranked again across packs.
+ */
+export function mergePlaces<T extends Place>(lists: readonly (readonly T[])[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const list of lists) {
+    for (const p of list) {
+      if (p.osmKey !== undefined) {
+        if (seen.has(p.osmKey)) continue;
+        seen.add(p.osmKey);
+      }
+      out.push(p);
+    }
+  }
+  return out;
 }
 
 export interface BBox {
@@ -244,6 +276,26 @@ export async function emergencyPois(
   return rows.map(rowToPlace);
 }
 
+/**
+ * Distance in km from a position to the nearest settlement of a places pack, within about
+ * `radiusKm` (null: none that near). Decides the country of a position where the bounding boxes of
+ * installed countries overlap (regions.ts countryAt); the position is used in memory only.
+ */
+export async function nearestSettlementKm(query: PlacesQuery, lat: number, lon: number, radiusKm = 50): Promise<number | null> {
+  const dLat = radiusKm / 111;
+  const dLon = Math.min(180, radiusKm / (111 * Math.max(0.05, Math.cos((lat * Math.PI) / 180))));
+  const rows = await query(
+    "SELECT p.lat, p.lon FROM places p WHERE p.category = 'settlement' AND p.lat BETWEEN ? AND ? AND p.lon BETWEEN ? AND ? LIMIT 2000",
+    [lat - dLat, lat + dLat, lon - dLon, lon + dLon],
+  );
+  let best: number | null = null;
+  for (const r of rows) {
+    const d = distanceKm(lat, lon, Number(r.lat), Number(r.lon));
+    if (Number.isFinite(d) && (best === null || d < best)) best = d;
+  }
+  return best !== null && best <= radiusKm ? best : null;
+}
+
 /** Reads the `meta` table (attribution, region, licence) of a places pack. */
 export async function readPlacesMeta(query: PlacesQuery): Promise<Partial<PlacesMeta>> {
   const rows = await query('SELECT key, value FROM meta', []);
@@ -252,16 +304,19 @@ export async function readPlacesMeta(query: PlacesQuery): Promise<Partial<Places
   return out;
 }
 
-/** GeoJSON for the POI layer (MapLibre source). */
+/**
+ * GeoJSON for the POI layer (MapLibre source). The feature id is the index in `pois` (row ids repeat
+ * across packs), so a tapped feature is `pois[id]`.
+ */
 export function poisToGeoJson(pois: readonly Place[]): {
   type: 'FeatureCollection';
   features: { type: 'Feature'; id: number; geometry: { type: 'Point'; coordinates: [number, number] }; properties: { category: string; title: string } }[];
 } {
   return {
     type: 'FeatureCollection',
-    features: pois.map((p) => ({
+    features: pois.map((p, i) => ({
       type: 'Feature',
-      id: p.id,
+      id: i,
       geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
       properties: { category: p.category, title: placeTitle(p).title },
     })),

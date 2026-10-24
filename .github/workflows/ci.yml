@@ -240,7 +240,7 @@ jobs:
         with:
           path: .cache/ifrc
           key: ifrc-guidelines-${{ hashFiles('packages/emergency-cards/src/sources.ts') }}
-      - name: Cards source check (IFRC PDF via pdftotext, CDC / Ready.gov snapshots)
+      - name: Cards source check (IFRC PDF via pdftotext, CDC / Ready.gov snapshots, emergency numbers)
         run: |
           sudo apt-get install -y -q poppler-utils
           node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts --cache-dir .cache/ifrc
@@ -255,6 +255,16 @@ jobs:
           cat gate.log
           if [ "$rc" -eq 0 ]; then echo "::error::the emergency-cards gate let an altered step through"; exit 1; fi
           grep -q "the card steps differ from the last passed cards-source-check" gate.log
+      - name: Release build must fail when an emergency number is not the source-checked one
+        run: |
+          sed -i.bak "s/police: '110'/police: '111'/" packages/emergency-cards/src/numbers.ts && rm packages/emergency-cards/src/numbers.ts.bak
+          git diff --quiet -- packages/emergency-cards/src/numbers.ts && { echo "::error::the number was not altered"; exit 1; }
+          rc=0
+          (cd apps/mobile/android && ./gradlew skepiCheckEmergencyCards --build-cache --console=plain) > gate.log 2>&1 || rc=$?
+          git checkout -- packages/emergency-cards/src/numbers.ts
+          cat gate.log
+          if [ "$rc" -eq 0 ]; then echo "::error::the emergency-cards gate let an altered emergency number through"; exit 1; fi
+          grep -q "the emergency numbers differ from the last passed cards-source-check" gate.log
       # Developer Preview mode (what ships): Gradle checks the JS bundle right after it is built
       # (skepiCheckCardsBundle -> tools/release-guards cards-bundle): no unsourced card text, every sourced step.
       # Unsigned (-PskepiUnsigned=true): CI holds no key, not even the debug key; the reproducible APK that
@@ -454,6 +464,17 @@ jobs:
           cat gate.log
           if [ "$rc" -eq 0 ]; then echo "::error::the emergency-cards gate let an altered step through"; exit 1; fi
           grep -q "the card steps differ from the last passed cards-source-check" gate.log
+      - name: Release build must fail when an emergency number is not the source-checked one
+        run: |
+          sed -i.bak "s/police: '110'/police: '111'/" packages/emergency-cards/src/numbers.ts && rm packages/emergency-cards/src/numbers.ts.bak
+          git diff --quiet -- packages/emergency-cards/src/numbers.ts && { echo "::error::the number was not altered"; exit 1; }
+          rc=0
+          CONFIGURATION=Release TARGET_BUILD_DIR="$RUNNER_TEMP/gate" UNLOCALIZED_RESOURCES_FOLDER_PATH=SKEPI.app \
+            bash apps/mobile/plugins/ios/skepi-xcode.sh resources > gate.log 2>&1 || rc=$?
+          git checkout -- packages/emergency-cards/src/numbers.ts
+          cat gate.log
+          if [ "$rc" -eq 0 ]; then echo "::error::the emergency-cards gate let an altered emergency number through"; exit 1; fi
+          grep -q "the emergency numbers differ from the last passed cards-source-check" gate.log
       - name: xcodebuild Release for the Simulator (unsigned, Developer Preview)
         id: build
         run: |

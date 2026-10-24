@@ -20,10 +20,15 @@ import { Button, useStyles } from './ui';
 
 const SERVICE_ORDER: readonly ServiceKind[] = ['ambulance', 'fire', 'police', 'coastGuard', 'poison'];
 
-/** Emergency numbers for the country chosen at onboarding (112 default when unknown). */
+/**
+ * Emergency numbers: the country of the current position on the map when an installed country
+ * contains it (global maps), else the country chosen at onboarding or in Maps & places (112 default
+ * when unknown).
+ */
 export function useEmergencyNumbers() {
   const country = usePrefs((s) => s.country);
-  return numbersFor(country);
+  const positionCountry = usePrefs((s) => s.positionCountry);
+  return { ...numbersFor(positionCountry ?? country), fromPosition: positionCountry !== null };
 }
 
 function dial(number: string): void {
@@ -64,7 +69,11 @@ export function EmergencyNumbers({ compact = false }: { compact?: boolean }) {
           />
         ))}
       {!numbers.known && <Text style={styles.bannerBody}>{t.emergency.defaultNumber}</Text>}
-      {!compact && name && <Text style={styles.bannerBody}>{t.emergency.country(name)}</Text>}
+      {!compact && name && (
+        <Text style={styles.bannerBody} testID="emergency-country">
+          {numbers.fromPosition ? t.emergency.fromPosition(name) : t.emergency.country(name)}
+        </Text>
+      )}
       {!compact && <Text style={styles.bannerBody}>{t.emergency.noGuarantee}</Text>}
     </View>
   );

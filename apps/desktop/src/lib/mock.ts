@@ -4,7 +4,7 @@
  * fixed corpus, a scripted model whose answer is copied from its source (so core's citation checks
  * pass), fixture places, and a recorder that the tests read (`window.__skepiMock`).
  */
-import type { Backend, ContentState, OpenArchive, PackRow, Row, Stream } from './ipc';
+import type { Backend, CatalogPackJson, ContentState, OpenArchive, PackRow, Row, Stream } from './ipc';
 
 interface Article {
   path: string;
@@ -57,10 +57,51 @@ const PACKS: PackRow[] = [
   { id: 'local-0123456789ab', kind: 'zim', version: 'unverified', title: 'imported.zim', path: 'C:/content/zim/import-0123.zim', sizeBytes: 1000, sha256: SHA('e'), verified: false, catalogSeq: null, license: null, source: 'import', consentAt: null, installedAt: 1, lastOpenedAt: null },
 ];
 
-const CATALOG_PACKS = [
+const CY = { iso2: 'CY', name: 'Cyprus', bbox: [32.2225, 34.5224, 34.642, 35.7405] as [number, number, number, number], center: [33.0842, 34.9133] as [number, number] };
+const GR = { iso2: 'GR', name: 'Greece', bbox: [19.5766, 34.7666, 28.2898, 41.7996] as [number, number, number, number], center: [21.7257, 39.4928] as [number, number] };
+const DE = { iso2: 'DE', name: 'Germany', bbox: [5.8039, 47.2213, 15.0715, 55.1147] as [number, number, number, number], center: [9.6783, 50.9617] as [number, number] };
+// Two of Germany's six parts (catalog/regions/index.json).
+const DE_BAVARIA = {
+  ...DE,
+  part: { id: 'bavaria', name: 'Bavaria, Thuringia', regions: ['Thuringia', 'Bavaria', 'Thüringen', 'Bayern'], bbox: [8.9301, 47.2246, 13.8665, 51.6874] as [number, number, number, number] },
+};
+const DE_HESSE = {
+  ...DE,
+  part: { id: 'hesse', name: 'Hesse, Rhineland-Palatinate', regions: ['Hesse', 'Rhineland-Palatinate', 'Hessen', 'Rheinland-Pfalz'], bbox: [6.0502, 48.9088, 10.28, 51.7047] as [number, number, number, number] },
+};
+
+/** A country map or places pack of a schema 2 catalog (global maps). */
+const regional = (id: string, kind: 'pmtiles' | 'places', sizeBytes: number, region: NonNullable<CatalogPackJson['region']>, sha: string): CatalogPackJson => ({
+  id,
+  kind,
+  version: '2026-10-22',
+  file: `${id}-20261022.${kind === 'pmtiles' ? 'pmtiles' : 'sqlite'}`,
+  title: { en: `${kind === 'pmtiles' ? 'Map' : 'Places and emergency points'}: ${region.name}` },
+  lang: ['en'],
+  sizeBytes,
+  sha256: SHA(sha),
+  chunkSize: 67108864,
+  chunkSha256: [SHA(sha)],
+  urls: [`https://github.com/Fiouri/skepi/releases/download/packs-20261022/${id}-20261022`],
+  license: 'ODbL-1.0',
+  attribution: '© OpenStreetMap contributors',
+  minTier: 'T0',
+  tags: [kind === 'pmtiles' ? 'map' : 'places', `region:${region.iso2}`],
+  region,
+});
+
+const CATALOG_PACKS: CatalogPackJson[] = [
+  regional('map-cy', 'pmtiles', 55_924_719, CY, '1'),
+  regional('places-cy', 'places', 520_192, CY, '2'),
+  // A newer Greece map than the installed one (an update) and the installed places pack.
+  regional('map-gr', 'pmtiles', 509_905_529, GR, '3'),
+  regional('places-gr', 'places', 5_292_032, GR, 'd'),
+  regional('map-de-bavaria', 'pmtiles', 1_300_000_000, DE_BAVARIA, '4'),
+  regional('map-de-hesse', 'pmtiles', 802_000_000, DE_HESSE, '5'),
+  regional('places-de', 'places', 43_900_000, DE, '6'),
   {
     id: 'wikipedia_en_medicine_mini',
-    kind: 'zim' as const,
+    kind: 'zim',
     version: '2026-04',
     file: 'wikipedia_en_medicine_mini_2026-04.zim',
     title: { en: 'WikiMed (mini)' },
@@ -213,7 +254,11 @@ export function mockBackend(): Backend {
       ] as const) {
         sink.onmessage({ packId: id, phase, bytes, totalBytes: entry.sizeBytes, mirror: 0, rejectedMirrors: 0, error: null });
       }
-      const row: PackRow = { id, kind: 'zim', version: entry.version, title: entry.title.en, path: `C:/content/zim/${entry.file}`, sizeBytes: entry.sizeBytes, sha256: entry.sha256, verified: true, catalogSeq: 3, license: entry.license, source: 'download', consentAt: null, installedAt: 2, lastOpenedAt: null };
+      const folder = entry.kind === 'zim' ? 'zim' : entry.kind === 'gguf' ? 'models' : 'maps';
+      const row: PackRow = { id, kind: entry.kind, version: entry.version, title: entry.title.en, path: `C:/content/${folder}/${entry.file}`, sizeBytes: entry.sizeBytes, sha256: entry.sha256, verified: true, catalogSeq: 3, license: entry.license, source: 'download', consentAt: null, installedAt: 2, lastOpenedAt: null };
+      // An update replaces the installed version of the pack.
+      const old = packs.findIndex((p) => p.id === id);
+      if (old >= 0) packs.splice(old, 1);
       packs.push(row);
       return row;
     },

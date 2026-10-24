@@ -1,0 +1,279 @@
+# Global maps (decision 2026-10-23): two pilot countries and one part of a split one from the local HTTPS
+# test mirror, then offline.
+# Run by e2e/run-countries-e2e.ps1 (debug build org.skepi.app.dev with the test keys; the runner signs a
+# schema 2 test catalog, sequence 5, naming the Cyprus and Greece packs and Japan's Kanto part with the
+# Japan places pack, built by tools/catalog-builder, and serves them at https://127.0.0.1:8443/maps/
+# through adb reverse). Wi-Fi on for the downloads.
+# 1. Catalog update to the countries catalog; Packs → Maps & places: search, download Cyprus and Greece;
+#    "Tokyo" finds Japan and singles out its Kanto part, which is downloaded alone (with Japan's places)
+#    (each pack hashed against the signed catalog before it is installed).
+# 2. Airplane mode: places of the three countries in the home search, the map with every pack, the
+#    emergency POI layer in each.
+# 3. Delete Cyprus: its places are gone, Greece still works. Delete the Kanto part (Japan's last part:
+#    its places go with it).
+appId: ${APP_ID}
+name: SKEPI global maps (two countries from the local mirror, then offline)
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runScript:
+    file: mirror-mode.js
+    env:
+      MODE: countries
+- setAirplaneMode: disabled
+- launchApp:
+    clearState: true
+    stopApp: true
+- runFlow: app-ready.yaml
+- tapOn:
+    id: tab-library
+- extendedWaitUntil:
+    visible:
+      id: catalog-info
+      text: "Signed catalog 3 · test keys.*"
+    timeout: 30000
+- tapOn:
+    id: catalog-update
+- extendedWaitUntil:
+    visible:
+      id: message-catalog
+      text: "Catalog updated to 5"
+    timeout: 60000
+
+# 1. Maps & places
+- tapOn:
+    id: library-maps
+- extendedWaitUntil:
+    visible:
+      id: maps-screen
+    timeout: 10000
+- tapOn:
+    id: maps-search
+- inputText: cypr
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: country-status-CY
+      text: "Not installed.*"
+    timeout: 10000
+- assertNotVisible:
+    id: country-GR
+- takeScreenshot: e2e/out/countries-01-search
+- tapOn:
+    id: country-download-CY
+- extendedWaitUntil:
+    visible:
+      id: country-status-CY
+      text: "Installed.*"
+    timeout: 300000
+- takeScreenshot: e2e/out/countries-02-cyprus
+- tapOn:
+    id: maps-search
+- eraseText: 20
+- inputText: Greece
+- hideKeyboard
+- tapOn:
+    id: country-download-GR
+- extendedWaitUntil:
+    visible:
+      id: country-status-GR
+      text: "Installed.*"
+    timeout: 900000
+- tapOn:
+    id: country-select-GR
+- assertVisible:
+    id: country-selected-GR
+- takeScreenshot: e2e/out/countries-03-greece
+# One part of a split country: a subdivision finds it.
+- tapOn:
+    id: maps-search
+- eraseText: 20
+- inputText: Tokyo
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: country-part-match-map-jp-kanto
+      text: "Includes Tokyo"
+    timeout: 10000
+- assertVisible:
+    id: country-status-JP
+    text: "Not installed.*"
+- assertVisible: "Download all parts.*"
+- takeScreenshot: e2e/out/countries-03b-japan-parts
+- tapOn:
+    id: country-part-map-jp-kanto
+- extendedWaitUntil:
+    visible:
+      id: country-status-JP
+      text: "Partly installed.*"
+    timeout: 900000
+- assertVisible:
+    id: country-part-delete-map-jp-kanto
+- takeScreenshot: e2e/out/countries-03c-kanto
+- back
+
+# 2. Offline: places, map and emergency points of both countries
+- setAirplaneMode: enabled
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- inputText: Nicosia
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Nicosia.*"
+    timeout: 15000
+- tapOn:
+    id: search-input
+- eraseText: 20
+- inputText: Patras
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Patras.*"
+    timeout: 15000
+- takeScreenshot: e2e/out/countries-04-places
+- tapOn:
+    id: place-result-0
+- extendedWaitUntil:
+    visible:
+      id: map-status
+      text: "Map ready.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: poi-count
+      text: "[1-9][0-9]* emergency points? in view"
+    timeout: 30000
+- takeScreenshot: e2e/out/countries-05-map-greece
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- eraseText: 20
+- inputText: Nicosia
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Nicosia.*"
+    timeout: 15000
+- tapOn:
+    id: place-result-0
+- extendedWaitUntil:
+    visible:
+      id: map-status
+      text: "Map ready.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: poi-count
+      text: "[1-9][0-9]* emergency points? in view"
+    timeout: 30000
+- assertVisible:
+    id: map-attribution
+    text: ".*OpenStreetMap contributors.*"
+- takeScreenshot: e2e/out/countries-06-map-cyprus
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- eraseText: 20
+- inputText: Yokohama
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Yokohama.*"
+    timeout: 15000
+- tapOn:
+    id: place-result-0
+- extendedWaitUntil:
+    visible:
+      id: map-status
+      text: "Map ready.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: poi-count
+      text: "[1-9][0-9]* emergency points? in view"
+    timeout: 30000
+- takeScreenshot: e2e/out/countries-06b-map-kanto
+
+# 3. Delete Cyprus: Greece stays
+- tapOn:
+    id: tab-library
+- tapOn:
+    id: library-maps
+- tapOn:
+    id: maps-search
+- inputText: cypr
+- hideKeyboard
+- tapOn:
+    id: country-delete-CY
+- tapOn: Delete
+- extendedWaitUntil:
+    visible:
+      id: country-status-CY
+      text: "Not installed.*"
+    timeout: 30000
+- takeScreenshot: e2e/out/countries-07-deleted
+- back
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- eraseText: 20
+- inputText: Nicosia
+- hideKeyboard
+# No places pack names Nicosia any more (the only results were Cyprus places).
+- extendedWaitUntil:
+    notVisible:
+      id: place-result-0
+    timeout: 10000
+- tapOn:
+    id: search-input
+- eraseText: 20
+- inputText: Patras
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: place-result-0
+      text: ".*Patras.*"
+    timeout: 15000
+- takeScreenshot: e2e/out/countries-08-greece-left
+
+# 4. Delete the Kanto part: Japan's last part, its places go with it.
+- tapOn:
+    id: tab-library
+- tapOn:
+    id: library-maps
+- tapOn:
+    id: maps-search
+- eraseText: 20
+- inputText: Japan
+- hideKeyboard
+- tapOn:
+    id: country-part-delete-map-jp-kanto
+- tapOn: Delete part
+- extendedWaitUntil:
+    visible:
+      id: country-status-JP
+      text: "Not installed.*"
+    timeout: 30000
+- takeScreenshot: e2e/out/countries-09-kanto-deleted
+- back
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- eraseText: 20
+- inputText: Yokohama
+- hideKeyboard
+- extendedWaitUntil:
+    notVisible:
+      id: place-result-0
+    timeout: 10000

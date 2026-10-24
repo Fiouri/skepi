@@ -14,12 +14,17 @@ use sha2::{Digest, Sha256};
 use std::sync::LazyLock;
 
 pub const CATALOG_SCHEMA: u64 = 1;
+/// Schema 2 (global maps, 2026-10-23): map and places packs may carry `region`. Older apps reject it
+/// as a whole and keep their catalog (catalog.ts `CATALOG_SCHEMA_REGIONS`).
+pub const CATALOG_SCHEMA_REGIONS: u64 = 2;
 pub const KEY_LIST_SCHEMA: u64 = 1;
 pub const CATALOG_CHUNK_SIZE: u64 = 64 * 1024 * 1024;
 
 static HEX64: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[0-9a-f]{64}$").expect("regex"));
 static PACK_ID: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-z0-9][a-z0-9._-]{1,79}$").expect("regex"));
 static KEY_ID: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-z0-9][a-z0-9._-]{0,63}$").expect("regex"));
+static ISO2: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Z]{2}$").expect("regex"));
+static PART_ID: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-z0-9][a-z0-9-]{0,31}$").expect("regex"));
 static FILE_NAME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$").expect("regex"));
 static DOWNLOAD_URL: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^https://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(:\d{1,5})?(/[A-Za-z0-9._~!$&'()*+,;=:%/-]*)?$").expect("regex")
@@ -82,6 +87,33 @@ pub struct Title {
     pub el: Option<String>,
 }
 
+/// One part of a country split into several map packs: the first-level subdivisions it covers
+/// (`regions`: English and local names, for search) and its own bounding box.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegionPart {
+    pub id: String,
+    pub name: String,
+    pub regions: Vec<String>,
+    pub bbox: [f64; 4],
+}
+
+/// At most this many subdivision names per part (Italy: 110 provinces), as in catalog.ts.
+const PART_REGIONS_MAX: usize = 500;
+
+/// The country of a map or places pack (schema 2). `bbox` is west, south, east, north; west > east
+/// crosses the antimeridian. `center` is longitude, latitude.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackRegion {
+    pub iso2: String,
+    pub name: String,
+    pub bbox: [f64; 4],
+    pub center: [f64; 2],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub part: Option<RegionPart>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogPack {
@@ -100,6 +132,8 @@ pub struct CatalogPack {
     pub attribution: String,
     pub min_tier: String,
     pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub region: Option<PackRegion>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -286,9 +320,77 @@ const PACK_FIELDS: &[&str] = &[
     "tags",
 ];
 
-fn parse_pack(v: &Value, path: &str) -> Result<CatalogPack, String> {
+fn coordinate(v: Option<&Value>, path: &str, limit: f64) -> Result<f64, String> {
+    match v.and_then(Value::as_f64) {
+        Some(n) if n.is_finite() && n.abs() <= limit => Ok(n),
+        _ => Err(format!("{path}: invalid")),
+    }
+}
+
+fn parse_bbox(v: Option<&Value>, path: &str) -> Result<[f64; 4], String> {
+    let a = match v.and_then(Value::as_array) {
+        Some(a) if a.len() == 4 => a,
+        _ => return Err(format!("{path}: expected [west, south, east, north]")),
+    };
+    let bbox = [
+        coordinate(a.first(), &format!("{path}[0]"), 180.0)?,
+        coordinate(a.get(1), &format!("{path}[1]"), 90.0)?,
+        coordinate(a.get(2), &format!("{path}[2]"), 180.0)?,
+        coordinate(a.get(3), &format!("{path}[3]"), 90.0)?,
+    ];
+    if bbox[0] == bbox[2] || bbox[1] >= bbox[3] {
+        return Err(format!("{path}: expected west ≠ east and south < north"));
+    }
+    Ok(bbox)
+}
+
+fn parse_part(v: &Value, path: &str) -> Result<RegionPart, String> {
+    let o = v.as_object().ok_or_else(|| format!("{path}: expected an object"))?;
+    no_extra_keys(o, &["id", "name", "regions", "bbox"], path)?;
+    let list = match o.get("regions").and_then(Value::as_array) {
+        Some(a) if !a.is_empty() && a.len() <= PART_REGIONS_MAX => a,
+        _ => return Err(format!("{path}.regions: expected 1–{PART_REGIONS_MAX} names")),
+    };
+    let regions = list
+        .iter()
+        .enumerate()
+        .map(|(i, r)| text(Some(r), &format!("{path}.regions[{i}]"), None).map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(RegionPart {
+        id: text(o.get("id"), &format!("{path}.id"), Some(&PART_ID))?.to_owned(),
+        name: text(o.get("name"), &format!("{path}.name"), None)?.to_owned(),
+        regions,
+        bbox: parse_bbox(o.get("bbox"), &format!("{path}.bbox"))?,
+    })
+}
+
+fn parse_region(v: &Value, path: &str) -> Result<PackRegion, String> {
     let o = obj(v, path)?;
-    no_extra_keys(o, PACK_FIELDS, path)?;
+    no_extra_keys(o, &["iso2", "name", "bbox", "center", "part"], path)?;
+    let bbox = parse_bbox(o.get("bbox"), &format!("{path}.bbox"))?;
+    let center_v = match o.get("center").and_then(Value::as_array) {
+        Some(a) if a.len() == 2 => a,
+        _ => return Err(format!("{path}.center: expected [longitude, latitude]")),
+    };
+    let center = [
+        coordinate(center_v.first(), &format!("{path}.center[0]"), 180.0)?,
+        coordinate(center_v.get(1), &format!("{path}.center[1]"), 90.0)?,
+    ];
+    let iso2 = text(o.get("iso2"), &format!("{path}.iso2"), Some(&ISO2))?.to_owned();
+    let name = text(o.get("name"), &format!("{path}.name"), None)?.to_owned();
+    let part = o.get("part").map(|p| parse_part(p, &format!("{path}.part"))).transpose()?;
+    Ok(PackRegion { iso2, name, bbox, center, part })
+}
+
+fn parse_pack(v: &Value, path: &str, schema: u64) -> Result<CatalogPack, String> {
+    let o = obj(v, path)?;
+    if schema == CATALOG_SCHEMA_REGIONS {
+        let mut fields = PACK_FIELDS.to_vec();
+        fields.push("region");
+        no_extra_keys(o, &fields, path)?;
+    } else {
+        no_extra_keys(o, PACK_FIELDS, path)?;
+    }
     let kind = o.get("kind").and_then(Value::as_str).and_then(PackKind::parse).ok_or_else(|| format!("{path}.kind: invalid"))?;
     let file = text(o.get("file"), &format!("{path}.file"), Some(&FILE_NAME))?;
     if !file.to_ascii_lowercase().ends_with(kind.extension()) {
@@ -325,33 +427,53 @@ fn parse_pack(v: &Value, path: &str) -> Result<CatalogPack, String> {
         Some(t @ ("T0" | "T1" | "T2" | "T3")) => t.to_owned(),
         _ => return Err(format!("{path}.minTier: invalid")),
     };
+    let id = text(o.get("id"), &format!("{path}.id"), Some(&PACK_ID))?.to_owned();
+    let version = text(o.get("version"), &format!("{path}.version"), None)?.to_owned();
+    let lang = strings(o.get("lang"), &format!("{path}.lang"), 1)?;
+    let sha256 = text(o.get("sha256"), &format!("{path}.sha256"), Some(&HEX64))?.to_owned();
+    let license = text(o.get("license"), &format!("{path}.license"), None)?.to_owned();
+    let attribution = text(o.get("attribution"), &format!("{path}.attribution"), None)?.to_owned();
+    let tags = strings(o.get("tags"), &format!("{path}.tags"), 0)?;
+    let region = match o.get("region") {
+        None => None,
+        Some(r) => {
+            if kind != PackKind::Pmtiles && kind != PackKind::Places {
+                return Err(format!("{path}.region: only map and places packs have a region"));
+            }
+            Some(parse_region(r, &format!("{path}.region"))?)
+        }
+    };
     Ok(CatalogPack {
-        id: text(o.get("id"), &format!("{path}.id"), Some(&PACK_ID))?.to_owned(),
+        id,
         kind,
-        version: text(o.get("version"), &format!("{path}.version"), None)?.to_owned(),
+        version,
         file: file.to_owned(),
         title,
-        lang: strings(o.get("lang"), &format!("{path}.lang"), 1)?,
+        lang,
         size_bytes,
-        sha256: text(o.get("sha256"), &format!("{path}.sha256"), Some(&HEX64))?.to_owned(),
+        sha256,
         chunk_size,
         chunk_sha256,
         urls,
-        license: text(o.get("license"), &format!("{path}.license"), None)?.to_owned(),
-        attribution: text(o.get("attribution"), &format!("{path}.attribution"), None)?.to_owned(),
+        license,
+        attribution,
         min_tier,
-        tags: strings(o.get("tags"), &format!("{path}.tags"), 0)?,
+        tags,
+        region,
     })
 }
 
 pub fn parse_catalog(data: &Value) -> Result<Catalog, String> {
     let o = obj(data, "catalog")?;
     no_extra_keys(o, &["schema", "sequence", "issuedAt", "keyId", "packs"], "catalog")?;
-    if o.get("schema").and_then(Value::as_f64) != Some(CATALOG_SCHEMA as f64) {
-        return Err(format!("catalog.schema: expected {CATALOG_SCHEMA}"));
-    }
+    let schema = match o.get("schema").and_then(Value::as_f64) {
+        Some(n) if n == CATALOG_SCHEMA as f64 => CATALOG_SCHEMA,
+        Some(n) if n == CATALOG_SCHEMA_REGIONS as f64 => CATALOG_SCHEMA_REGIONS,
+        _ => return Err(format!("catalog.schema: expected {CATALOG_SCHEMA} or {CATALOG_SCHEMA_REGIONS}")),
+    };
     let packs_v = o.get("packs").and_then(Value::as_array).ok_or("catalog.packs: expected an array")?;
-    let packs = packs_v.iter().enumerate().map(|(i, p)| parse_pack(p, &format!("catalog.packs[{i}]"))).collect::<Result<Vec<_>, _>>()?;
+    let packs =
+        packs_v.iter().enumerate().map(|(i, p)| parse_pack(p, &format!("catalog.packs[{i}]"), schema)).collect::<Result<Vec<_>, _>>()?;
     let mut ids = std::collections::HashSet::new();
     let mut files = std::collections::HashSet::new();
     for p in &packs {
@@ -363,7 +485,7 @@ pub fn parse_catalog(data: &Value) -> Result<Catalog, String> {
         }
     }
     Ok(Catalog {
-        schema: CATALOG_SCHEMA,
+        schema,
         sequence: int(o.get("sequence"), "catalog.sequence", 1)?,
         issued_at: text(o.get("issuedAt"), "catalog.issuedAt", None)?.to_owned(),
         key_id: text(o.get("keyId"), "catalog.keyId", Some(&KEY_ID))?.to_owned(),
@@ -576,6 +698,73 @@ mod tests {
         let r = verify_catalog(body.as_bytes(), &signed(&sk, &body), &[tk], &SequenceState::default()).unwrap_err();
         assert_eq!(r.reason, Rejection::Schema);
         assert!(r.detail.contains("urls[0]"), "{}", r.detail);
+    }
+
+    fn region_catalog(schema: u64, region: &str, kind: &str, file: &str) -> String {
+        let chunk = "a".repeat(64);
+        format!(
+            r#"{{"schema":{schema},"sequence":3,"issuedAt":"2026-10-23T00:00:00Z","keyId":"k-1","packs":[{{"id":"map-cy","kind":"{kind}","version":"2026-10-22","file":"{file}","title":{{"en":"Map: Cyprus"}},"lang":["en"],"sizeBytes":10,"sha256":"{chunk}","chunkSize":67108864,"chunkSha256":["{chunk}"],"urls":["https://example.org/{file}"],"license":"ODbL-1.0","attribution":"x","minTier":"T0","tags":["map"],"region":{region}}}]}}"#
+        )
+    }
+
+    fn verify_region(schema: u64, region: &str, kind: &str, file: &str) -> Result<Catalog, String> {
+        let (sk, tk) = key(1);
+        let body = region_catalog(schema, region, kind, file);
+        verify_catalog(body.as_bytes(), &signed(&sk, &body), &[tk], &SequenceState::default())
+            .map(|v| v.value)
+            .map_err(|r| format!("{}: {}", r.reason.as_str(), r.detail))
+    }
+
+    const CY: &str = r#"{"iso2":"CY","name":"Cyprus","bbox":[32.2225,34.5224,34.642,35.7405],"center":[33.0842,34.9133]}"#;
+
+    #[test]
+    fn schema_2_regions_like_catalog_ts() {
+        let c = verify_region(2, CY, "pmtiles", "map-cy.pmtiles").expect("valid schema 2");
+        assert_eq!(c.schema, 2);
+        let r = c.packs[0].region.as_ref().expect("region");
+        assert_eq!(
+            (r.iso2.as_str(), r.name.as_str(), r.bbox, r.center, r.part.clone()),
+            ("CY", "Cyprus", [32.2225, 34.5224, 34.642, 35.7405], [33.0842, 34.9133], None)
+        );
+        let us = r#"{"iso2":"US","name":"United States of America","bbox":[172.4262,18.8564,-66.9282,71.4605],"center":[-97.4826,39.5385],"part":{"id":"alaska","name":"Alaska, Oregon","regions":["Alaska","Oregon"],"bbox":[172.4262,41.9,-116.4,71.4605]}}"#;
+        assert_eq!(
+            verify_region(2, us, "pmtiles", "map-us-alaska.pmtiles").expect("part").packs[0].region.as_ref().and_then(|r| r.part.clone()),
+            Some(RegionPart {
+                id: "alaska".into(),
+                name: "Alaska, Oregon".into(),
+                regions: vec!["Alaska".into(), "Oregon".into()],
+                bbox: [172.4262, 41.9, -116.4, 71.4605]
+            })
+        );
+        let part = r#""part":{"id":"west","name":"West","regions":["West"],"bbox":[32,34,33,35]}"#;
+        assert!(verify_region(2, &CY.replace("}", &format!(",{part}}}")), "pmtiles", "map-cy.pmtiles").is_ok());
+        let many = (0..501).map(|i| format!("\"R{i}\"")).collect::<Vec<_>>().join(",");
+        for bad_part in [
+            r#""part":{"id":"West","name":"West","regions":["West"],"bbox":[32,34,33,35]}"#.to_owned(),
+            r#""part":{"id":"west","name":"West"}"#.to_owned(),
+            r#""part":{"id":"west","name":"West","regions":[],"bbox":[32,34,33,35]}"#.to_owned(),
+            r#""part":{"id":"west","name":"West","regions":[""],"bbox":[32,34,33,35]}"#.to_owned(),
+            format!(r#""part":{{"id":"west","name":"West","regions":[{many}],"bbox":[32,34,33,35]}}"#),
+            r#""part":{"id":"west","name":"West","regions":["West"],"bbox":[32,35,33,34]}"#.to_owned(),
+            r#""part":{"id":"west","name":"West","regions":["West"],"bbox":[32,34,33,35],"extra":1}"#.to_owned(),
+        ] {
+            let bad = CY.replace("}", &format!(",{bad_part}}}"));
+            assert!(verify_region(2, &bad, "pmtiles", "map-cy.pmtiles").unwrap_err().starts_with("schema"), "{bad}");
+        }
+        assert!(verify_region(1, CY, "pmtiles", "map-cy.pmtiles").unwrap_err().contains("unexpected field(s) region"));
+        assert!(verify_region(3, CY, "pmtiles", "map-cy.pmtiles").unwrap_err().contains("catalog.schema: expected 1 or 2"));
+        assert!(verify_region(2, CY, "zim", "w.zim").unwrap_err().contains("only map and places packs"));
+        for bad in [
+            CY.replace("\"CY\"", "\"cy\""),
+            CY.replace("[32.2225,34.5224,34.642,35.7405]", "[32,34,34]"),
+            CY.replace("[32.2225,34.5224,34.642,35.7405]", "[32,36,34,35]"),
+            CY.replace("[32.2225,34.5224,34.642,35.7405]", "[32,34,32,35]"),
+            CY.replace("[32.2225,34.5224,34.642,35.7405]", "[190,34,34,35]"),
+            CY.replace("[33.0842,34.9133]", "[33]"),
+            CY.replace("}", r#","extra":true}"#),
+        ] {
+            assert!(verify_region(2, &bad, "pmtiles", "map-cy.pmtiles").unwrap_err().starts_with("schema"), "{bad}");
+        }
     }
 
     #[test]

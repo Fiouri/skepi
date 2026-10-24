@@ -1,5 +1,5 @@
 import type { InstalledPack } from '@skepi/contracts';
-import type { CatalogPack } from '@skepi/core';
+import { packRegion, type CatalogPack } from '@skepi/core';
 import { getDocumentAsync } from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -53,7 +53,8 @@ export default function LibraryScreen() {
 
   const catalog = catalogState?.catalog ?? null;
   const installedIds = new Set(packs.map((p) => p.id));
-  const available = (catalog?.packs ?? []).filter((p) => !installedIds.has(p.id));
+  // Country map and places packs are offered per country in Maps & places.
+  const available = (catalog?.packs ?? []).filter((p) => !installedIds.has(p.id) && packRegion(p) === null);
 
   const download = async (entry: CatalogPack): Promise<void> => {
     const space = contentStore.freeSpace(entry.sizeBytes);
@@ -159,6 +160,10 @@ export default function LibraryScreen() {
             <Button testID="library-receive" label={t.transfer.receive} onPress={() => { router.push('/receive'); }} disabled={busy} />
           </>
         ) : null}
+      </View>
+      <View style={{ gap: 4 }}>
+        <Button testID="library-maps" label={t.library.mapsAndPlaces} hint={t.library.mapsAndPlacesHint} onPress={() => { router.push('/maps'); }} />
+        <Text style={styles.muted}>{t.library.mapsAndPlacesHint}</Text>
       </View>
       <View style={{ gap: 4 }}>
         <Text style={styles.mono} testID="catalog-info">

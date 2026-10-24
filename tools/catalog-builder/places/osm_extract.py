@@ -7,7 +7,10 @@ POIs are written: the exact classification lives in @skepi/core (classifyOsm), u
 builder (tools/catalog-builder/src/places.ts). Output order follows the PBF (nodes, ways, relations;
 ascending ids), so a given extract always produces the same file.
 
-usage: python osm_extract.py <extract.osm.pbf> <out.ndjson> --locale el
+With --boundary <region.geojson> (catalog/regions), only objects whose position lies inside the region
+are written (shapely), so a country's places pack covers the same area as its map pack.
+
+usage: python -I osm_extract.py <extract.osm.pbf> <out.ndjson> --locale el [--boundary catalog/regions/gr.geojson]
 """
 
 import argparse
@@ -54,14 +57,29 @@ def mean(locations):
     return (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
 
 
+def load_boundary(path: str):
+    """The region polygon, prepared for fast point tests (shapely is imported only when needed)."""
+    import shapely
+    from shapely.geometry import shape
+
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    geom = shape(data["geometry"] if data.get("type") == "Feature" else data)
+    shapely.prepare(geom)
+    return lambda lat, lon: bool(shapely.contains_xy(geom, lon, lat))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("pbf")
     ap.add_argument("out")
     ap.add_argument("--locale", required=True)
+    ap.add_argument("--boundary")
     args = ap.parse_args()
     locale_key = f"name:{args.locale}"
+    inside = load_boundary(args.boundary) if args.boundary else None
     written = 0
+    outside = 0
     # Areas only for relations: closed ways are handled as ways (one object, one row).
     fp = osmium.FileProcessor(args.pbf).with_locations().with_areas(osmium.filter.EntityFilter(osmium.osm.RELATION))
     with open(args.out, "w", encoding="utf-8", newline="\n") as out:
@@ -86,11 +104,14 @@ def main() -> int:
                 continue
             if at is None:
                 continue
+            if inside is not None and not inside(at[0], at[1]):
+                outside += 1
+                continue
             row = {"t": kind, "id": oid, "lat": round(at[0], 7), "lon": round(at[1], 7), "tags": kept(tags, locale_key)}
             out.write(json.dumps(row, ensure_ascii=False, sort_keys=True))
             out.write("\n")
             written += 1
-    print(f"{written} candidate objects -> {args.out}", file=sys.stderr)
+    print(f"{written} candidate objects -> {args.out} ({outside} outside the boundary)", file=sys.stderr)
     return 0
 
 

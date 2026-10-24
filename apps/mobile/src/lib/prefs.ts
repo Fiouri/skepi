@@ -22,6 +22,11 @@ interface PrefsState {
   locale: UiLocaleSetting;
   /** ISO 3166-1 alpha-2; null until chosen (the dataset's 112 default applies). */
   country: string | null;
+  /**
+   * Country of the last position on the map among the installed countries (global maps): memory
+   * only, never stored or sent; it decides the emergency numbers while known.
+   */
+  positionCountry: string | null;
   budgetGb: number | null;
   blackout: boolean;
   /** Developer flag: the frozen Greek UI (English-only until v1; off by default in every build). */
@@ -29,6 +34,7 @@ interface PrefsState {
   load: () => Promise<void>;
   setLocale: (locale: UiLocaleSetting) => void;
   setCountry: (country: string) => void;
+  setPositionCountry: (country: string | null) => void;
   setBudgetGb: (gb: number) => void;
   setBlackout: (on: boolean) => void;
   setGreekUi: (on: boolean) => void;
@@ -54,6 +60,7 @@ export const usePrefs = create<PrefsState>((set) => ({
   disclaimerAcceptedAt: null,
   locale: 'system',
   country: null,
+  positionCountry: null,
   budgetGb: null,
   blackout: false,
   greekUi: false,
@@ -98,6 +105,9 @@ export const usePrefs = create<PrefsState>((set) => ({
   setCountry: (country) => {
     set({ country });
     persist('region.country', country);
+  },
+  setPositionCountry: (positionCountry) => {
+    set({ positionCountry });
   },
   setBudgetGb: (budgetGb) => {
     set({ budgetGb });

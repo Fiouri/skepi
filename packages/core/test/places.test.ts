@@ -55,7 +55,7 @@ describe('placeTitle and search names', () => {
     const p: Place = { id: 7, ...base, category: 'hospital', kind: 'hospital', importance: 45, lat: 38.2, lon: 21.7 };
     expect(poisToGeoJson([p]).features[0]).toEqual({
       type: 'Feature',
-      id: 7,
+      id: 0,
       geometry: { type: 'Point', coordinates: [21.7, 38.2] },
       properties: { category: 'hospital', title: 'Patras' },
     });

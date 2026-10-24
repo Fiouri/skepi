@@ -29,9 +29,10 @@ export type PackSource =
   | { kind: 'pmtiles-extract'; buildUrl: string; region: string; maxzoom: number }
   /**
    * Built here: places pack (SQLite FTS5) from a dated OpenStreetMap extract; `upstreamMd5Url` is the
-   * publisher's checksum (Geofabrik `.md5`).
+   * publisher's checksum (Geofabrik `.md5`). With `boundary` (a region GeoJSON in this repository),
+   * only objects inside it are kept, so the pack covers the same area as the country's map.
    */
-  | { kind: 'osm-places'; url: string; upstreamMd5Url: string; region: string; locale: string };
+  | { kind: 'osm-places'; url: string; upstreamMd5Url: string; region: string; locale: string; boundary?: string };
 
 /** Chunk sizes allowed in a manifest: powers of two from 64 KiB to 64 MiB. */
 export function isAllowedChunkSize(n: number): boolean {
@@ -72,10 +73,12 @@ export function parseManifest(text: string): Manifest {
       if (typeof s.upstreamMd5Url !== 'string' || !s.upstreamMd5Url.startsWith('https://')) fail(`${p.id}: upstreamMd5Url required`);
       if (typeof s.region !== 'string' || !/^[A-Z]{2}$/.test(s.region)) fail(`${p.id}: region must be ISO 3166-1 alpha-2`);
       if (typeof s.locale !== 'string' || !/^[a-z]{2,3}$/.test(s.locale)) fail(`${p.id}: locale must be a language code`);
+      if (s.boundary !== undefined && (typeof s.boundary !== 'string' || !s.boundary.endsWith('.geojson'))) fail(`${p.id}: boundary must be a .geojson file`);
     } else if (typeof s.path !== 'string') {
       fail(`${p.id}: source.path required`);
     }
     if (p.chunkSize !== undefined && !isAllowedChunkSize(p.chunkSize)) fail(`${p.id}: chunkSize must be a power of two from 64 KiB to 64 MiB`);
+    if (p.region !== undefined && p.kind !== 'pmtiles' && p.kind !== 'places') fail(`${p.id}: only map and places packs have a region`);
     if (!Array.isArray(p.urls) || p.urls.length === 0 || !p.urls.every((u) => typeof u === 'string' && isAllowedDownloadUrl(u))) {
       fail(`${p.id}: urls must be HTTPS without query strings`);
     }

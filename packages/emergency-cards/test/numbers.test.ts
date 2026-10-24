@@ -1,11 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTRY_NUMBERS, countryList, DEFAULT_EMERGENCY_NUMBER, formatNumber, numbersFor } from '../src';
+import { COUNTRY_NUMBERS, countryList, DEFAULT_EMERGENCY_NUMBER, formatNumber, numbersFor, UNCHECKED_NUMBER_COUNTRIES } from '../src';
+import { lockProblem, numbersDigest } from '../src/digest';
 
 describe('emergency numbers', () => {
   it('Greece: 112, EKAB 166, fire 199, police 100', () => {
     const gr = numbersFor('GR');
     expect(gr).toMatchObject({ country: 'GR', general: '112', known: true });
     expect(gr.services).toMatchObject({ ambulance: '166', fire: '199', police: '100' });
+  });
+
+  it('Japan: police 110, fire and ambulance 119, coast guard 118; Türkiye: 112 for everything', () => {
+    expect(numbersFor('JP')).toMatchObject({ country: 'JP', general: '119', known: true, services: { police: '110', fire: '119', ambulance: '119', coastGuard: '118' } });
+    expect(numbersFor('tr')).toMatchObject({ country: 'TR', general: '112', known: true, services: {} });
+  });
+
+  it('every country is checked (quotes of committed snapshots, tools/cards-source-check) except the listed ones', () => {
+    for (const c of COUNTRY_NUMBERS) {
+      const checked = c.sources.filter((s) => s.check !== undefined);
+      expect(checked.length > 0, c.country).toBe(!UNCHECKED_NUMBER_COUNTRIES.includes(c.country));
+      for (const s of checked) {
+        expect(s.check?.fileSha256, s.url).toMatch(/^[0-9a-f]{64}$/);
+        expect(s.check?.quotes.length, s.url).toBeGreaterThan(0);
+      }
+    }
+    expect(UNCHECKED_NUMBER_COUNTRIES).toEqual(['AU', 'CA']);
+  });
+
+  it('the source-check lock covers the numbers: a changed number needs a new passed check', () => {
+    expect(lockProblem()).toBeNull();
+    const changed = COUNTRY_NUMBERS.map((c) => (c.country === 'JP' ? { ...c, services: { ...c.services, police: '111' } } : c));
+    expect(numbersDigest(changed)).not.toBe(numbersDigest());
+    expect(lockProblem(undefined, undefined, changed)).toBe('the emergency numbers differ from the last passed cards-source-check');
   });
 
   it('defaults to 112 for an unknown or missing country, marked as not known', () => {

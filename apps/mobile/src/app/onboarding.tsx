@@ -89,8 +89,9 @@ export default function OnboardingScreen() {
       freeBytes: device.freeDiskMb * MB,
       installedIds,
       testCatalog,
+      country: prefs.country,
     });
-  }, [catalogState, device, tier, budgetGb, lang, installedIds, testCatalog]);
+  }, [catalogState, device, tier, budgetGb, lang, installedIds, testCatalog, prefs.country]);
 
   const downloadPlan = async (toDownload: readonly CatalogPack[]): Promise<void> => {
     if (toDownload.length === 0) return;

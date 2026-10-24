@@ -136,17 +136,66 @@ export async function writePlacesPack(candidates: readonly OsmCandidate[], out: 
   return { rows: rows.length, byCategory, skipped: candidates.length - rows.length };
 }
 
-/** Runs places/osm_extract.py (pyosmium; `python -m pip install -r places/requirements.txt`). No shell. */
-export async function extractOsm(pbf: string, ndjsonOut: string, locale: string, python = process.env.SKEPI_PYTHON ?? 'python'): Promise<void> {
-  const script = join(REPO_ROOT, 'tools', 'catalog-builder', 'places', 'osm_extract.py');
-  if (!existsSync(pbf)) throw new Error(`missing OSM extract ${pbf}`);
-  if (!/^[a-z]{2,3}$/.test(locale)) throw new Error(`locale must be a language code: ${locale}`);
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(python, [script, pbf, ndjsonOut, '--locale', locale], { stdio: ['ignore', 'inherit', 'inherit'], shell: false });
+function runTool(cmd: string, args: readonly string[], hint: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(cmd, [...args], { stdio: ['ignore', 'inherit', 'inherit'], shell: false });
     child.on('error', reject);
     child.on('exit', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`osm_extract.py exited with ${String(code)} (is pyosmium installed? places/requirements.txt)`));
+      else reject(new Error(`${cmd} exited with ${String(code)} (${hint})`));
     });
   });
+}
+
+/**
+ * OSM tags of the candidate objects (places/osm_extract.py `candidate()`), as an `osmium tags-filter`
+ * expression list. With osmium-tool (SKEPI_OSMIUM) the PBF is reduced to these objects and the nodes
+ * and ways they reference before pyosmium reads it: the same candidates (test: places pre-filter), but
+ * a country as large as the United States fits a CI runner's memory.
+ */
+export const OSMIUM_FILTERS = [
+  'nwr/amenity=hospital,pharmacy,fire_station,police,drinking_water,water_point,shelter',
+  'nwr/healthcare=hospital,pharmacy',
+  'nwr/emergency=assembly_point',
+  'nwr/tourism=alpine_hut,wilderness_hut',
+  'nwr/natural=peak,spring',
+  'nwr/place=city,town,village,hamlet,suburb,quarter,neighbourhood,locality,island,islet',
+] as const;
+
+export interface ExtractOsmOptions {
+  /** Region GeoJSON (repository-relative): only candidates inside it are written. */
+  boundary?: string;
+  python?: string;
+  /** osmium-tool binary for the pre-filter (default: SKEPI_OSMIUM, none when unset). */
+  osmium?: string;
+  log?: (line: string) => void;
+}
+
+/**
+ * Runs places/osm_extract.py (pyosmium + shapely; `python -m pip install -r places/requirements.txt`),
+ * after an optional `osmium tags-filter`. No shell.
+ */
+export async function extractOsm(pbf: string, ndjsonOut: string, locale: string, opts: ExtractOsmOptions = {}): Promise<void> {
+  const script = join(REPO_ROOT, 'tools', 'catalog-builder', 'places', 'osm_extract.py');
+  const python = opts.python ?? process.env.SKEPI_PYTHON ?? 'python';
+  const osmium = opts.osmium ?? process.env.SKEPI_OSMIUM;
+  if (!existsSync(pbf)) throw new Error(`missing OSM extract ${pbf}`);
+  if (!/^[a-z]{2,3}$/.test(locale)) throw new Error(`locale must be a language code: ${locale}`);
+  let input = pbf;
+  if (osmium) {
+    input = `${ndjsonOut}.filtered.osm.pbf`;
+    opts.log?.(`> ${osmium} tags-filter ${pbf} … -o ${input}`);
+    await runTool(osmium, ['tags-filter', pbf, ...OSMIUM_FILTERS, '--overwrite', '-o', input], 'osmium tags-filter');
+  }
+  const boundary = opts.boundary ? join(REPO_ROOT, opts.boundary) : null;
+  if (boundary && !existsSync(boundary)) throw new Error(`missing boundary ${boundary}`);
+  // Written beside the target and renamed: a cached candidate list is always a complete one.
+  const partial = `${ndjsonOut}.partial`;
+  try {
+    await runTool(python, ['-I', script, input, partial, '--locale', locale, ...(boundary ? ['--boundary', boundary] : [])], 'are pyosmium and shapely installed? places/requirements.txt');
+    await rename(partial, ndjsonOut);
+  } finally {
+    if (input !== pbf) await rm(input, { force: true });
+    await rm(partial, { force: true });
+  }
 }

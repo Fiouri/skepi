@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CatalogPack } from '../src/catalog';
+import type { CatalogPack, PackRegion } from '../src/catalog';
 import { planPreset, RESERVE_BYTES, usableBytes, type PresetInput } from '../src/prepare';
 
 const MB = 1024 ** 2;
@@ -43,6 +43,7 @@ const base: PresetInput = {
   freeBytes: 100 * GB,
   installedIds: new Set(),
   testCatalog: false,
+  country: null,
 };
 const ids = (input: Partial<PresetInput>): string[] => planPreset({ ...base, ...input }).packs.map((p) => p.id);
 
@@ -90,5 +91,52 @@ describe('planPreset', () => {
   it('test catalog: only test packs in the UI languages, never the real ones', () => {
     expect(ids({ testCatalog: true })).toEqual(['test-smoke-en']);
     expect(ids({ testCatalog: true, locale: 'el' }).sort()).toEqual(['test-corrupt', 'test-smoke-en']);
+  });
+});
+
+describe('planPreset with country packs (global maps)', () => {
+  const region = (iso2: string, part?: string): PackRegion => ({
+    iso2,
+    name: iso2,
+    bbox: [0, 0, 1, 1],
+    center: [0.5, 0.5],
+    ...(part ? { part: { id: part, name: part, regions: [part], bbox: [0, 0, 1, 1] as [number, number, number, number] } } : {}),
+  });
+  // Schema 1 Greece packs (tagged default, as in catalogs up to sequence 3) and schema 2 countries.
+  const COUNTRIES: CatalogPack[] = [
+    ...PACKS,
+    pack('map-gr', 507, { kind: 'pmtiles', file: 'map-gr.pmtiles', title: { en: 'Map: Greece (offline, zoom 15)' }, tags: ['map', 'default', 'region:GR'] }),
+    pack('places-gr', 5, { kind: 'places', file: 'places-gr.sqlite', title: { en: 'Places and emergency points: Greece' }, tags: ['places', 'default', 'region:GR'] }),
+    pack('map-cy', 56, { kind: 'pmtiles', file: 'map-cy.pmtiles', tags: ['map'], region: region('CY') }),
+    pack('places-cy', 2, { kind: 'places', file: 'places-cy.sqlite', tags: ['places'], region: region('CY') }),
+    pack('map-us-west', 1500, { kind: 'pmtiles', file: 'map-us-west.pmtiles', tags: ['map'], region: region('US', 'west') }),
+    pack('map-us-east', 1500, { kind: 'pmtiles', file: 'map-us-east.pmtiles', tags: ['map'], region: region('US', 'east') }),
+    pack('places-us', 150, { kind: 'places', file: 'places-us.sqlite', tags: ['places'], region: region('US') }),
+  ];
+  const plan = (input: Partial<PresetInput>): ReturnType<typeof planPreset> => planPreset({ ...base, packs: COUNTRIES, budgetGb: 8, ...input });
+
+  it('Greece (schema 1 tags): the Greek map and places, as before', () => {
+    const p = plan({ country: 'GR' });
+    expect(p.packs.map((x) => x.id)).toEqual(['wikipedia_en_medicine_mini', 'wikipedia_en_top_mini', 'qwen-q4_0', 'places-gr', 'map-gr']);
+    expect(p.skipped).toContainEqual({ id: 'map-cy', reason: 'alternative' });
+  });
+
+  it("another country never gets Greece's map, even though it is tagged default", () => {
+    const p = plan({ country: 'CY' });
+    expect(p.packs.map((x) => x.id)).toEqual(['wikipedia_en_medicine_mini', 'wikipedia_en_top_mini', 'qwen-q4_0', 'places-cy', 'map-cy']);
+    expect(p.skipped).toContainEqual({ id: 'map-gr', reason: 'alternative' });
+    expect(plan({ country: null }).packs.some((x) => x.kind === 'pmtiles' || x.kind === 'places')).toBe(false);
+  });
+
+  it('a split country: places only; its map parts are chosen in Maps & places', () => {
+    const p = plan({ country: 'US', budgetGb: 32 });
+    expect(p.packs.map((x) => x.id)).toContain('places-us');
+    expect(p.packs.some((x) => x.kind === 'pmtiles')).toBe(false);
+    expect(p.skipped).toContainEqual({ id: 'map-us-west', reason: 'budget' });
+  });
+
+  it('a map that does not fit the budget is skipped; installed ones stay', () => {
+    expect(plan({ country: 'GR', budgetGb: 1.5 }).skipped).toContainEqual({ id: 'map-gr', reason: 'budget' });
+    expect(plan({ country: 'GR', budgetGb: 1.5, installedIds: new Set(['map-gr']) }).packs.map((x) => x.id)).toContain('map-gr');
   });
 });

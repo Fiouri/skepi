@@ -140,6 +140,75 @@ describe('verifyCatalog', () => {
   });
 });
 
+describe('catalog schema 2 (global maps: pack regions)', () => {
+  const MAP = {
+    id: 'map-cy',
+    kind: 'pmtiles',
+    version: '2026-10-22',
+    file: 'map-cy-20261022.pmtiles',
+    title: { en: 'Map: Cyprus' },
+    lang: ['en'],
+    sizeBytes: 10,
+    sha256: H('e'),
+    chunkSize: CATALOG_CHUNK_SIZE,
+    chunkSha256: [H('e')],
+    urls: ['https://github.com/Fiouri/skepi/releases/download/packs-2026-10b/map-cy-20261022.pmtiles'],
+    license: 'ODbL-1.0',
+    attribution: '© OpenStreetMap contributors',
+    minTier: 'T0',
+    tags: ['map', 'region:CY'],
+    region: { iso2: 'CY', name: 'Cyprus', bbox: [32.2225, 34.5224, 34.642, 35.7405], center: [33.0842, 34.9133] },
+  };
+  const verify = (schema: number, packs: Record<string, unknown>[]): string => {
+    const { bytes, sig } = signed({ ...catalog(), schema, packs }, keyA.secretKey);
+    const r = verifyCatalog(bytes, sig, trusted, NO_SEQUENCE);
+    return r.ok ? 'ok' : `${r.reason}: ${r.detail}`;
+  };
+
+  it('accepts regions in a schema 2 catalog and keeps schema 1 catalogs valid', () => {
+    expect(verify(2, [MAP])).toBe('ok');
+    expect(verify(2, [catalog().packs[0] as unknown as Record<string, unknown>])).toBe('ok');
+    expect(verify(1, [catalog().packs[0] as unknown as Record<string, unknown>])).toBe('ok');
+    const parsed = parseCatalog({ ...catalog(), schema: 2, packs: [MAP] });
+    expect(parsed.schema).toBe(2);
+    expect(parsed.packs[0]?.region).toEqual(MAP.region);
+  });
+
+  it('a split country part and a box across the antimeridian', () => {
+    const part = { id: 'alaska', name: 'Alaska, Oregon', regions: ['Alaska', 'Oregon'], bbox: [172.4262, 41.9, -116.4, 71.4605] };
+    const us = { iso2: 'US', name: 'United States of America', bbox: [172.4262, 18.8564, -66.9282, 71.4605], center: [-97.4826, 39.5385], part };
+    expect(verify(2, [{ ...MAP, id: 'map-us-alaska', file: 'map-us-alaska.pmtiles', region: us }])).toBe('ok');
+    expect(parseCatalog({ ...catalog(), schema: 2, packs: [{ ...MAP, id: 'map-us-alaska', file: 'map-us-alaska.pmtiles', region: us }] }).packs[0]?.region?.part).toEqual(part);
+  });
+
+  it('rejects a region in a schema 1 catalog (what apps before schema 2 see) and unknown schemas', () => {
+    expect(verify(1, [MAP])).toMatch(/^schema: .*unexpected field\(s\) region/);
+    expect(verify(3, [MAP])).toMatch(/^schema: catalog\.schema: expected 1 or 2/);
+  });
+
+  it('rejects malformed regions', () => {
+    const bad = (region: unknown): string => verify(2, [{ ...MAP, region }]);
+    expect(bad({ ...MAP.region, iso2: 'cy' })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, bbox: [32, 34, 34] })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, bbox: [32, 36, 34, 35] })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, bbox: [32, 34, 32, 35] })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, bbox: [190, 34, 34, 35] })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, center: [33] })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, center: undefined })).toMatch(/^schema/);
+    const part = { id: 'west', name: 'West', regions: ['West'], bbox: [32, 34, 33, 35] };
+    expect(bad({ ...MAP.region, part })).toBe('ok');
+    expect(bad({ ...MAP.region, part: { ...part, id: 'West' } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { id: 'west', name: 'West' } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, regions: [] } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, regions: [''] } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, regions: Array.from({ length: 501 }, (_, i) => `R${String(i)}`) } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, bbox: [32, 35, 33, 34] } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, part: { ...part, extra: 1 } })).toMatch(/^schema/);
+    expect(bad({ ...MAP.region, extra: true })).toMatch(/^schema/);
+    expect(verify(2, [{ ...(catalog().packs[0] as unknown as Record<string, unknown>), region: MAP.region }])).toMatch(/only map and places packs/);
+  });
+});
+
 describe('verifyKeyList (rotation)', () => {
   const keyD = generateKeyPair();
   const list = (signedBy: string, sequence = 2): Record<string, unknown> => ({

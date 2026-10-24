@@ -17,6 +17,15 @@ interface PmtilesCliLock {
   sha256: string;
 }
 
+/** The lock entry of this platform's build (`pmtilesCli`: Windows x86_64, `pmtilesCliLinux`: Linux x86_64, CI). */
+function lockFor(lock: { pmtilesCli: PmtilesCliLock; pmtilesCliLinux?: PmtilesCliLock }): { lock: PmtilesCliLock; exe: string; archive: string } | null {
+  if (process.platform === 'win32') return { lock: lock.pmtilesCli, exe: 'pmtiles.exe', archive: `go-pmtiles_${lock.pmtilesCli.version}_Windows_x86_64.zip` };
+  if (process.platform === 'linux' && process.arch === 'x64' && lock.pmtilesCliLinux) {
+    return { lock: lock.pmtilesCliLinux, exe: 'pmtiles', archive: `go-pmtiles_${lock.pmtilesCliLinux.version}_Linux_x86_64.tar.gz` };
+  }
+  return null;
+}
+
 function run(cmd: string, args: readonly string[], log: (line: string) => void): Promise<void> {
   log(`> ${cmd} ${args.join(' ')}`);
   return new Promise((resolve, reject) => {
@@ -39,20 +48,26 @@ export async function sha256File(path: string): Promise<string> {
 export async function pmtilesCli(cacheDir: string, log: (line: string) => void): Promise<string> {
   const fromEnv = process.env.SKEPI_PMTILES;
   if (fromEnv) return fromEnv;
-  const lock = (JSON.parse(readFileSync(join(REPO_ROOT, 'scripts', 'content.lock.json'), 'utf8')) as { pmtilesCli: PmtilesCliLock }).pmtilesCli;
-  if (process.platform !== 'win32') throw new Error('the pinned pmtiles CLI is the Windows build: set SKEPI_PMTILES to a go-pmtiles ' + lock.version + ' binary');
+  const locks = JSON.parse(readFileSync(join(REPO_ROOT, 'scripts', 'content.lock.json'), 'utf8')) as { pmtilesCli: PmtilesCliLock; pmtilesCliLinux?: PmtilesCliLock };
+  const pinned = lockFor(locks);
+  if (!pinned) throw new Error(`no pinned pmtiles CLI for ${process.platform}-${process.arch}: set SKEPI_PMTILES to a go-pmtiles ${locks.pmtilesCli.version} binary`);
+  const { lock } = pinned;
   const dir = join(cacheDir, `pmtiles-${lock.version}`);
-  const exe = join(dir, 'pmtiles.exe');
+  const exe = join(dir, pinned.exe);
   if (existsSync(exe)) return exe;
-  const zip = await downloadTo(lock.url, join(cacheDir, `go-pmtiles_${lock.version}_Windows_x86_64.zip`), log);
+  const zip = await downloadTo(lock.url, join(cacheDir, pinned.archive), log);
   const digest = await sha256File(zip);
-  if (digest !== lock.sha256) throw new Error(`pmtiles CLI zip SHA-256 ${digest} does not match the lock (${lock.sha256})`);
+  if (digest !== lock.sha256) throw new Error(`pmtiles CLI archive SHA-256 ${digest} does not match the lock (${lock.sha256})`);
   await mkdir(dir, { recursive: true });
-  // Windows 10+ ships bsdtar, which reads zip archives.
-  await run('tar', ['-xf', zip, '-C', dir], log);
+  // Windows 10+ ships bsdtar, which reads zip archives (named by path: Git Bash's GNU tar reads
+  // "C:" as a remote host); Linux tar reads the .tar.gz.
+  const tar = process.platform === 'win32' ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+  await run(tar, ['-xf', zip, '-C', dir], log);
   if (!existsSync(exe)) throw new Error(`${exe} missing after extracting ${zip}`);
   return exe;
 }
+
+const EXTRACT_ATTEMPTS = 3;
 
 export interface ExtractOptions {
   buildUrl: string;
@@ -71,12 +86,22 @@ export async function extractMap(opts: ExtractOptions): Promise<string> {
   if (!existsSync(region)) throw new Error(`missing region ${region}`);
   const exe = await pmtilesCli(opts.cacheDir, opts.log);
   const partial = `${opts.out}.partial`;
-  await rm(partial, { force: true });
-  try {
-    await run(exe, ['extract', opts.buildUrl, partial, `--region=${region}`, `--maxzoom=${String(opts.maxzoom)}`], opts.log);
-  } catch (e) {
+  // Range reads from the build server fail now and then ("unexpected EOF", many parallel CI jobs):
+  // the extract starts again from scratch, a few times.
+  for (let attempt = 1; ; attempt += 1) {
     await rm(partial, { force: true });
-    throw new Error(`pmtiles extract failed (Protomaps daily builds expire: pick a current build): ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    try {
+      await run(exe, ['extract', opts.buildUrl, partial, `--region=${region}`, `--maxzoom=${String(opts.maxzoom)}`], opts.log);
+      break;
+    } catch (e) {
+      await rm(partial, { force: true });
+      if (attempt < EXTRACT_ATTEMPTS) {
+        opts.log(`pmtiles extract failed (attempt ${String(attempt)} of ${String(EXTRACT_ATTEMPTS)}), retrying in ${String(30 * attempt)} s`);
+        await new Promise((resolve) => setTimeout(resolve, 30_000 * attempt));
+        continue;
+      }
+      throw new Error(`pmtiles extract failed (Protomaps daily builds expire: pick a current build): ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    }
   }
   await rename(partial, opts.out);
   return opts.out;

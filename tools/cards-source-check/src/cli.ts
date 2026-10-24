@@ -3,6 +3,7 @@
  *   node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts [--cache-dir <dir>] [--pdf <file>] [--write-lock]
  *   node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts drift [--report <file.md>]
  *   node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts snapshot <source id>
+ *   node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts snapshot-number <id> <html|pdf> <url>
  *
  * check (default): every card step must be an exact excerpt of its source.
  * - IFRC PDF: downloaded from the pinned URL (or --pdf), SHA-256 checked, text extracted with pdftotext;
@@ -10,9 +11,13 @@
  * - CDC / Ready.gov web pages: the committed snapshot (snapshots/<id>.txt) must carry the URL, retrieval
  *   date and HTML hash of packages/emergency-cards/src/sources.ts and the pinned text hash; the step must
  *   be a substring of one block under the cited heading. No network.
+ * - Emergency numbers (packages/emergency-cards/src/numbers.ts): every checked source's committed snapshot
+ *   (snapshots/numbers/<id>.txt) must carry its URL, retrieval date, file and text hash; every quote must
+ *   be verbatim in it and show the numbers it claims; every number of a country must be shown by a quote
+ *   of one of its checked sources (countries without one only from UNCHECKED_NUMBER_COUNTRIES). No network.
  * Then without --write-lock (CI) packages/emergency-cards/source-check.lock.json must record exactly
- * these cards and sources (the release builds and bundle scans trust that lock); with --write-lock
- * (after a deliberate card change) it writes the lock.
+ * these cards, sources and numbers (the release builds and bundle scans trust that lock); with
+ * --write-lock (after a deliberate card or number change) it writes the lock.
  *
  * drift: re-fetches every web source and reports a changed page (HTML or text) with the changed passages
  * (blocks removed from and added to the page, under their headings) and any card step no longer on the
@@ -22,13 +27,17 @@
  *
  * snapshot <id>: re-fetches one web source and rewrites its snapshot with today's date; prints the new
  * hashes to pin in sources.ts (then run the check with --write-lock).
+ *
+ * snapshot-number <id> <html|pdf> <url>: fetches an official source of emergency numbers and writes
+ * snapshots/numbers/<id>.txt with today's date; prints the pins for numbers.ts.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CARDS, IFRC_GUIDELINES, SOURCES, WEB_SOURCES, type SourceId } from '@skepi/emergency-cards';
+import { CARDS, IFRC_GUIDELINES, SOURCES, UNCHECKED_NUMBER_COUNTRIES, WEB_SOURCES, type SourceId } from '@skepi/emergency-cards';
 import { expectedLock, lockProblem, SOURCE_CHECK_LOCK } from '@skepi/emergency-cards/digest';
 import { checkCards, checkWebSteps, splitPages, type StepResult } from './check';
 import { changedPassages, formatPassages } from './drift';
+import { checkedSources, checkNumbers, fetchNumberSource, formatNumberSnapshot, numberSnapshotPath, numberSnapshots, readNumberSnapshot, type NumberResult } from './numbers';
 import { fetchPage, formatSnapshot, readSnapshot, snapshotPath, textSha256 } from './snapshot';
 import { extractText, fetchPinned, pdftotextBinary, pdftotextVersion, sha256 } from './source';
 
@@ -69,6 +78,15 @@ function report(results: readonly StepResult[]): number {
   return results.filter((r) => !r.ok).length;
 }
 
+function reportNumbers(results: readonly NumberResult[]): number {
+  for (const r of results) {
+    if (r.ok) continue;
+    console.error(`FAIL numbers ${r.country}:`);
+    for (const p of r.problems) console.error(`  ${p}`);
+  }
+  return results.filter((r) => !r.ok).length;
+}
+
 async function check(): Promise<number> {
   const writeLock = process.argv.includes('--write-lock');
   const cacheDir = resolve(arg('--cache-dir') ?? '.cache/ifrc');
@@ -93,12 +111,19 @@ async function check(): Promise<number> {
   const steps = CARDS.reduce((n, c) => n + c.steps.length, 0);
   if (results.length !== steps) problems.push(`${String(steps - results.length)} steps cite no known source`);
   const failed = report(results);
-  if (failed > 0 || problems.length > 0) {
-    console.error(`CARDS SOURCE CHECK FAIL: ${String(failed)} of ${String(results.length)} steps are not verbatim at the cited place; ${String(problems.length)} source problems`);
+  const numberProblems: string[] = [];
+  const numberSnaps = numberSnapshots(numberProblems);
+  for (const p of numberProblems) console.error(`numbers snapshot: ${p}`);
+  const numbers = checkNumbers(numberSnaps);
+  const numbersFailed = reportNumbers(numbers);
+  if (failed > 0 || problems.length > 0 || numbersFailed > 0 || numberProblems.length > 0) {
+    console.error(
+      `CARDS SOURCE CHECK FAIL: ${String(failed)} of ${String(results.length)} steps are not verbatim at the cited place; ${String(problems.length)} source problems; ${String(numbersFailed)} countries' numbers not shown by their sources; ${String(numberProblems.length)} number snapshot problems`,
+    );
     return 1;
   }
   console.log(
-    `CARDS SOURCE CHECK PASS: ${String(results.length)} steps of ${String(CARDS.length)} cards verbatim at the cited places (IFRC PDF ${String(pages.length)} pages, ${String(snaps.size)} web snapshots)`,
+    `CARDS SOURCE CHECK PASS: ${String(results.length)} steps of ${String(CARDS.length)} cards verbatim at the cited places (IFRC PDF ${String(pages.length)} pages, ${String(snaps.size)} web snapshots); emergency numbers of ${String(numbers.length)} countries shown by ${String(numberSnaps.size)} checked sources (unchecked: ${UNCHECKED_NUMBER_COUNTRIES.join(', ') || 'none'})`,
   );
   if (writeLock) {
     writeFileSync(SOURCE_CHECK_LOCK, `${JSON.stringify(expectedLock(), null, 2)}\n`);
@@ -140,6 +165,33 @@ async function drift(): Promise<number> {
       lines.push(`- ${w.id}: unchanged since ${committed.retrieved}.`);
     }
   }
+  const liveNumbers = new Map<string, string>();
+  const numberSources = checkedSources();
+  for (const s of numberSources) {
+    const committed = readNumberSnapshot(s.check.id);
+    let page;
+    try {
+      page = await fetchNumberSource(s.url, s.check.format);
+    } catch (e) {
+      unfetched += 1;
+      lines.push(`- **numbers ${s.check.id}** (${s.url}): could not be fetched, not checked this time: ${e instanceof Error ? e.message : String(e)}`);
+      continue;
+    }
+    liveNumbers.set(s.check.id, page.text);
+    if (page.text !== committed.text) {
+      drifted += 1;
+      lines.push(`- **numbers ${s.check.id}** (${s.url}): the text changed since the snapshot of ${committed.retrieved}. Changed passages:`);
+      lines.push(...formatPassages(changedPassages(committed.text, page.text)));
+    } else if (page.fileSha256 !== committed.fileSha256) {
+      lines.push(`- numbers ${s.check.id}: file changed (sha256 ${page.fileSha256}), text unchanged.`);
+    } else {
+      lines.push(`- numbers ${s.check.id}: unchanged since ${committed.retrieved}.`);
+    }
+  }
+  // A number no longer shown on a live page (pages that could not be fetched keep their snapshot).
+  const merged = new Map<string, string>(numberSources.map((s) => [s.check.id, liveNumbers.get(s.check.id) ?? readNumberSnapshot(s.check.id).text]));
+  const numbersGone = checkNumbers(merged).filter((r) => !r.ok);
+  for (const r of numbersGone) lines.push(`- **emergency numbers ${r.country}**: ${r.problems.join('; ')}`);
   const gone = checkWebSteps(live, CARDS).filter((r) => !r.ok && live.has(r.source));
   for (const r of gone) {
     const text = CARDS.find((c) => c.id === r.card)?.steps[r.step - 1]?.text ?? '';
@@ -147,10 +199,10 @@ async function drift(): Promise<number> {
   }
   const head = [
     drifted > 0
-      ? `Drift in ${String(drifted)} of ${String(WEB_SOURCES.length)} web sources of the emergency cards.`
+      ? `Drift in ${String(drifted)} of ${String(WEB_SOURCES.length + numberSources.length)} web sources of the emergency cards and numbers.`
       : unfetched === 0
-        ? 'No drift: every web source of the emergency cards matches its committed snapshot.'
-        : 'No text drift in the web sources of the emergency cards that could be fetched.',
+        ? 'No drift: every web source of the emergency cards and numbers matches its committed snapshot.'
+        : 'No text drift in the web sources of the emergency cards and numbers that could be fetched.',
     unfetched === 0 ? '' : `${String(unfetched)} source(s) could not be fetched and were not checked.`,
   ];
   const summary = [
@@ -165,7 +217,7 @@ async function drift(): Promise<number> {
   console.log(summary);
   const out = arg('--report');
   if (out) writeFileSync(resolve(out), `${summary}\n`);
-  return drifted === 0 && unfetched === 0 && gone.length === 0 ? 0 : 1;
+  return drifted === 0 && unfetched === 0 && gone.length === 0 && numbersGone.length === 0 ? 0 : 1;
 }
 
 async function snapshot(): Promise<number> {
@@ -182,7 +234,21 @@ async function snapshot(): Promise<number> {
   return 0;
 }
 
-const commands: Record<string, () => Promise<number>> = { drift, snapshot };
+async function snapshotNumber(): Promise<number> {
+  const [id, format, url] = process.argv.slice(3);
+  if (!id || !/^[a-z0-9-]+$/u.test(id) || (format !== 'html' && format !== 'pdf') || !url?.startsWith('https://')) {
+    console.error('usage: cli.ts snapshot-number <id> <html|pdf> <https url>');
+    return 2;
+  }
+  const page = await fetchNumberSource(url, format);
+  const retrieved = new Date().toISOString().slice(0, 10);
+  writeFileSync(numberSnapshotPath(id), formatNumberSnapshot({ url, retrieved, format, fileSha256: page.fileSha256, text: page.text }));
+  console.log(`wrote ${numberSnapshotPath(id)}`);
+  console.log(`pin in packages/emergency-cards/src/numbers.ts: accessed '${retrieved}', check: { id: '${id}', format: '${format}', fileSha256: '${page.fileSha256}', textSha256: '${textSha256(page.text)}', quotes: [...] }`);
+  return 0;
+}
+
+const commands: Record<string, () => Promise<number>> = { drift, snapshot, 'snapshot-number': snapshotNumber };
 const command = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'check';
 (commands[command] ?? check)().then(
   (code) => {

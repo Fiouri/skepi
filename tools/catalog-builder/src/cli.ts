@@ -1,11 +1,14 @@
 import { pinnedKeys, trustedFromPinned, type PinnedKeyInput } from '@skepi/core';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildCatalog, prepareCatalog, sequenceOf, sha256Hex, signKeyList, signPreparedCatalog, verifyCatalogDir, verifyKeyListDir, writeSigned } from './build';
+import { countryManifest, readCountrySources, readRegionIndex, selectParts } from './countries';
 import { keygen, readPinnedKeys, readSecretKey, REPO_ROOT, type PinnedKeysFile } from './keys';
 import { checkFixtures } from './fixtures';
+import { pmtilesCli } from './mapExtract';
 import { mergeManifests, readManifest } from './manifest';
+import { buildPackReport, compareWithReport, type PackReport } from './pack';
 import { defaultCacheDir, legacySkepiDir, migrateDir, resolveCacheDir, skepiHome } from './paths';
 
 /**
@@ -17,8 +20,11 @@ import { defaultCacheDir, legacySkepiDir, migrateDir, resolveCacheDir, skepiHome
  *   keylist --pinned <new keys json> --key <secret of the replaced key> --sequence N --out <dir>
  *   verify  --dir <dir> --pinned catalog/keys/<purpose>.json [--release]
  *   migrate-cache [--cache <dir>]   moves %TEMP%\skepi\{cache,keys} to %LOCALAPPDATA%\skepi (SHA-256 checked)
+ *   countries --iso GR,CY,… | --pilot [--out catalog/countries.json] [--mirror https://…/] [--parts JP:kanto,…]   country map + places manifest entries (--parts: only these parts of those split countries)
+ *   pack    --manifest <m.json> --id <pack id> --out <dir> [--cache <dir>]   builds one pack, writes <id>.report.json (CI)
+ *   prepare … --reports <dir>   also requires every pack to match its CI report (size, SHA-256, chunks)
  */
-const USAGE = 'usage: catalog <keygen|pin|build|prepare|sign|keylist|verify|migrate-cache|check-fixtures> [options] (see src/cli.ts)';
+const USAGE = 'usage: catalog <keygen|pin|build|prepare|sign|keylist|verify|migrate-cache|check-fixtures|countries|pack> [options] (see src/cli.ts)';
 
 const [command, ...rest] = process.argv.slice(2).filter((a, i) => !(i === 0 && a === '--'));
 const { values: args } = parseArgs({
@@ -39,8 +45,23 @@ const { values: args } = parseArgs({
     dir: { type: 'string' },
     release: { type: 'boolean', default: false },
     'expect-sha256': { type: 'string' },
+    iso: { type: 'string' },
+    pilot: { type: 'boolean', default: false },
+    id: { type: 'string' },
+    reports: { type: 'string' },
+    mirror: { type: 'string' },
+    parts: { type: 'string' },
   },
 });
+
+function readReports(dir: string): Map<string, PackReport> {
+  const out = new Map<string, PackReport>();
+  for (const name of readdirSync(dir).filter((n) => n.endsWith('.report.json'))) {
+    const report = JSON.parse(readFileSync(join(dir, name), 'utf8')) as PackReport;
+    out.set(report.pack.id, report);
+  }
+  return out;
+}
 
 function need(name: string, value: string | undefined): string {
   if (!value) throw new Error(`--${name} is required\n${USAGE}`);
@@ -131,6 +152,17 @@ async function main(): Promise<number> {
           console.log(line);
         },
       });
+      if (args.reports) {
+        // Packs built in CI (packs.yml) and measured again here must be the same bytes.
+        const reports = readReports(resolve(args.reports));
+        const problems = prepared.catalog.packs.flatMap((p) => {
+          const report = reports.get(p.id);
+          if (!report) return p.kind === 'pmtiles' || p.kind === 'places' ? [`${p.id}: no CI report`] : [];
+          return compareWithReport(p, report).map((m) => `${p.id}: ${m}`);
+        });
+        if (problems.length > 0) throw new Error(`packs differ from their CI reports:\n${problems.join('\n')}`);
+        console.log(`every map and places pack matches its CI report (${String(reports.size)} reports)`);
+      }
       mkdirSync(out, { recursive: true });
       writeFileSync(join(out, 'catalog.json'), prepared.bytes);
       rmSync(join(out, 'catalog.json.sig'), { force: true });
@@ -151,6 +183,35 @@ async function main(): Promise<number> {
       });
       writeFileSync(join(dir, 'catalog.json.sig'), `${signed.signature}\n`, 'utf8');
       console.log(`signed catalog sequence ${String(signed.catalog.sequence)} (SHA-256 ${signed.sha256}) with ${key.keyId} -> ${join(dir, 'catalog.json.sig')}`);
+      return 0;
+    }
+    case 'countries': {
+      const pinned = readCountrySources();
+      // --mirror: the same packs from another mirror (the E2E's local test mirror, https://127.0.0.1:8443/maps/).
+      const sources = args.mirror ? { ...pinned, mirror: args.mirror } : pinned;
+      const iso = args.pilot ? sources.pilot : need('iso', args.iso).split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+      const all = countryManifest(readRegionIndex(), sources, iso);
+      const manifest = args.parts ? selectParts(all, args.parts.split(',').map((s) => s.trim()).filter(Boolean)) : all;
+      const out = resolve(args.out ?? join(REPO_ROOT, 'catalog', 'countries.json'));
+      writeFileSync(out, `${JSON.stringify(manifest, null, 2)}\n`);
+      console.log(`${String(manifest.packs.length)} packs of ${String(iso.length)} countries -> ${out}`);
+      return 0;
+    }
+    case 'pack': {
+      const id = need('id', args.id);
+      const manifest = mergeManifests((args.manifest ?? []).map(readManifest));
+      const pack = manifest.packs.find((p) => p.id === id);
+      if (!pack) throw new Error(`${id}: not in the manifest(s)`);
+      const cache = cacheDir();
+      const log = (line: string): void => {
+        console.log(line);
+      };
+      const pmtiles = pack.source.kind === 'pmtiles-extract' ? await pmtilesCli(cache, log) : null;
+      const report = await buildPackReport(pack, { manifest, cacheDir: cache, log, pmtiles });
+      const out = resolve(need('out', args.out));
+      mkdirSync(out, { recursive: true });
+      writeFileSync(join(out, `${id}.report.json`), `${JSON.stringify(report, null, 2)}\n`);
+      console.log(`${id}: ${String(report.pack.sizeBytes)} bytes, sha256 ${report.pack.sha256}, ${String(report.seconds)} s -> ${join(out, `${id}.report.json`)}`);
       return 0;
     }
     case 'check-fixtures': {

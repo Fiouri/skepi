@@ -132,9 +132,12 @@ export function installedModels(packs: readonly PackRow[]): DesktopModel[] {
     .map((p) => ({ id: p.path.split(/[\\/]/).pop() ?? p.id, path: p.path, sizeBytes: p.sizeBytes, packId: p.id }));
 }
 
-/** The newest verified pack of a kind (only verified maps and places ever open). */
-export function newestVerified(packs: readonly PackRow[], kind: 'pmtiles' | 'places'): PackRow[] {
-  return packs.filter((p) => p.kind === kind && p.verified).sort((a, b) => b.version.localeCompare(a.version) || a.id.localeCompare(b.id));
+/**
+ * Every verified pack of a kind, by pack id (only verified maps and places ever open; every installed
+ * country at once: global maps).
+ */
+export function verifiedPacks(packs: readonly PackRow[], kind: 'pmtiles' | 'places'): PackRow[] {
+  return packs.filter((p) => p.kind === kind && p.verified).sort((a, b) => a.id.localeCompare(b.id));
 }
 
 export function ragArchives(archives: readonly OpenArchive[]): ArchiveRef[] {

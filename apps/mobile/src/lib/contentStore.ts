@@ -281,6 +281,9 @@ export class AndroidContentStore implements ContentStore {
       installedAt: Date.now(),
       lastOpenedAt: null,
     };
+    // An update (same pack id, new file) replaces the old version: its file goes only after the swap.
+    const previous = await getPack(db, entry.id);
+    const previousFile = previous ? (previous.path.split('/').pop() ?? '') : '';
     // Set inside the transaction callback; an object so control-flow analysis sees the assignment.
     const moved = { done: false };
     try {
@@ -292,6 +295,9 @@ export class AndroidContentStore implements ContentStore {
     } catch (e) {
       if (moved.done) await ExpoContentStore.deleteFile(target);
       throw e;
+    }
+    if (previous && previousFile.length > 0 && previous.path !== row.path) {
+      await ExpoContentStore.deleteFile(relativePath(previous.kind, previousFile)).catch(() => undefined);
     }
     return row;
   }

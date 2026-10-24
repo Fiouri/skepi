@@ -12,12 +12,51 @@ ed.hashes.sha512 = sha512;
  * no wall-clock time is involved, so it works offline).
  */
 export const CATALOG_SCHEMA = 1;
+/**
+ * Schema 2 (global maps, 2026-10-23): map and places packs may carry `region` (country, bounding box,
+ * part of a split country). Apps before it reject a schema 2 catalog as a whole (strict schema) and keep
+ * the catalog they have, so a country pack never reaches an app that would render only one map.
+ */
+export const CATALOG_SCHEMA_REGIONS = 2;
+export const CATALOG_SCHEMAS = [CATALOG_SCHEMA, CATALOG_SCHEMA_REGIONS] as const;
+export type CatalogSchema = (typeof CATALOG_SCHEMAS)[number];
 export const KEY_LIST_SCHEMA = 1;
 /** Chunk size of `chunkSha256` (P2P re-requests a bad chunk alone). */
 export const CATALOG_CHUNK_SIZE = 64 * 1024 * 1024;
 
 export type PackKind = 'zim' | 'gguf' | 'pmtiles' | 'places';
 export type CatalogTier = 'T0' | 'T1' | 'T2' | 'T3';
+
+/**
+ * West, south, east, north in degrees (WGS 84). West > east means the box crosses the antimeridian
+ * (United States, Russia, Fiji: the smallest box around the country).
+ */
+export type BBoxTuple = [number, number, number, number];
+
+/** The country of a map or places pack (catalog schema 2). Every pack of a country has the same one. */
+export interface PackRegion {
+  /** ISO 3166-1 alpha-2, upper case. */
+  iso2: string;
+  /** English country name (Natural Earth). */
+  name: string;
+  /** The country's bounding box (for a part too). */
+  bbox: BBoxTuple;
+  /** Where a map of the country opens: [longitude, latitude] (Natural Earth label point). */
+  center: [number, number];
+  /** One part of a country split into several map packs (groups of first-level subdivisions). */
+  part?: RegionPart;
+}
+
+/** A part of a split country: the first-level subdivisions (Natural Earth admin-1) its map covers. */
+export interface RegionPart {
+  id: string;
+  /** Every group the part covers (subdivisions, or regions of them), e.g. "Bavaria, Thuringia". */
+  name: string;
+  /** English and local names of every subdivision and region in the part (search: "Bayern"). */
+  regions: string[];
+  /** The part's own bounding box (where the map opens when only some parts are installed). */
+  bbox: BBoxTuple;
+}
 
 export interface CatalogPack {
   id: string;
@@ -37,10 +76,12 @@ export interface CatalogPack {
   attribution: string;
   minTier: CatalogTier;
   tags: string[];
+  /** Schema 2 only, map and places packs only. */
+  region?: PackRegion;
 }
 
 export interface Catalog {
-  schema: typeof CATALOG_SCHEMA;
+  schema: CatalogSchema;
   sequence: number;
   issuedAt: string;
   keyId: string;
@@ -77,6 +118,8 @@ export type Verified<T> =
 const HEX64 = /^[0-9a-f]{64}$/;
 const PACK_ID = /^[a-z0-9][a-z0-9._-]{1,79}$/;
 const KEY_ID = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+const ISO2 = /^[A-Z]{2}$/;
+const PART_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
 const DOWNLOAD_URL = /^https:\/\/([A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(:\d{1,5})?(\/[A-Za-z0-9._~!$&'()*+,;=:%/-]*)?$/;
 const EXTENSIONS: Readonly<Record<PackKind, string>> = { zim: '.zim', gguf: '.gguf', pmtiles: '.pmtiles', places: '.sqlite' };
@@ -172,10 +215,47 @@ const PACK_FIELDS = [
   'id', 'kind', 'version', 'file', 'title', 'lang', 'sizeBytes', 'sha256', 'chunkSize', 'chunkSha256', 'urls', 'license',
   'attribution', 'minTier', 'tags',
 ] as const;
+const PACK_FIELDS_REGIONS = [...PACK_FIELDS, 'region'] as const;
 
-function parsePack(v: unknown, path: string): CatalogPack {
+function coordinate(v: unknown, path: string, limit: number): number {
+  if (typeof v !== 'number' || !Number.isFinite(v) || Math.abs(v) > limit) throw new SchemaError(`${path}: invalid`);
+  return v;
+}
+
+function parseBBox(v: unknown, path: string): BBoxTuple {
+  if (!Array.isArray(v) || v.length !== 4) throw new SchemaError(`${path}: expected [west, south, east, north]`);
+  const bbox: BBoxTuple = [coordinate(v[0], `${path}[0]`, 180), coordinate(v[1], `${path}[1]`, 90), coordinate(v[2], `${path}[2]`, 180), coordinate(v[3], `${path}[3]`, 90)];
+  if (bbox[0] === bbox[2] || bbox[1] >= bbox[3]) throw new SchemaError(`${path}: expected west ≠ east and south < north`);
+  return bbox;
+}
+
+/** A split country has at most a few hundred subdivision names per part (Italy: 110 provinces). */
+const PART_REGIONS_MAX = 500;
+
+function parsePart(v: unknown, path: string): RegionPart {
   if (!isRecord(v)) throw new SchemaError(`${path}: expected an object`);
-  noExtraKeys(v, PACK_FIELDS, path);
+  noExtraKeys(v, ['id', 'name', 'regions', 'bbox'], path);
+  if (!Array.isArray(v.regions) || v.regions.length === 0 || v.regions.length > PART_REGIONS_MAX) {
+    throw new SchemaError(`${path}.regions: expected 1–${String(PART_REGIONS_MAX)} names`);
+  }
+  const regions = v.regions.map((r, i) => str(r, `${path}.regions[${String(i)}]`));
+  return { id: str(v.id, `${path}.id`, PART_ID), name: str(v.name, `${path}.name`), regions, bbox: parseBBox(v.bbox, `${path}.bbox`) };
+}
+
+function parseRegion(v: unknown, path: string): PackRegion {
+  if (!isRecord(v)) throw new SchemaError(`${path}: expected an object`);
+  noExtraKeys(v, ['iso2', 'name', 'bbox', 'center', 'part'], path);
+  const bbox = parseBBox(v.bbox, `${path}.bbox`);
+  if (!Array.isArray(v.center) || v.center.length !== 2) throw new SchemaError(`${path}.center: expected [longitude, latitude]`);
+  const center: [number, number] = [coordinate(v.center[0], `${path}.center[0]`, 180), coordinate(v.center[1], `${path}.center[1]`, 90)];
+  const region: PackRegion = { iso2: str(v.iso2, `${path}.iso2`, ISO2), name: str(v.name, `${path}.name`), bbox, center };
+  if (v.part !== undefined) region.part = parsePart(v.part, `${path}.part`);
+  return region;
+}
+
+function parsePack(v: unknown, path: string, schema: CatalogSchema): CatalogPack {
+  if (!isRecord(v)) throw new SchemaError(`${path}: expected an object`);
+  noExtraKeys(v, schema === CATALOG_SCHEMA_REGIONS ? PACK_FIELDS_REGIONS : PACK_FIELDS, path);
   const kind = KINDS.find((k) => k === v.kind);
   if (!kind) throw new SchemaError(`${path}.kind: invalid`);
   const file = str(v.file, `${path}.file`, FILE_NAME);
@@ -195,7 +275,7 @@ function parsePack(v: unknown, path: string): CatalogPack {
   });
   const minTier = TIERS.find((t) => t === v.minTier);
   if (!minTier) throw new SchemaError(`${path}.minTier: invalid`);
-  return {
+  const pack: CatalogPack = {
     id: str(v.id, `${path}.id`, PACK_ID),
     kind,
     version: str(v.version, `${path}.version`),
@@ -212,15 +292,21 @@ function parsePack(v: unknown, path: string): CatalogPack {
     minTier,
     tags: strings(v.tags, `${path}.tags`, 0),
   };
+  if (v.region !== undefined) {
+    if (kind !== 'pmtiles' && kind !== 'places') throw new SchemaError(`${path}.region: only map and places packs have a region`);
+    pack.region = parseRegion(v.region, `${path}.region`);
+  }
+  return pack;
 }
 
 /** Validates a parsed catalog; throws with the path of the first invalid field. */
 export function parseCatalog(data: unknown): Catalog {
   if (!isRecord(data)) throw new SchemaError('catalog: expected an object');
   noExtraKeys(data, ['schema', 'sequence', 'issuedAt', 'keyId', 'packs'], 'catalog');
-  if (data.schema !== CATALOG_SCHEMA) throw new SchemaError(`catalog.schema: expected ${String(CATALOG_SCHEMA)}`);
+  const schema = CATALOG_SCHEMAS.find((n) => n === data.schema);
+  if (schema === undefined) throw new SchemaError(`catalog.schema: expected ${CATALOG_SCHEMAS.join(' or ')}`);
   if (!Array.isArray(data.packs)) throw new SchemaError('catalog.packs: expected an array');
-  const packs = data.packs.map((p, i) => parsePack(p, `catalog.packs[${String(i)}]`));
+  const packs = data.packs.map((p, i) => parsePack(p, `catalog.packs[${String(i)}]`, schema));
   const ids = new Set<string>();
   const files = new Set<string>();
   for (const p of packs) {
@@ -230,7 +316,7 @@ export function parseCatalog(data: unknown): Catalog {
     files.add(`${p.kind}/${p.file}`);
   }
   return {
-    schema: CATALOG_SCHEMA,
+    schema,
     sequence: int(data.sequence, 'catalog.sequence', 1),
     issuedAt: str(data.issuedAt, 'catalog.issuedAt'),
     keyId: str(data.keyId, 'catalog.keyId', KEY_ID),

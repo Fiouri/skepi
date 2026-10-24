@@ -4,6 +4,7 @@
  * In Playwright E2E (`vite --mode e2e`) the same functions run against an in-memory mock backend.
  */
 import type { ArticleSection } from '@skepi/contracts';
+import type { PackRegion } from '@skepi/core';
 
 export type PackKind = 'zim' | 'gguf' | 'pmtiles' | 'places';
 
@@ -40,6 +41,8 @@ export interface CatalogPackJson {
   attribution: string;
   minTier: string;
   tags: string[];
+  /** Schema 2 catalogs: the country of a map or places pack. */
+  region?: PackRegion;
 }
 
 export interface CatalogSummary {

@@ -15,14 +15,14 @@ export interface ReadinessState {
 
 /** What the installed packs cover: cards are bundled; map, encyclopedia and AI come from packs. */
 export function useReadiness(): ReadinessState {
-  const pmtilesPath = useContent((s) => s.pmtilesPath);
+  const mapPacks = useContent((s) => s.mapPacks);
   const archives = useContent((s) => s.archives);
   const models = useContent((s) => s.models);
   const totalRamMb = useContent((s) => s.totalRamMb);
   const tier = totalRamMb > 0 ? detectMobileTier(totalRamMb) : 'T0';
   return {
     cards: true,
-    map: pmtilesPath !== null,
+    map: mapPacks.length > 0,
     encyclopedia: archives.some((a) => a.verified),
     ai: tier === 'T0' ? null : models.length > 0,
   };

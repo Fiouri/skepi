@@ -1,0 +1,159 @@
+# Country map and places packs (global maps, decision 2026-10-23; docs/architecture.md "Offline maps").
+# One job per pack of catalog/countries.json: map = `pmtiles extract` of the pinned Protomaps daily build
+# over the Natural Earth region (catalog/regions), places = the pinned Geofabrik extract (MD5 checked)
+# through osmium tags-filter + pyosmium + shapely (region boundary) into the SQLite FTS5 pack. Each job
+# writes <id>.report.json (file, size, SHA-256, chunk hashes, licence, attribution, inputs, tool
+# versions) and <id>.ci.json (wall time, peak memory, disk used), and uploads only these reports unless
+# `upload_packs` is set. No secrets, no signing: the maintainer measures the packs again and signs the
+# catalog offline (`catalog prepare --reports`, tools/catalog-builder/README.md).
+# Runs on demand and on pushes to branches named packs/** (the pilot runs).
+name: Packs
+
+on:
+  workflow_dispatch:
+    inputs:
+      countries:
+        description: 'ISO codes (comma separated) of catalog/countries.json to build; empty = every country in it'
+        type: string
+        default: ''
+      upload_packs:
+        description: 'Also upload the built pack files as workflow artifacts (kept 3 days)'
+        type: boolean
+        default: false
+  push:
+    branches: ['packs/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      packs: ${{ steps.plan.outputs.packs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: plan
+        env:
+          COUNTRIES: ${{ inputs.countries }}
+        run: |
+          # GitHub allows 256 jobs per matrix: the whole world is built in batches of countries.
+          packs=$(jq -c --arg c "$COUNTRIES" '
+            ($c | split(",") | map(gsub("\\s"; "") | ascii_upcase) | map(select(length > 0))) as $want
+            | [.packs[] | select(($want | length) == 0 or (.region.iso2 as $i | $want | index($i)))
+               | {id, kind, iso2: .region.iso2}]' catalog/countries.json)
+          n=$(echo "$packs" | jq length)
+          echo "$n packs: $(echo "$packs" | jq -r 'map(.id) | join(" ")')"
+          if [ "$n" -eq 0 ] || [ "$n" -gt 256 ]; then echo "::error::$n packs (1..256 per run)"; exit 1; fi
+          echo "packs=$packs" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        pack: ${{ fromJSON(needs.plan.outputs.packs) }}
+    name: ${{ matrix.pack.id }}
+    env:
+      SKEPI_CACHE_DIR: /mnt/skepi/cache
+      SKEPI_PYTHON: python
+    steps:
+      - name: Disk space (inputs up to 12 GB for the United States)
+        run: |
+          df -h / /mnt
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/share/swift /opt/hostedtoolcache/CodeQL
+          sudo mkdir -p /mnt/skepi/cache && sudo chown -R "$USER" /mnt/skepi
+          df -h / /mnt
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @skepi/catalog-builder...
+      - if: matrix.pack.kind == 'places'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: pyosmium, shapely (hash-pinned wheels) and osmium-tool
+        if: matrix.pack.kind == 'places'
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r tools/catalog-builder/places/requirements-ci.txt
+          sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends osmium-tool
+          echo "SKEPI_OSMIUM=$(command -v osmium)" >> "$GITHUB_ENV"
+      - name: Build and measure ${{ matrix.pack.id }}
+        env:
+          ID: ${{ matrix.pack.id }}
+        run: |
+          mkdir -p reports
+          free_before=$(df -B1 --output=avail /mnt | tail -1)
+          start=$(date +%s)
+          /usr/bin/time -v -o reports/time.txt \
+            node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts pack \
+              --manifest catalog/countries.json --id "$ID" --out reports
+          end=$(date +%s)
+          cache_bytes=$(du -sb /mnt/skepi/cache | cut -f1)
+          max_rss_kb=$(sed -n 's/.*Maximum resident set size (kbytes): //p' reports/time.txt)
+          jq -n --arg id "$ID" --argjson wall $((end - start)) --argjson rss "${max_rss_kb:-0}" \
+            --argjson cache "$cache_bytes" --argjson free "$free_before" \
+            --arg runner "${{ runner.os }} ${{ runner.arch }} ubuntu-24.04" --arg run "${{ github.run_id }}" \
+            '{id: $id, wallSeconds: $wall, maxRssKb: $rss, diskUsedBytes: $cache, diskFreeBeforeBytes: $free, runner: $runner, runId: $run}' \
+            > "reports/$ID.ci.json"
+          rm reports/time.txt
+          cat "reports/$ID.ci.json"
+          jq '{id: .pack.id, file: .pack.file, sizeBytes: .pack.sizeBytes, sha256: .pack.sha256, seconds, tools}' "reports/$ID.report.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: report-${{ matrix.pack.id }}
+          path: reports/
+          retention-days: 30
+      - name: Pack file path
+        if: inputs.upload_packs
+        id: file
+        env:
+          ID: ${{ matrix.pack.id }}
+        run: echo "path=/mnt/skepi/cache/$(jq -r .pack.file "reports/$ID.report.json")" >> "$GITHUB_OUTPUT"
+      - if: inputs.upload_packs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pack-${{ matrix.pack.id }}
+          path: ${{ steps.file.outputs.path }}
+          retention-days: 3
+          compression-level: 0
+
+  summary:
+    needs: build
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: report-*
+          merge-multiple: true
+          path: reports
+      - name: Pilot table
+        run: |
+          jq -s '
+            (map(select(.pack)) | map({key: .pack.id, value: {file: .pack.file, kind: .pack.kind, iso2: .pack.region.iso2, sizeBytes: .pack.sizeBytes, sha256: .pack.sha256, buildSeconds: .seconds, tools}}) | from_entries) as $r
+            | (map(select(.wallSeconds)) | map({key: .id, value: .}) | from_entries) as $c
+            | [$r | to_entries[] | .value + {id: .key} + ($c[.key] // {})]' reports/*.json > packs-report.json
+          {
+            echo "| pack | country | kind | size | build s | job s | max RSS MB | disk GB |"
+            echo "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |"
+            jq -r '.[] | "| \(.id) | \(.iso2) | \(.kind) | \((.sizeBytes / 1048576 * 10 | floor) / 10) MB | \(.buildSeconds) | \(.wallSeconds) | \((.maxRssKb / 1024) | floor) | \((.diskUsedBytes / 1073741824 * 100 | floor) / 100) |"' packs-report.json
+            jq -r '"\n**Total** \(length) packs, \((map(.sizeBytes) | add) / 1073741824 * 100 | floor / 100) GB"' packs-report.json
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packs-report
+          path: packs-report.json
+          retention-days: 90
