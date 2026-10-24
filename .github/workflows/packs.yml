@@ -4,8 +4,11 @@
 # through osmium tags-filter + pyosmium + shapely (region boundary) into the SQLite FTS5 pack. Each job
 # writes <id>.report.json (file, size, SHA-256, chunk hashes, licence, attribution, inputs, tool
 # versions) and <id>.ci.json (wall time, peak memory, disk used), and uploads only these reports unless
-# `upload_packs` is set. No secrets, no signing: the maintainer measures the packs again and signs the
-# catalog offline (`catalog prepare --reports`, tools/catalog-builder/README.md).
+# `upload_packs` is set. With `release` (a DRAFT release the maintainer created, e.g. packs-20261024), the
+# `publish` job adds each pack to it after checking its size and SHA-256 against the job's report: the
+# only job with write access, running no repository code, and it refuses a release that is not a draft.
+# No secrets, no signing: the maintainer measures the packs again and signs the catalog offline
+# (`catalog prepare --reports`, tools/catalog-builder/README.md).
 # Runs on demand and on pushes to branches named packs/** (the pilot runs).
 name: Packs
 
@@ -20,6 +23,10 @@ on:
         description: 'Also upload the built pack files as workflow artifacts (kept 3 days)'
         type: boolean
         default: false
+      release:
+        description: 'DRAFT release (tag, e.g. packs-20261024) to add the packs to; needs upload_packs; empty = none'
+        type: string
+        default: ''
   push:
     branches: ['packs/**']
 
@@ -41,7 +48,11 @@ jobs:
       - id: plan
         env:
           COUNTRIES: ${{ inputs.countries }}
+          RELEASE: ${{ inputs.release }}
+          UPLOAD: ${{ inputs.upload_packs }}
         run: |
+          if [ -n "$RELEASE" ] && [ "$UPLOAD" != 'true' ]; then echo "::error::release needs upload_packs"; exit 1; fi
+          if [ -n "$RELEASE" ] && ! [[ "$RELEASE" =~ ^packs-[0-9]{8}$ ]]; then echo "::error::release must be packs-YYYYMMDD"; exit 1; fi
           # GitHub allows 256 jobs per matrix: the whole world is built in batches of countries.
           packs=$(jq -c --arg c "$COUNTRIES" '
             ($c | split(",") | map(gsub("\\s"; "") | ascii_upcase) | map(select(length > 0))) as $want
@@ -128,6 +139,50 @@ jobs:
           path: ${{ steps.file.outputs.path }}
           retention-days: 3
           compression-level: 0
+
+  publish:
+    needs: [plan, build]
+    if: always() && inputs.release != '' && needs.plan.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        pack: ${{ fromJSON(needs.plan.outputs.packs) }}
+    name: publish ${{ matrix.pack.id }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE: ${{ inputs.release }}
+      ID: ${{ matrix.pack.id }}
+    steps:
+      - name: The release is a draft
+        run: test "$(gh release view "$RELEASE" --json isDraft --jq .isDraft)" = true || { echo "::error::$RELEASE is not a draft release"; exit 1; }
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: report-${{ matrix.pack.id }}
+          path: report
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pack-${{ matrix.pack.id }}
+          path: pack
+      - name: Size and SHA-256 against the build report, then upload
+        run: |
+          file=$(jq -r .pack.file "report/$ID.report.json")
+          size=$(jq -r .pack.sizeBytes "report/$ID.report.json")
+          sha=$(jq -r .pack.sha256 "report/$ID.report.json")
+          [[ "$file" =~ ^[a-z0-9.-]+$ ]] || { echo "::error::unexpected file name $file"; exit 1; }
+          test "$(stat -c %s "pack/$file")" = "$size" || { echo "::error::$file size differs from the report"; exit 1; }
+          echo "$sha  pack/$file" | sha256sum -c -
+          have=$(gh release view "$RELEASE" --json assets --jq ".assets[] | select(.name == \"$file\") | .digest")
+          if [ "$have" = "sha256:$sha" ]; then echo "$file already in $RELEASE"; exit 0; fi
+          if [ -n "$have" ]; then echo "::error::$RELEASE has another $file ($have)"; exit 1; fi
+          gh release upload "$RELEASE" "pack/$file"
+          test "$(gh release view "$RELEASE" --json assets --jq ".assets[] | select(.name == \"$file\") | .digest")" = "sha256:$sha"
+          echo "$file $size $sha uploaded to $RELEASE (GitHub digest matches)"
 
   summary:
     needs: build

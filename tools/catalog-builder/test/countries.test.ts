@@ -14,14 +14,20 @@ const index: RegionIndex = readRegionIndex();
 const sources: CountrySources = readCountrySources();
 
 describe('region index (catalog/regions, Natural Earth)', () => {
-  it('one region file per country, every pilot country with its Geofabrik extract', () => {
+  it('one region file per country, every country with its Geofabrik extract and language', () => {
     expect(index.regions.length).toBeGreaterThan(230);
     for (const r of index.regions) {
       expect(r.iso2).toMatch(/^[A-Z]{2}$/);
       expect(existsSync(join(REPO_ROOT, 'catalog', 'regions', r.file))).toBe(true);
       for (const p of r.parts ?? []) expect(existsSync(join(REPO_ROOT, 'catalog', 'regions', p.file))).toBe(true);
     }
-    for (const iso of sources.pilot) expect(sources.countries[iso]).toBeDefined();
+    for (const r of index.regions) {
+      const src = sources.countries[r.iso2];
+      expect(src?.geofabrik).toMatch(/^[a-z0-9-]+(\/[a-z0-9-]+)*$/);
+      expect(src?.locale).toMatch(/^[a-z]{2,3}$/);
+      for (const more of src?.geofabrikMore ?? []) expect(more).not.toBe(src?.geofabrik);
+    }
+    expect(Object.keys(sources.countries)).toHaveLength(index.regions.length);
   });
 });
 
@@ -49,11 +55,11 @@ describe('countryManifest', () => {
     const gr = manifest.packs.filter((p) => p.region?.iso2 === 'GR');
     expect(gr.map((p) => p.id)).toEqual(['map-gr', 'places-gr']);
     const [map, places] = gr;
-    expect(map?.source).toEqual({ kind: 'pmtiles-extract', buildUrl: 'https://build.protomaps.com/20261022.pmtiles', region: 'catalog/regions/gr.geojson', maxzoom: 15 });
+    expect(map?.source).toEqual({ kind: 'pmtiles-extract', buildUrl: 'https://build.protomaps.com/20261024.pmtiles', region: 'catalog/regions/gr.geojson', maxzoom: 15 });
     expect(places?.source).toEqual({
       kind: 'osm-places',
-      url: 'https://download.geofabrik.de/europe/greece-261022.osm.pbf',
-      upstreamMd5Url: 'https://download.geofabrik.de/europe/greece-261022.osm.pbf.md5',
+      url: 'https://download.geofabrik.de/europe/greece-261023.osm.pbf',
+      upstreamMd5Url: 'https://download.geofabrik.de/europe/greece-261023.osm.pbf.md5',
       region: 'GR',
       locale: 'el',
       boundary: 'catalog/regions/gr.geojson',
@@ -93,12 +99,24 @@ describe('countryManifest', () => {
   it('is a valid manifest (round trip through parseManifest)', () => {
     expect(parseManifest(JSON.stringify(manifest)).packs).toHaveLength(manifest.packs.length);
     expect(() => countryManifest(index, sources, ['XX'])).toThrow(/XX/);
-    expect(() => countryManifest(index, sources, ['FR'])).toThrow(/Geofabrik/);
+    const others = Object.fromEntries(Object.entries(sources.countries).filter(([iso]) => iso !== 'FR'));
+    expect(() => countryManifest(index, { ...sources, countries: others }, ['FR'])).toThrow(/Geofabrik/);
   });
 
-  it('catalog/countries.json is the generated manifest (regenerate with `catalog countries --pilot`)', () => {
+  it('a country over several extracts: France with its overseas departments, each with its .md5', () => {
+    const places = countryManifest(index, sources, ['FR']).packs.find((p) => p.id === 'places-fr');
+    const source = places?.source;
+    if (source?.kind !== 'osm-places') throw new Error('places-fr');
+    expect(source.url).toBe('https://download.geofabrik.de/europe/france-261023.osm.pbf');
+    expect(source.more).toEqual(expect.arrayContaining(['https://download.geofabrik.de/europe/france/reunion-261023.osm.pbf']));
+    expect(parseManifest(JSON.stringify({ schema: 1, packs: [places] })).packs).toHaveLength(1);
+    expect(() => parseManifest(JSON.stringify({ schema: 1, packs: [{ ...places, source: { ...source, more: [source.url] } }] }))).toThrow(/more/);
+    expect(() => parseManifest(JSON.stringify({ schema: 1, packs: [{ ...places, source: { ...source, more: ['http://x/a.osm.pbf'] } }] }))).toThrow(/more/);
+  });
+
+  it('catalog/countries.json is the generated manifest of every country (regenerate with `catalog countries --all`)', () => {
     const committed = JSON.parse(readFileSync(join(REPO_ROOT, 'catalog', 'countries.json'), 'utf8')) as Manifest;
-    expect(committed).toEqual(manifest);
+    expect(committed).toEqual(countryManifest(index, sources, index.regions.map((r) => r.iso2)));
   });
 });
 

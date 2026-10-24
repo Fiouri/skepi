@@ -75,6 +75,21 @@ export async function readCandidates(ndjsonPath: string): Promise<OsmCandidate[]
   return out;
 }
 
+/** Candidates of several extracts of one country: each OSM object once (the first extract's copy). */
+export function mergeCandidates(lists: readonly (readonly OsmCandidate[])[]): OsmCandidate[] {
+  const seen = new Set<string>();
+  const out: OsmCandidate[] = [];
+  for (const list of lists) {
+    for (const c of list) {
+      const key = `${c.t}${String(c.id)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+    }
+  }
+  return out;
+}
+
 function round(v: number): number {
   return Math.round(v * 1e6) / 1e6;
 }

@@ -30,7 +30,8 @@ export interface CountrySources {
   geofabrik: { date: string };
   /** Mirror (GitHub release) the packs are uploaded to; `<mirror><file>` is each pack's URL. */
   mirror: string;
-  countries: Record<string, { geofabrik: string; locale: string; title?: { el?: string } }>;
+  /** `geofabrikMore`: extracts of the country's parts outside `geofabrik` (regions/sources_all.py). */
+  countries: Record<string, { geofabrik: string; geofabrikMore?: string[]; locale: string; title?: { el?: string } }>;
   pilot: string[];
 }
 
@@ -121,7 +122,9 @@ export function countryManifest(index: RegionIndex, sources: CountrySources, iso
         source: { kind: 'pmtiles-extract', buildUrl: `https://build.protomaps.com/${build}.pmtiles`, region: `catalog/regions/${part.file}`, maxzoom: part.maxzoom },
       });
     }
-    const pbf = `https://download.geofabrik.de/${src.geofabrik}-${sources.geofabrik.date}.osm.pbf`;
+    const extract = (path: string): string => `https://download.geofabrik.de/${path}-${sources.geofabrik.date}.osm.pbf`;
+    const pbf = extract(src.geofabrik);
+    const more = (src.geofabrikMore ?? []).map(extract);
     const placesFile = `places-${lower}-${placesStamp}.sqlite`;
     packs.push({
       id: `places-${lower}`,
@@ -136,7 +139,15 @@ export function countryManifest(index: RegionIndex, sources: CountrySources, iso
       minTier: 'T0',
       tags: ['places', `region:${iso2}`],
       region,
-      source: { kind: 'osm-places', url: pbf, upstreamMd5Url: `${pbf}.md5`, region: iso2, locale: src.locale, boundary: `catalog/regions/${entry.file}` },
+      source: {
+        kind: 'osm-places',
+        url: pbf,
+        upstreamMd5Url: `${pbf}.md5`,
+        region: iso2,
+        locale: src.locale,
+        boundary: `catalog/regions/${entry.file}`,
+        ...(more.length > 0 ? { more } : {}),
+      },
     });
   }
   return {

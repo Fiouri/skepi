@@ -22,7 +22,7 @@ import { downloadTo, fetchUpstreamMd5, fetchUpstreamSha256 } from './download';
 import { digestFile } from './hash';
 import { REPO_ROOT } from './keys';
 import { extractMap } from './mapExtract';
-import { extractOsm, readCandidates, writePlacesPack } from './places';
+import { extractOsm, mergeCandidates, readCandidates, writePlacesPack, type OsmCandidate } from './places';
 import type { Manifest, ManifestPack } from './manifest';
 
 export interface SigningKey {
@@ -88,14 +88,19 @@ async function packFile(pack: ManifestPack, opts: MeasureOptions): Promise<{ pat
   if (source.kind === 'osm-places') {
     const out = join(opts.cacheDir, pack.file);
     if (!existsSync(out)) {
-      const pbf = await downloadTo(source.url, join(opts.cacheDir, source.url.split('/').pop() ?? `${pack.id}.osm.pbf`), log);
-      const md5 = await md5File(pbf);
-      const upstream = await fetchUpstreamMd5(source.upstreamMd5Url);
-      if (md5 !== upstream) throw new Error(`${pack.id}: OSM extract MD5 ${md5} does not match the publisher's ${upstream} (${pbf})`);
-      // The candidate list is kept beside the pack: rebuilding the pack does not re-read the PBF.
-      const ndjson = `${out}.ndjson`;
-      if (!existsSync(ndjson)) await extractOsm(pbf, ndjson, source.locale, { ...(source.boundary ? { boundary: source.boundary } : {}), log });
-      const report = await writePlacesPack(await readCandidates(ndjson), out, { region: source.region, locale: source.locale, source: source.url });
+      const urls = [source.url, ...(source.more ?? [])];
+      const lists: OsmCandidate[][] = [];
+      for (const [i, url] of urls.entries()) {
+        const pbf = await downloadTo(url, join(opts.cacheDir, url.split('/').pop() ?? `${pack.id}-${String(i)}.osm.pbf`), log);
+        const md5 = await md5File(pbf);
+        const upstream = await fetchUpstreamMd5(i === 0 ? source.upstreamMd5Url : `${url}.md5`);
+        if (md5 !== upstream) throw new Error(`${pack.id}: OSM extract MD5 ${md5} does not match the publisher's ${upstream} (${pbf})`);
+        // The candidate list is kept beside the pack: rebuilding the pack does not re-read the PBF.
+        const ndjson = i === 0 ? `${out}.ndjson` : `${out}.${String(i)}.ndjson`;
+        if (!existsSync(ndjson)) await extractOsm(pbf, ndjson, source.locale, { ...(source.boundary ? { boundary: source.boundary } : {}), log });
+        lists.push(await readCandidates(ndjson));
+      }
+      const report = await writePlacesPack(mergeCandidates(lists), out, { region: source.region, locale: source.locale, source: urls.join(' ') });
       log(`${pack.id}: ${String(report.rows)} places ${JSON.stringify(report.byCategory)}`);
     }
     return { path: out, upstream: null };

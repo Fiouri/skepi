@@ -20,7 +20,7 @@ import { defaultCacheDir, legacySkepiDir, migrateDir, resolveCacheDir, skepiHome
  *   keylist --pinned <new keys json> --key <secret of the replaced key> --sequence N --out <dir>
  *   verify  --dir <dir> --pinned catalog/keys/<purpose>.json [--release]
  *   migrate-cache [--cache <dir>]   moves %TEMP%\skepi\{cache,keys} to %LOCALAPPDATA%\skepi (SHA-256 checked)
- *   countries --iso GR,CY,… | --pilot [--out catalog/countries.json] [--mirror https://…/] [--parts JP:kanto,…]   country map + places manifest entries (--parts: only these parts of those split countries)
+ *   countries --iso GR,CY,… | --pilot | --all [--out catalog/countries.json] [--mirror https://…/] [--parts JP:kanto,…]   country map + places manifest entries (--parts: only these parts of those split countries)
  *   pack    --manifest <m.json> --id <pack id> --out <dir> [--cache <dir>]   builds one pack, writes <id>.report.json (CI)
  *   prepare … --reports <dir>   also requires every pack to match its CI report (size, SHA-256, chunks)
  */
@@ -47,6 +47,7 @@ const { values: args } = parseArgs({
     'expect-sha256': { type: 'string' },
     iso: { type: 'string' },
     pilot: { type: 'boolean', default: false },
+    all: { type: 'boolean', default: false },
     id: { type: 'string' },
     reports: { type: 'string' },
     mirror: { type: 'string' },
@@ -189,8 +190,13 @@ async function main(): Promise<number> {
       const pinned = readCountrySources();
       // --mirror: the same packs from another mirror (the E2E's local test mirror, https://127.0.0.1:8443/maps/).
       const sources = args.mirror ? { ...pinned, mirror: args.mirror } : pinned;
-      const iso = args.pilot ? sources.pilot : need('iso', args.iso).split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
-      const all = countryManifest(readRegionIndex(), sources, iso);
+      const index = readRegionIndex();
+      const iso = args.all
+        ? index.regions.map((r) => r.iso2)
+        : args.pilot
+          ? sources.pilot
+          : need('iso', args.iso).split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+      const all = countryManifest(index, sources, iso);
       const manifest = args.parts ? selectParts(all, args.parts.split(',').map((s) => s.trim()).filter(Boolean)) : all;
       const out = resolve(args.out ?? join(REPO_ROOT, 'catalog', 'countries.json'));
       writeFileSync(out, `${JSON.stringify(manifest, null, 2)}\n`);

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
-import { readCandidates, writePlacesPack } from '../src/places';
+import { mergeCandidates, readCandidates, writePlacesPack } from '../src/places';
 
 const dir = mkdtempSync(join(tmpdir(), 'skepi-places-'));
 const fixture = join(import.meta.dirname, 'fixtures', 'osm-candidates.ndjson');
@@ -18,6 +18,17 @@ async function build(name: string): Promise<{ path: string; query: PlacesQuery; 
 }
 
 describe('places pack builder', () => {
+  it('merges the extracts of one country: each OSM object once, the first extract wins', async () => {
+    const all = await readCandidates(fixture);
+    const [a, b, c] = all;
+    if (!a || !b || !c) throw new Error('fixture');
+    const merged = mergeCandidates([[a, b], [{ ...b, tags: { name: 'other copy' } }, c]]);
+    expect(merged).toEqual([a, b, c]);
+    expect(mergeCandidates([all, all])).toHaveLength(all.length);
+    // A way and a node with the same number are different objects.
+    expect(mergeCandidates([[a], [{ ...a, t: a.t === 'n' ? 'w' : 'n' }]])).toHaveLength(2);
+  });
+
   it('keeps places and emergency POIs, drops everything else', async () => {
     const { report } = await build('a.sqlite');
     // bench, unnamed hamlet and the bus shelter are dropped

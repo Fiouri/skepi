@@ -127,11 +127,12 @@ inputs, and CI builds one pack per job.
 | --- | --- |
 | `regions/make_regions.py` | `regions`: one `catalog/regions/<iso2>.geojson` per country from Natural Earth v5.1.2 admin-0 (public domain; SHA-256 pinned in the script), grouped by `ISO_A2_EH`, units without an ISO code assigned by `EXTRA_UNITS` (coverage, not sovereignty), 0.05° buffer, simplified (0.005°), snapped to 1e-4°; `index.json` (name, bounding box — west > east across the antimeridian —, label point, measured sizes, parts). `units` / `plan`: map parts of large countries (below). `measured`: records dry-run sizes in `index.json`. |
 | `regions/measure_regions.py` | Sizes without downloading: `pmtiles extract --dry-run` of the pinned build over region files (reads only the archive directories). |
-| `catalog/regions/sources.json` | Pinned inputs: Protomaps build (date, basemap version, MD5/BLAKE3 of the planet file), Geofabrik extract date, the mirror (GitHub release) and per country the Geofabrik path and the `name:<locale>` language. |
+| `catalog/regions/sources.json` | Pinned inputs: Protomaps build (date, basemap version, MD5/BLAKE3 of the planet file), Geofabrik extract date, the mirror (GitHub release) and per country the Geofabrik path (`geofabrikMore`: further extracts for parts outside it, e.g. France's overseas departments) and the `name:<locale>` language. |
+| `regions/sources_all.py` | Fills `sources.json` for every country: the extracts by polygon cover (Geofabrik `index-v1.json`, SHA-256 pinned; slivers along borders ignored, uninhabited islands that would need a whole continent skipped) and the language from CLDR `territoryInfo` (pinned); entries already there are kept. |
 | `catalog/regions/parts.json` | Map parts of countries over the limit: admin-1 codes, max zoom, measured size, full name. `regions` adds to each part in `index.json` its own box and the English and local names of its admin-1 units (the app's part search). |
 | `catalog/countries.json` | Generated manifest (`catalog countries --pilot` or `--iso GR,CY,…`; `--parts JP:kanto` keeps only that part of a split country, for E2E test catalogs); a test keeps it equal to the generator's output. |
 | `places/requirements-ci.txt` | The places tools with the SHA-256 of every wheel (CI). |
-| `.github/workflows/packs.yml` | One job per pack (≤ 256 per run): build, measure, `<id>.report.json` + `<id>.ci.json`; packs are uploaded only with `upload_packs`. |
+| `.github/workflows/packs.yml` | One job per pack (≤ 256 per run): build, measure, `<id>.report.json` + `<id>.ci.json`; packs are uploaded only with `upload_packs`; with `release` (a draft `packs-YYYYMMDD`), the `publish` job adds each pack to that draft after checking size and SHA-256 against its report (the only job with write access; it refuses a published release). |
 
 **Split rule (from the measured sizes, Protomaps build 20261022).** A country whose map is at most
 1.5 GB at z15 is one pack. A larger country is split into parts of neighbouring first-level subdivisions
@@ -153,8 +154,14 @@ $pm = "$env:LOCALAPPDATA\skepi\cache\pmtiles-1.31.2\pmtiles.exe"
 & $py -I tools/catalog-builder/regions/make_regions.py plan --ne $ne --iso DE --sizes $env:TEMP\skepi\units\DE-z15.json `
   --limit 1500000000 --pmtiles $pm --out catalog/regions
 & $py -I tools/catalog-builder/regions/make_regions.py regions --ne $ne --out catalog/regions
-node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts countries --pilot   # or --iso GR,CY,…
+# Every country's extracts and language (Geofabrik index-v1.json and CLDR territoryInfo.json, pinned in the script):
+& $py -I tools/catalog-builder/regions/sources_all.py --geofabrik $env:TEMP\skepi\index-v1.json --cldr $env:TEMP\skepi	erritoryInfo.json --regions catalog/regions
+node node_modules/tsx/dist/cli.mjs tools/catalog-builder/src/cli.ts countries --all   # or --pilot, --iso GR,CY,…
 ```
+
+Admin-1 codes such as `RUS+99?` become file names with `_` (`unit_stem`). `EXTRA_ADMIN1` covers Crimea and
+Sevastopol (admin-1 of Russia in Natural Earth) in Ukraine's region and parts too, as `EXTRA_UNITS` does for
+Siachen or Bir Tawil: coverage for people on the ground, not a position on sovereignty.
 
 **Inputs expire.** Protomaps keeps a daily build for about two weeks and Geofabrik a dated extract for
 about a week (build 20261005 and `greece-261004` were gone by 2026-10-23). A pack can be rebuilt from
@@ -165,8 +172,11 @@ new build and date together, regenerate `catalog/countries.json` and rebuild.
 
 The release key never enters CI; CI has no secret at all. Steps for a new country catalog:
 
-1. **Build** (GitHub): Actions → Packs → Run workflow, `countries` = the ISO codes of this batch (or empty
-   for every country in `catalog/countries.json`, at most 256 packs per run), `upload_packs` = on. Each
+1. **Build** (GitHub): create the draft release first (`gh release create packs-<build> --draft --title …
+   --notes …`; nothing is public), then Actions → Packs → Run workflow, `countries` = the ISO codes of this
+   batch (or empty for every country in `catalog/countries.json`, at most 256 packs per run),
+   `upload_packs` = on, `release` = `packs-<build>`. Batches run one after the other (one concurrency group
+   per branch). Each
    job's `report-<id>` artifact holds `<id>.report.json` (file, size, SHA-256, chunk hashes, licence,
    attribution, inputs, tool versions) and `<id>.ci.json`; `pack-<id>` holds the pack (3 days).
 2. **Fetch** on a machine with space (not the offline one):

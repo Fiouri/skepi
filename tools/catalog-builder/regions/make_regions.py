@@ -3,7 +3,8 @@
 One GeoJSON Feature per country, catalog/regions/<iso2>.geojson, plus catalog/regions/index.json (name,
 bbox, source units, measured sizes and parts). Countries come from ne_10m_admin_0_countries, grouped by
 ISO_A2_EH; the few units without an ISO code are covered by the regions listed in EXTRA_UNITS (geographic
-coverage for people on the ground, not a position on sovereignty). Each region is the union of its units,
+coverage for people on the ground, not a position on sovereignty), and EXTRA_ADMIN1 adds first-level units
+that Natural Earth puts in another country (Crimea: Russia and Ukraine). Each region is the union of its units,
 buffered by BUFFER_DEG (coasts and border strips: the map and the places of a border town are in both
 packs), simplified and snapped to a 1e-4 degree grid, clipped to the Web Mercator latitude range.
 
@@ -72,6 +73,11 @@ EXTRA_UNITS = {
     "Bajo Nuevo Bank (Petrel Is.)": [],
     "Serranilla Bank": [],
 }
+
+# First-level units Natural Earth puts in one country (its de facto view) that people on the ground may
+# also look for in another: they are covered by both (coverage, not sovereignty). Crimea and Sevastopol
+# (admin-1 of Russia in Natural Earth; Ukraine per UN General Assembly resolution 68/262).
+EXTRA_ADMIN1 = {"UA": ["RUS-283", "RUS-5482"]}
 
 
 def sha256_file(path: str) -> str:
@@ -182,7 +188,8 @@ def countries(features: list) -> dict:
 def admin1_units(features: list, code: str) -> list:
     """The first-level subdivisions of a country, with the region / sub-region names Natural Earth
     gives them (a unit without one takes its nearest neighbour's), sorted region by region."""
-    units = [f for f in features if f["properties"]["iso_a2"] == code]
+    extra = set(EXTRA_ADMIN1.get(code, ()))
+    units = [f for f in features if f["properties"]["iso_a2"] == code or f["properties"]["adm1_code"] in extra]
     if not units:
         raise SystemExit(f"{code}: no admin-1 units in Natural Earth")
     rows = []
@@ -220,7 +227,8 @@ def slug(text: str) -> str:
 
 
 def names_of(group: list) -> str:
-    return ", ".join(u["name"] for u in group)
+    # Natural Earth has a few units without any name (RUS+99?, a coastal strip of Yamal): left unnamed.
+    return ", ".join(u["name"] for u in group if u["name"])
 
 
 def part_names(label: str, rows: list) -> tuple:
@@ -346,7 +354,7 @@ def plan_parts(rows: list, sizes: dict, limit: int, lower_zoom: dict, size) -> l
     out, ids = [], set()
     for p in parts:
         group = sorted(p["units"], key=lambda u: (-u["bytes"], u["key"]))
-        base = slug(group[0]["name"])
+        base = slug(next((u["name"] for u in group if u["name"]), "part"))
         pid, n = base, 2
         while pid in ids:
             pid = f"{base[:29]}-{n}"
@@ -356,9 +364,16 @@ def plan_parts(rows: list, sizes: dict, limit: int, lower_zoom: dict, size) -> l
     return sorted(out, key=lambda p: p["id"])
 
 
-def read_sizes(path: str) -> dict:
+def unit_stem(code: str) -> str:
+    """File name of an admin-1 unit: Natural Earth codes such as `RUS+99?` are not valid on Windows."""
+    return re.sub(r"[^A-Za-z0-9+_-]", "_", code)
+
+
+def read_sizes(path: str, rows: list) -> dict:
+    """measure_regions.py sizes (by file stem) of the units, by admin-1 code."""
     with open(path, encoding="utf-8") as f:
-        return {k: v["bytes"] for k, v in json.load(f)["sizes"].items()}
+        by_stem = {k: v["bytes"] for k, v in json.load(f)["sizes"].items()}
+    return {r["code"]: by_stem[unit_stem(r["code"])] for r in rows if unit_stem(r["code"]) in by_stem}
 
 
 def cmd_units(args) -> int:
@@ -366,7 +381,7 @@ def cmd_units(args) -> int:
     rows = admin1_units(load(args.ne, "admin1"), code)
     os.makedirs(args.units_out, exist_ok=True)
     for r in rows:
-        write_json(os.path.join(args.units_out, f"{r['code']}.geojson"), feature(region_geometry([r["geom"]]), {"iso2": code, "admin1": r["code"], "name": r["name"]}))
+        write_json(os.path.join(args.units_out, f"{unit_stem(r['code'])}.geojson"), feature(region_geometry([r["geom"]]), {"iso2": code, "admin1": r["code"], "name": r["name"]}))
     write_json(os.path.join(args.units_out, "units.json"), [{k: v for k, v in r.items() if k != "geom"} for r in rows])
     print(f"{len(rows)} admin-1 units of {code} -> {args.units_out}", file=sys.stderr)
     return 0
@@ -375,11 +390,11 @@ def cmd_units(args) -> int:
 def cmd_plan(args) -> int:
     code = args.iso.upper()
     rows = admin1_units(load(args.ne, "admin1"), code)
-    sizes = read_sizes(args.sizes)
+    sizes = read_sizes(args.sizes, rows)
     missing = [r["code"] for r in rows if r["code"] not in sizes]
     if missing:
         raise SystemExit(f"{code}: no measured size for {missing}")
-    lower = {int(z): read_sizes(p) for z, p in (s.split("=", 1) for s in args.lower)}
+    lower = {int(z): read_sizes(p, rows) for z, p in (s.split("=", 1) for s in args.lower)}
     with open(args.sizes, encoding="utf-8") as f:
         build = json.load(f)["build"]
     with tempfile.TemporaryDirectory() as scratch:
@@ -429,7 +444,14 @@ def cmd_regions(args) -> int:
             parts_spec = json.load(f)["countries"]
 
     regions = countries(load(args.ne, "admin0"))
-    admin1 = load(args.ne, "admin1") if parts_spec else []
+    admin1 = load(args.ne, "admin1") if parts_spec or EXTRA_ADMIN1 else []
+    for code, extra in EXTRA_ADMIN1.items():
+        found = [f for f in admin1 if f["properties"]["adm1_code"] in extra]
+        if len(found) != len(extra):
+            raise SystemExit(f"EXTRA_ADMIN1 {code}: {extra} not all in Natural Earth admin-1")
+        for f in found:
+            regions[code]["units"].append(f"{f['properties']['name_en'] or f['properties']['name']} (admin-1 {f['properties']['adm1_code']})")
+            regions[code]["geoms"].append(shape(f["geometry"]))
     parts_named = False
     source = f"Natural Earth {NATURAL_EARTH['version']} ne_10m_admin_0_countries (public domain)"
     entries = []
@@ -492,6 +514,7 @@ def cmd_regions(args) -> int:
         "simplifyDeg": SIMPLIFY_DEG,
         "gridDeg": GRID_DEG,
         "extraUnits": EXTRA_UNITS,
+        "extraAdmin1": EXTRA_ADMIN1,
         "regions": entries,
     }
     write_json(index_path, index)

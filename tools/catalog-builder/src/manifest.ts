@@ -30,9 +30,11 @@ export type PackSource =
   /**
    * Built here: places pack (SQLite FTS5) from a dated OpenStreetMap extract; `upstreamMd5Url` is the
    * publisher's checksum (Geofabrik `.md5`). With `boundary` (a region GeoJSON in this repository),
-   * only objects inside it are kept, so the pack covers the same area as the country's map.
+   * only objects inside it are kept, so the pack covers the same area as the country's map. `more`:
+   * further extracts of the same date for parts of the country outside `url` (France's overseas
+   * departments), each checked against its `.md5`; their places are merged (an OSM object once).
    */
-  | { kind: 'osm-places'; url: string; upstreamMd5Url: string; region: string; locale: string; boundary?: string };
+  | { kind: 'osm-places'; url: string; upstreamMd5Url: string; region: string; locale: string; boundary?: string; more?: string[] };
 
 /** Chunk sizes allowed in a manifest: powers of two from 64 KiB to 64 MiB. */
 export function isAllowedChunkSize(n: number): boolean {
@@ -74,6 +76,11 @@ export function parseManifest(text: string): Manifest {
       if (typeof s.region !== 'string' || !/^[A-Z]{2}$/.test(s.region)) fail(`${p.id}: region must be ISO 3166-1 alpha-2`);
       if (typeof s.locale !== 'string' || !/^[a-z]{2,3}$/.test(s.locale)) fail(`${p.id}: locale must be a language code`);
       if (s.boundary !== undefined && (typeof s.boundary !== 'string' || !s.boundary.endsWith('.geojson'))) fail(`${p.id}: boundary must be a .geojson file`);
+      if (s.more !== undefined) {
+        const more = s.more;
+        const ok = Array.isArray(more) && more.length <= 10 && more.every((u) => typeof u === 'string' && u.startsWith('https://') && u.endsWith('.osm.pbf') && u !== s.url);
+        if (!ok || new Set(more).size !== more.length) fail(`${p.id}: more must list up to 10 other HTTPS .osm.pbf extracts`);
+      }
     } else if (typeof s.path !== 'string') {
       fail(`${p.id}: source.path required`);
     }
