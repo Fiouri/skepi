@@ -52,10 +52,47 @@ Builds:
         -PskepiJdk21=true --no-daemon
     ndk: 27.1.12297006
 
+  - versionName: 0.2.0-preview
+    versionCode: 5
+    commit: 4faad7c0e9cdd3fcf0994b95a56abd3e8c471f82
+    subdir: apps/mobile
+    sudo:
+      - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list
+      - apt-get update
+      - apt-get install -y -t forky nodejs npm
+      - apt-get install -y golang-go
+      - npm install -g pnpm@10.33.0
+    init:
+      - cd ../..
+      - pnpm install --frozen-lockfile
+    output: android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+    srclibs:
+      - esbuild@v0.28.2
+    prebuild:
+      - bash ../../scripts/android/jdk21.sh
+      - sed -i -e '/play-services-location/d' ../../node_modules/@maplibre/maplibre-react-native/android/build.gradle
+      - npx expo prebuild --platform android --clean --no-install
+    scanignore:
+      - node_modules/hermes-compiler
+      - node_modules/@react-native-masked-view/masked-view/android/build.gradle
+      - node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - node_modules/react-native-safe-area-context/android/build.gradle
+      - node_modules/react-native-screens/android/build.gradle
+    scandelete:
+      - node_modules
+      - tools/rag-eval/parity-reference
+    build:
+      - go build -C $$esbuild$$ ./cmd/esbuild
+      - export ESBUILD_BINARY_PATH=$$esbuild$$/esbuild
+      - cd android
+      - SKEPI_PREVIEW=1 gradle assembleRelease -PskepiPreview=true -PskepiUnsigned=true
+        -PskepiJdk21=true --no-daemon
+    ndk: 27.1.12297006
+
 AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$
 UpdateCheckData: apps/mobile/app.json|"versionCode":\s*(\d+)|.|"version":\s*"([^"]+)"
-CurrentVersion: 0.1.2-preview
-CurrentVersionCode: 4
+CurrentVersion: 0.2.0-preview
+CurrentVersionCode: 5
