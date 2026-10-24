@@ -35,3 +35,16 @@ fn committed_catalogs_match_the_typescript_expectations() {
         }
     }
 }
+
+/// A catalog waiting for the offline signature (catalog/pending/release, `catalog prepare`) must parse
+/// with the desktop's strict parser too before it is signed.
+#[test]
+fn pending_release_catalog_parses() {
+    let path = repo("catalog/pending/release/catalog.json");
+    if !path.exists() {
+        return;
+    }
+    let data: Value = serde_json::from_str(&std::fs::read_to_string(&path).expect("read")).expect("json");
+    let catalog = desktop_core::catalog::parse_catalog(&data).unwrap_or_else(|e| panic!("pending catalog: {e}"));
+    assert!(!catalog.packs.is_empty());
+}

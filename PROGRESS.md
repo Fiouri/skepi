@@ -1,6 +1,13 @@
-**Current:** Global maps — pilot + review fixes merged into `main` 2026-10-24 (parts, JP/TR numbers, retention docs); nothing uploaded or signed; F-Droid MR 53588 for v0.1.2-preview still in review
-**Next step:** owner: publish the pilot packs before the pinned inputs expire (~2026-11-05) or re-pin a new date — upload + offline signing steps in `tools/catalog-builder/README.md` → "Country packs"; still waiting for Licaon_Kter on `-PskepiPreview=true`
-**Last session:** 2026-10-24 — review fixes: single parts of split countries, JP + TR emergency numbers source-checked (35/239), v0.1.x never fetch catalogs, pack retention; pnpm verify 49/49, Rust, Android + desktop release builds, Playwright 17/17, Maestro S23 countries + Kanto part PASS, CI incl. iOS green
+**Current:** v0.2.0-preview (versionCode 5) with every country — full pack generation built and in the DRAFT release `packs-20261024`; catalog sequence 4 prepared, waiting for the offline signature
+**Next step:** owner: sign `catalog/pending/release/catalog.json` offline (SHA-256 `734e90cda29fa8486f011e65d93fcef6e75e23a6fa764e80d51ee3d52bb9c6bc`) and bring back `catalog.json.sig`; then version bump, release notes, gate
+**Last session:** 2026-10-24 — full generation: 547 packs (308 maps incl. 88 parts of 19 countries, 239 places), 140.98 GB in draft `packs-20261024`; CI 1100 jobs, 0 failures, 32.7 runner-h; every asset re-measured locally = CI report = GitHub digest; pnpm verify 49/49, Rust catalog tests
+
+## v0.2.0-preview: full country generation 2026-10-24 (branch `release/0.2.0-preview`, not merged)
+
+- Done: inputs pinned — Protomaps build 20261024 (basemap 4.15.2, MD5 `+5cSBgQdfkut8W4suVfJAg==`), Geofabrik 261023; `regions/sources_all.py` chose the Geofabrik extracts of all 239 countries by polygon cover (213 extracts, 115 GB; several for FR, ES, NL, NZ, BT, UZ, TF, UM) and the CLDR 49 language; `osm-places` takes further extracts (`more`, each MD5-checked); parts planned with build 20261024 for AU BR CA CN ES FI FR GB ID IN NO PL RU SE UA (CA: BC, NWT, Ontario, Quebec at z14, Nunavut z13); Crimea and Sevastopol covered by Ukraine too (`EXTRA_ADMIN1`, coverage not sovereignty); `packs.yml` `release` input + `publish` job (contents: write only there, no repository code, draft-only, size + SHA-256 against the build report).
+- Built: runs 40087516602, 40090513539, 40094094937 (3 batches): 1100 jobs, 0 failures, 32.7 runner-hours (29.0 build, 3.7 publish), 3 h 26 min wall; longest places-us 77 min. Draft `packs-20261024`: 547 assets, 140,981,862,539 bytes, largest 1,537,800,839.
+- Verified: every asset downloaded to the maintainer machine; size + SHA-256 = CI report = GitHub asset digest (547/547); `catalog prepare --reports` re-measured every pack (SHA-256 + chunks) = report (547/547); pending catalog: schema 2, sequence 4, 553 packs (547 + 4 Wikipedia + 2 models), 144.29 GB, 844 KB, parses with the TS and Rust strict parsers.
+- Open: owner signs offline; known limits: some parts of countries with overseas territories span far apart areas (FR, ES, NO), so their map home box is wide; Kenya's Ilemi Triangle (0.46%) and five uninhabited US atolls have no places.
 
 ## Global maps review fixes 2026-10-24 (merged into `main`)
 
