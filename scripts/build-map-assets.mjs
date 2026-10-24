@@ -1,6 +1,8 @@
 // Generates the bundled offline map assets for apps/mobile:
 //   assets/map/style.json   Protomaps basemap style (light flavour, Greek labels), PMTiles source placeholder
-//   assets/map/fonts/...    Glyph PBF ranges covering Latin + Greek for the fonts the style uses
+//   assets/map/fonts/...    Every glyph PBF range (0-65535) of the fonts the style uses: maps of every country
+//                           label in Cyrillic, Arabic, Georgian, Thai, … (a missing range drops those labels, and
+//                           on iOS the map never reports itself fully rendered)
 //   assets/map/sprites/...  Sprite sheets
 // Inputs are pinned (package version + git commit) and every downloaded file is recorded with its SHA-256
 // in assets/map/manifest.json. Run: node scripts/build-map-assets.mjs
@@ -17,8 +19,9 @@ const ASSETS_REPO = 'protomaps/basemaps-assets';
 const ASSETS_COMMIT = '028c18f713baecad011301ff7a69acc39bcc2ae7';
 const FLAVOR = 'light';
 const LANG = 'el';
-// Basic Latin, Latin-1, Latin Ext-A/B, Greek & Coptic, Latin Ext Additional, Greek Extended, punctuation, letterlike.
-const GLYPH_RANGES = ['0-255', '256-511', '512-767', '768-1023', '7680-7935', '7936-8191', '8192-8447', '8448-8703'];
+// All 256 ranges of 256 code points (the assets repository has every one; CJK ranges are near-empty, as MapLibre
+// draws ideographs with a local font).
+const GLYPH_RANGES = Array.from({ length: 256 }, (_, i) => `${String(i * 256)}-${String(i * 256 + 255)}`);
 const SPRITE_FILES = [`${FLAVOR}.json`, `${FLAVOR}.png`, `${FLAVOR}@2x.json`, `${FLAVOR}@2x.png`];
 
 /** Placeholder replaced at runtime with `pmtiles://file://<absolute path>`. */
