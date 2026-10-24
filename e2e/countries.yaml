@@ -102,10 +102,12 @@ onFlowComplete:
 - takeScreenshot: e2e/out/countries-03b-japan-parts
 - tapOn:
     id: country-part-map-jp-kanto
+# The test catalog lists only the Kanto part of Japan: with its map and Japan's places both in, Japan is
+# "Installed" ("Partly installed" shows while only one of the two is; a full catalog stays partial).
 - extendedWaitUntil:
     visible:
       id: country-status-JP
-      text: "Partly installed.*"
+      text: "Installed.*"
     timeout: 900000
 - assertVisible:
     id: country-part-delete-map-jp-kanto

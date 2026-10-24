@@ -1,6 +1,12 @@
-**Current:** v0.2.0-preview (versionCode 5) with every country — full pack generation built and in the DRAFT release `packs-20261024`; catalog sequence 4 prepared, waiting for the offline signature
-**Next step:** owner: sign `catalog/pending/release/catalog.json` offline (SHA-256 `734e90cda29fa8486f011e65d93fcef6e75e23a6fa764e80d51ee3d52bb9c6bc`) and bring back `catalog.json.sig`; then version bump, release notes, gate
-**Last session:** 2026-10-24 — full generation: 547 packs (308 maps incl. 88 parts of 19 countries, 239 places), 140.98 GB in draft `packs-20261024`; CI 1100 jobs, 0 failures, 32.7 runner-h; every asset re-measured locally = CI report = GitHub digest; pnpm verify 49/49, Rust catalog tests
+**Current:** v0.2.0-preview (versionCode 5) — prepared on `release/0.2.0-preview`, gate green; not tagged; pack release `packs-20261024` still a DRAFT
+**Next step:** owner: publish `packs-20261024`, then tag, sign, signature-copy check, smoke test and publish v0.2.0-preview (steps in the session report / `docs/release-process.md`); update the fdroiddata recipe to versionCode 5
+**Last session:** 2026-10-25 — signed catalog seq 4 embedded, version bump, CHANGELOG/notes; fixed missing map glyphs (iOS map never ready, labels dropped); pnpm verify 49/49, Rust, cards+numbers check, Android release (vc 5, allowlist PASS) + desktop builds, Playwright 17/17, Maestro S23 countries PASS (real files), CI incl. iOS 9/9 green
+
+## v0.2.0-preview prepared 2026-10-25 (branch `release/0.2.0-preview`, not tagged, nothing published)
+
+- Done: owner signed catalog sequence 4 offline (`734e90cd…c6bc`); embedded in `catalog/embedded/release`; version 0.2.0-preview / versionCode 5 / iOS build 5 / desktop 0.2.0-preview (WiX 0.2.0); CHANGELOG, `changelogs/5.txt`, store description, README, `docs/release-notes/v0.2.0-preview.md`; CI `draft-packs` job (iOS E2E reads map-gr/places-gr from the draft); all glyph ranges bundled (iOS map flows failed with "Failed to load glyph range 1024-1279" on the new Greece extract, which reaches Cyrillic labels); countries flow waits for "Installed" (race with "Partly installed").
+- Verified: pnpm verify 49/49; cargo fmt/clippy/test; cards-source-check PASS (111 steps, 35 countries' numbers); Android `assembleRelease` unsigned preview (versionCode 5, catalog OK seq 4, cards 111/111, permission allowlist PASS, 55.9 MB); `tauri build` MSI 42.79 MiB, NSIS 26.66 MiB; Playwright 17/17; Maestro S23 (device lock) countries flow PASS with the real CI-built files from the local mirror (CY, GR, JP Kanto), 0 bytes egress; CI run 40129038033 green incl. ios-build and ios-e2e (9/9 flows, parity PASS).
+- Open: owner steps (packs release publish, tag, sign, publish, fdroiddata recipe); Crimea coverage decision to confirm.
 
 ## v0.2.0-preview: full country generation 2026-10-24 (branch `release/0.2.0-preview`, not merged)
 
