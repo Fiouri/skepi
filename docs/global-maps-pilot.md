@@ -150,13 +150,39 @@ From the dry runs of all 239 regions (build 20261022) and the pilot's measured r
 | Maestro on the S23 | `e2e/run-countries-e2e.ps1` (device lock, debug build, schema 2 test catalog sequence 5 signed with the test key): Cyprus and Greece downloaded from the local mirror, then airplane mode: Nicosia and Patras in the home search, the map with both packs and emergency points in each country (8 in central Nicosia), Cyprus deleted (its places gone, Greece left): **PASS**, 6 download requests all to the mirror, 0 bytes over real interfaces |
 | CI | run [40000021067](https://github.com/Fiouri/skepi/actions/runs/40000021067) (workflow_dispatch on `feat/global-maps`): verify, rag-eval smoke, Android release guards, desktop Windows and macOS, **ios-build and ios-e2e** green |
 
+## Review fixes (2026-10-24)
+
+- **Parts**: a split country's parts are listed by name (from their admin-1 regions), with size, a
+  per-part download and delete, and "Download all parts"; a subdivision ("Bayern", "Tokyo") finds the
+  country and marks the part. Map home, places and search work with any subset of parts; the country's
+  places pack goes with its last part. A catalog that lists only some parts still shows them as parts
+  (`isSplit` by part, found by the S23 run below). `catalog countries --parts JP:kanto` builds test catalogs.
+- **Catalog updates of v0.1.x**: release builds 0.1.0–0.1.2 have no catalog update source and never
+  fetch one (Android `sourcesFile` empty, iOS without `sources.json`, desktop `SOURCES = None`), so no
+  schema-1 path is needed; recorded in `docs/architecture.md`.
+- **Emergency numbers**: Japan (110 NPA, 119 FDMA, 118 JCG) and Türkiye (112) with official sources,
+  snapshots and retrieval date, checked by `cards-source-check` like the card sources and pinned by
+  `numbersDigest` in every release build.
+- **Hosting**: pack generation retention (newest in full; older ones only the assets the last two app
+  releases embed), assets and size per release, worst case ≈ 444 GB: `tools/catalog-builder/README.md`
+  step 6 and `docs/architecture.md`.
+
+| Check | Result |
+| --- | --- |
+| Unit, typecheck, lint | `pnpm verify` 49/49; Rust fmt/clippy/test |
+| Release builds | Android `assembleRelease` (cards 111/111, permission allowlist PASS); `tauri build` MSI + NSIS; Playwright 17/17 (one German part found by "Bayern", all parts, delete part) |
+| Maestro on the S23 | `run-countries-e2e.ps1` (device lock): Cyprus, Greece and Japan's Kanto part only (found by "Tokyo") from the local mirror; offline Yokohama in search, map and POIs; delete Cyprus, then the Kanto part (Japan's places go with it): **PASS**, 8 requests all to the mirror, 0 bytes over real interfaces. First run failed: Japan with one listed part showed as a whole country; fixed (`isSplit`). |
+| CI | run 40043196709 green incl. ios-build and ios-e2e (before the `isSplit` fix; re-run on the merge commit) |
+
 ## Open
 
 - **Owner**: upload and sign (steps in `tools/catalog-builder/README.md` → "Country packs"); the
   pinned inputs (Protomaps 20261022, Geofabrik 261022) expire in about two weeks, so either publish this
   pilot's packs (`upload_packs`) soon or re-pin a new date for the full run.
-- **Owner**: emergency numbers for countries outside the bundled dataset (the pilot's Japan and Turkey
-  get 112 with "check the local number"); entries need official sources.
+- Emergency numbers: 35 of 239 countries have source-checked numbers (Japan and Türkiye added
+  2026-10-24); the rest keep 112 with "check the local number" until an official national source is
+  snapshotted (plan in `docs/architecture.md` → Emergency numbers). AU and CA sources block automated
+  checks (listed as unchecked).
 - A schema 2 catalog reaches only apps with this change: ship it embedded in the next app release.
 - The map with many countries (71 layers per pack) is measured on the S23 with two countries only;
   T1 phones and five or more countries are not measured.

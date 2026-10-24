@@ -1,6 +1,13 @@
-**Current:** Global maps (owner decision 2026-10-23) — pilot done on branch `feat/global-maps` (not merged): 8 countries built and measured in CI, nothing uploaded or signed; F-Droid MR 53588 for v0.1.2-preview still in review
-**Next step:** owner: review/merge `feat/global-maps`, then publish the pilot packs before the pinned inputs expire (~2026-11-05) or re-pin a new date — upload + offline signing steps in `tools/catalog-builder/README.md` → "Country packs"; still waiting for Licaon_Kter on `-PskepiPreview=true`
-**Last session:** 2026-10-23 — global maps pilot: regions for 239 countries, split rule, CI pack pipeline (39/39 packs, reproducible), catalog schema 2, Maps & places on mobile + desktop; pnpm verify 49/49, Rust, Android + desktop release builds, Playwright 16/16, Maestro S23 countries flow PASS, CI incl. iOS green
+**Current:** Global maps — pilot + review fixes merged into `main` 2026-10-24 (parts, JP/TR numbers, retention docs); nothing uploaded or signed; F-Droid MR 53588 for v0.1.2-preview still in review
+**Next step:** owner: publish the pilot packs before the pinned inputs expire (~2026-11-05) or re-pin a new date — upload + offline signing steps in `tools/catalog-builder/README.md` → "Country packs"; still waiting for Licaon_Kter on `-PskepiPreview=true`
+**Last session:** 2026-10-24 — review fixes: single parts of split countries, JP + TR emergency numbers source-checked (35/239), v0.1.x never fetch catalogs, pack retention; pnpm verify 49/49, Rust, Android + desktop release builds, Playwright 17/17, Maestro S23 countries + Kanto part PASS, CI incl. iOS green
+
+## Global maps review fixes 2026-10-24 (merged into `main`)
+
+- Done: per-part download/delete of split countries with part names from admin-1 regions, sizes, "Download all parts", subdivision search; `isSplit` by part (a catalog with some parts); `catalog countries --parts`; Japan (110/119/118) and Türkiye (112) numbers with official sources, snapshots and `numbersDigest` checked in release builds and CI; architecture: catalog delivery of v0.1.x (none: release builds never fetch), pack retention (newest in full + assets the last two app releases embed, worst case ≈ 444 GB), number coverage plan; runner wakes the S23 and stops behind a secure keyguard.
+- Verified: pnpm verify 49/49; cargo fmt/clippy/test; Android `assembleRelease` (cards 111/111, permission allowlist PASS); `tauri build`; Playwright 17/17; cards-source-check PASS (35 countries, 10 checked sources); Maestro on the S23 (device lock) countries flow incl. Kanto part PASS, 0 bytes egress; CI incl. iOS green.
+- Open risks: 204 countries still on 112 + note; AU/CA sources unchecked (bot walls); iOS downloads unsupported.
+- Device testing: S23 + Windows 11; iOS Simulator in CI.
 
 ## Global maps pilot 2026-10-23 (branch `feat/global-maps`, not merged, nothing published)
 
