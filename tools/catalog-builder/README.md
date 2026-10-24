@@ -194,17 +194,22 @@ The release key never enters CI; CI has no secret at all. Steps for a new countr
    one download's SHA-256 against the catalog, then move `catalog.json` + `.sig` into
    `catalog/embedded/release` (next app release) and, once catalog hosting exists, to the update URL.
 
-6. **Retire the previous generation** (only after step 5 is released: the new catalog is embedded in a
-   published app release, or served at the update URL once one exists). Keep exactly the newest
-   generation and the one `catalog/embedded/release/catalog.json` of the current app release
-   references; delete every other `packs-*` release's assets:
+6. **Retire old generations** (only after step 5 is released: the new catalog is embedded in a
+   published app release, or served at the update URL once one exists). Keep the newest generation and
+   every generation that the embedded catalog (`catalog/embedded/release/catalog.json`) of the **last
+   two app releases** references; delete every other `packs-*` release's assets. Today v0.1.2-preview
+   and v0.1.1-preview both embed `packs-2026-10`, so it stays.
    ```powershell
-   git grep -c "releases/download/packs-20261022/" catalog/embedded/release/catalog.json   # must print nothing for the generation to delete
+   # The generation to delete must appear in neither of the last two releases' embedded catalogs.
+   $tags = git tag --list 'v*' --sort=-creatordate | Select-Object -First 2
+   foreach ($t in $tags) { git show "${t}:catalog/embedded/release/catalog.json" | Select-String -SimpleMatch 'releases/download/packs-20261022/' }   # must print nothing
    gh release view packs-20261022 --json assets --jq '.assets | length, (map(.size) | add)'
    gh release delete packs-20261022 --yes --cleanup-tag
    ```
-   An older app release keeps its own embedded catalog (release builds have no update URL), so its
-   downloads of a deleted generation fail; phones that hold those packs can still share them over P2P.
+   An app release older than the last two keeps its own embedded catalog (release builds have no update
+   URL), so its downloads of a deleted generation fail; phones that hold those packs can still share
+   them over P2P. Storage: at most three generations at once (newest + two embedded), ≈ 3 × 148 GB once
+   every country is published.
 
 **Assets per release.** `packs-2026-10` (Greece, embedded in v0.1.0–v0.1.2): 2 assets, 512.5 MB.
 Pilot `packs-20261022`: 39 assets (31 map packs, 8 places packs), 31.96 GB, largest 1.42 GB. A full
