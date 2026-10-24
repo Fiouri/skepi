@@ -147,13 +147,21 @@ export function filterCountries<E extends { iso2: string; name: string; maps?: r
 }
 
 /**
+ * A country whose map is split into parts: its packs carry a part, even when the catalog lists only
+ * some of them (one part is still a part, not the whole country).
+ */
+export function isSplit(entry: CountryEntry<RegionPackLike>): boolean {
+  return entry.maps.some((m) => m.pack.region?.part != null);
+}
+
+/**
  * The parts of a split country that the query found by a subdivision rather than by the country
  * (pack id → the matching name, shown beside the part): empty when the query names the country.
  */
 export function matchingParts(entry: CountryEntry<RegionPackLike>, query: string): Map<string, string> {
   const q = folded(query);
   const out = new Map<string, string>();
-  if (q.length === 0 || entry.maps.length < 2 || foldText(entry.name).includes(q) || entry.iso2.toLowerCase() === q) return out;
+  if (q.length === 0 || !isSplit(entry) || foldText(entry.name).includes(q) || entry.iso2.toLowerCase() === q) return out;
   for (const m of entry.maps) {
     const term = partTerm(m.pack.region?.part, q);
     if (term !== null) out.set(m.pack.id, term);

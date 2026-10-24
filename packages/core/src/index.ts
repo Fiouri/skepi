@@ -290,6 +290,7 @@ export {
   countryInstalledIds,
   distanceKm,
   filterCountries,
+  isSplit,
   matchingParts,
   partRemovalIds,
   fitZoom,

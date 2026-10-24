@@ -5,6 +5,7 @@ import {
   detectMobileTier,
   filterCountries,
   listCountries,
+  isSplit,
   matchingParts,
   partRemovalIds,
   type CatalogPack,
@@ -134,7 +135,7 @@ export default function MapsScreen() {
     });
 
   const row = (entry: CountryEntry) => {
-    const split = entry.maps.length > 1;
+    const split = isSplit(entry);
     const progress = progressOf(entry);
     const installed = countryInstalledIds(entry).length > 0;
     const all = countryDownloads(entry);

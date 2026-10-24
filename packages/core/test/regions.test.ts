@@ -12,6 +12,7 @@ import {
   LEGACY_HOME,
   listCountries,
   mapHome,
+  isSplit,
   matchingParts,
   packRegion,
   partRemovalIds,
@@ -189,6 +190,15 @@ describe('listCountries', () => {
     expect(both.status).toBe('installed');
     expect(partRemovalIds(both, 'map-de-hesse')).toEqual(['map-de-hesse']);
     expect(countryInstalledIds(both)).toEqual(['map-de-bavaria', 'map-de-hesse', 'places-de']);
+  });
+
+  it('a catalog with only one part of a split country still shows it as a part', () => {
+    const catalog = { packs: CATALOG.packs.filter((p) => p.id !== 'map-de-hesse') };
+    const de = country(listCountries(catalog, []), 'DE');
+    expect(de.maps.map((m) => m.pack.id)).toEqual(['map-de-bavaria']);
+    expect(isSplit(de)).toBe(true);
+    expect([...matchingParts(de, 'bayern')]).toEqual([['map-de-bavaria', 'Bayern']]);
+    expect(isSplit(country(listCountries(CATALOG, []), 'CY'))).toBe(false);
   });
 
   it('installedRegions: verified map and places packs the catalog knows', () => {

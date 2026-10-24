@@ -1,4 +1,4 @@
-import { checkStorage, countryDownloads, countryInstalledIds, filterCountries, listCountries, matchingParts, partRemovalIds, type CountryEntry } from '@skepi/core';
+import { checkStorage, countryDownloads, countryInstalledIds, filterCountries, isSplit, listCountries, matchingParts, partRemovalIds, type CountryEntry } from '@skepi/core';
 import { useMemo, useState } from 'react';
 import { Banner, Button, errorText, formatBytes } from '../components/ui';
 import { useMessages } from '../lib/i18n';
@@ -104,7 +104,7 @@ export function MapsSection() {
         const pr = running(entry);
         const installed = countryInstalledIds(entry).length > 0;
         const all = countryDownloads(entry);
-        const split = entry.maps.length > 1;
+        const split = isSplit(entry);
         const matched = matchingParts(entry, query);
         const percent = pr && pr.totalBytes > 0 ? Math.floor((pr.bytes / pr.totalBytes) * 100) : 0;
         return (
