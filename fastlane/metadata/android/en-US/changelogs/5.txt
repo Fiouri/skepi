@@ -1,0 +1,3 @@
+0.2.0-preview, Developer Preview. Not for emergency use.
+
+Offline maps and places for every country: choose a country in Maps & places and download it, or only the part you need of a large one (found by a region name such as "Bavaria"). Every file is checked against the signed catalog. Emergency numbers from official sources for Japan and Türkiye (35 countries in all).

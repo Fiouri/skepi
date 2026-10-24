@@ -563,8 +563,51 @@ jobs:
   # iOS E2E on the Simulator with the apps ios-build made in this run (no rebuild): the secure-storage
   # failure flow (unsigned build), the Maestro flows (ad-hoc copy, provisioned packs, no AI) and the
   # retrieval parity run (108 en queries; no model) against the stored S23, desktop and rag-eval runs.
+  # The iOS E2E provisions map-gr and places-gr from the URLs of the embedded release catalog. While a
+  # new pack generation is still a DRAFT release (between the catalog's signature and the app release
+  # that publishes it), those URLs answer 404: this job fetches only the two files from the draft. It is
+  # the only job with write access (needed to read a draft) and runs no repository code; the iOS E2E
+  # checks each file's SHA-256 against the catalog before using it.
+  draft-packs:
+    needs: changes
+    if: needs.changes.outputs.ios_e2e == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      files: ${{ steps.fetch.outputs.files }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: catalog/embedded/release/catalog.json
+          sparse-checkout-cone-mode: false
+      - id: fetch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p draft-packs
+          for id in map-gr places-gr; do
+            read -r file url < <(jq -r --arg id "$id" '.packs[] | select(.id == $id) | "\(.file) \(.urls[0])"' catalog/embedded/release/catalog.json)
+            if curl --silent --fail --head --location --output /dev/null "$url"; then echo "$file: public"; continue; fi
+            tag=$(echo "$url" | sed -n 's#^https://github.com/'"$GH_REPO"'/releases/download/\(packs-[0-9]\{8\}\)/[^/]*$#\1#p')
+            [ -n "$tag" ] || { echo "::error::$url is not a pack release of this repository"; exit 1; }
+            test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true || { echo "::error::$url answers no file and $tag is not a draft"; exit 1; }
+            gh release download "$tag" --pattern "$file" --dir draft-packs
+            echo "$file: from draft $tag"
+          done
+          echo "files=$([ -n "$(ls draft-packs)" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - if: steps.fetch.outputs.files == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: draft-packs
+          path: draft-packs/
+          retention-days: 1
+          compression-level: 0
+
   ios-e2e:
-    needs: [changes, ios-build]
+    needs: [changes, ios-build, draft-packs]
     if: needs.changes.outputs.ios_e2e == 'true'
     runs-on: macos-latest
     timeout-minutes: 120
@@ -594,6 +637,11 @@ jobs:
         with:
           path: .cache/skepi
           key: ios-e2e-packs-${{ hashFiles('catalog/embedded/release/catalog.json') }}
+      - if: needs.draft-packs.outputs.files == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: draft-packs
+          path: .cache/skepi
       - name: Maestro (pinned, SHA-256 checked)
         env:
           MAESTRO_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip

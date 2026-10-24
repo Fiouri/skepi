@@ -5,6 +5,36 @@ suffix. Phase reports in `docs/` have the details and the measurements.
 
 ## [Unreleased]
 
+## [0.2.0-preview] — Developer Preview (Android + Windows)
+
+Fourth preview, for developers and testers. **Not for emergency use.** Offline maps and places for
+every country.
+
+### Added
+- Maps & places (Packs): every country's OpenStreetMap map and places pack, searchable by country name,
+  ISO code or a region inside it, with download size, free-space check and a warning on phones with
+  little space. Downloads start only when you press Download; every file is checked against the signed
+  catalog before it opens. One map shows every installed country; place search and the emergency points
+  cover all of them; the emergency number follows the installed country you are in.
+- Parts: 19 large countries are split into map parts of neighbouring regions (each ≤ 1.5 GB; Canada's
+  largest provinces at a lower zoom). Download one part or all; a region name ("Bayern", "Tokyo") finds
+  the part that contains it; the country's places come with its first part and go with its last.
+- Emergency numbers from official national sources for Japan (110 police, 119 fire and ambulance, 118
+  coast guard) and Türkiye (112), each with its source and retrieval date, checked like the card
+  sources. 35 of 239 countries have official numbers; the others show "112 — check the local number".
+
+### Changed
+- Signed catalog schema 2 (country and part of each map and places pack), sequence 4: 553 packs
+  (547 country packs from the `packs-20261024` mirror, 141 GB in all; Wikipedia and the model unchanged).
+  The Greece map and places packs are updated (same ids: an installed Greece pack shows an update).
+  Apps before 0.2.0-preview keep their embedded catalog (they never fetch one).
+- Onboarding offers the user's own country instead of Greece.
+
+### Build and release
+- Country packs are built in CI from pinned inputs (Protomaps daily build 20261024, Geofabrik extracts
+  of 2026-10-23), one job per pack, measured again on the maintainer's machine and signed offline.
+- Release builds check the emergency numbers against the last passed source check.
+
 ## [0.1.2-preview] — Developer Preview (Android + Windows)
 
 Third preview, for developers and testers. **Not for emergency use.** The emergency cards now carry

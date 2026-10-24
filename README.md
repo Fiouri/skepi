@@ -23,8 +23,10 @@ Android phones and Windows computers; a computer can share packs with nearby pho
 - **Ask**: the answer starts with *source excerpts* (Layer 1, verbatim sentences from the packs, labelled
   "Source excerpts — not verified advice"), then an optional AI summary (Qwen2.5-1.5B on the device)
   whose every sentence must be supported by a cited excerpt, or it is not shown.
-- **Maps and places**: Greece map pack (OpenStreetMap), hospitals, pharmacies, shelters and water
-  points, place search.
+- **Maps and places** for every country (since `v0.2.0-preview`): OpenStreetMap map and places packs
+  per country, large countries in parts (download one region or all), hospitals, pharmacies, shelters
+  and water points, place search; downloaded only when you press Download, each file checked against
+  the signed catalog.
 - **Emergency**: the number for your country first, a permanent Emergency button, first aid cards
   quoted from the IFRC guidelines, SOS torch (Morse), compass, your position and heading on the map.
 - **Share without the internet**: phone to phone (Wi-Fi or hotspot) and computer to phones (Station
@@ -32,14 +34,14 @@ Android phones and Windows computers; a computer can share packs with nearby pho
 
 ## Install
 
-Download from the release page (`v0.1.2-preview`): the Android APK, the Windows MSI or NSIS installer,
+Download from the release page (`v0.2.0-preview`): the Android APK, the Windows MSI or NSIS installer,
 and `SHA256SUMS.txt`.
 
 **1. Check the SHA-256 of what you downloaded**
 
 ```powershell
 # Windows PowerShell
-Get-FileHash .\skepi-0.1.2-preview-arm64.apk, .\SKEPI_0.1.2-preview_x64_en-US.msi, .\SKEPI_0.1.2-preview_x64-setup.exe -Algorithm SHA256
+Get-FileHash .\skepi-0.2.0-preview-arm64.apk, .\SKEPI_0.2.0-preview_x64_en-US.msi, .\SKEPI_0.2.0-preview_x64-setup.exe -Algorithm SHA256
 ```
 ```sh
 # Linux / macOS
@@ -50,7 +52,7 @@ The values must equal the lines of `SHA256SUMS.txt` from the release page.
 **2. Android (arm64, Android 7.0 / API 24 or newer)**: check the APK's signing certificate, then install.
 
 ```sh
-apksigner verify --print-certs skepi-0.1.2-preview-arm64.apk   # Android SDK build-tools
+apksigner verify --print-certs skepi-0.2.0-preview-arm64.apk   # Android SDK build-tools
 ```
 The certificate SHA-256 must be
 `7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45dd45447e` (also shown in the app under
@@ -86,7 +88,9 @@ asks for firewall access: allow **private networks** only.
   the card and the source excerpts only.
 - AI summaries can be wrong: check the cited excerpt. Sentences with a web or e-mail address are never
   shown. Medical questions get an AI summary only on tap, labelled "Unverified AI summary".
-- English only (the Greek locale is frozen until v1). Map pack: Greece only.
+- English only (the Greek locale is frozen until v1). Emergency numbers from official sources for 35
+  of 239 countries; elsewhere "112 — check the local number". Map downloads are not supported on iOS
+  yet.
 - Windows installers are unsigned; no automatic updates (check the release page).
 
 ## Privacy

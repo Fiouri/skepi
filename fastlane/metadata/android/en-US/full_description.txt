@@ -8,7 +8,7 @@ WHAT IT DOES
 
 • Offline encyclopedia: search and read Wikipedia articles from Kiwix packs (English top articles and medical articles), in a viewer that runs no scripts and opens no web pages.
 • Ask a question: the answer starts with source excerpts, copied word for word from the packs and labelled "not verified advice". An optional summary written by a small AI model on your phone follows, marked "AI summary"; every sentence must match a cited excerpt, or it is not shown. Medical and emergency questions get no AI summary.
-• Offline maps and places: a map of Greece from OpenStreetMap, with hospitals, pharmacies, shelters and water points, and place search.
+• Offline maps and places for every country from OpenStreetMap (large countries in parts you can download one by one), with hospitals, pharmacies, shelters and water points, and place search. Nothing is downloaded until you press Download.
 • Emergency tools: the emergency number for your country, first aid cards quoted word for word from the IFRC International First Aid, Resuscitation and Education Guidelines 2025 (with section and page), SOS torch (Morse), compass and your position on the map.
 • Share without the internet: send content packs from phone to phone over Wi-Fi or a local hotspot, paired by QR code, or receive them from the S.K.E.P.I. desktop app. Every file is checked against a digitally signed catalog before it opens.
 
@@ -17,7 +17,7 @@ IMPORTANT LIMITATIONS
 • Not for emergency use: call the emergency number first. The first aid cards quote the IFRC guidelines and do not replace first aid training.
 • Source excerpts are shown as written in the packs, and AI summaries can be wrong. Check the cited source.
 • Content is downloaded after installation and is large (about 2 to 8 GB, depending on what you choose). It can also be received from another phone or a computer running SKEPI.
-• English only. Map pack: Greece only. Needs a 64-bit (arm64) phone with Android 7.0 or newer. Phones with less than about 3 GB of RAM get source excerpts without AI summaries.
+• English only. Emergency numbers from official sources for 35 countries; elsewhere "112 — check the local number". Needs a 64-bit (arm64) phone with Android 7.0 or newer. Phones with less than about 3 GB of RAM get source excerpts without AI summaries.
 
 PRIVACY
 
