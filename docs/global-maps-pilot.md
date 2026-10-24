@@ -172,7 +172,7 @@ From the dry runs of all 239 regions (build 20261022) and the pilot's measured r
 | Unit, typecheck, lint | `pnpm verify` 49/49; Rust fmt/clippy/test |
 | Release builds | Android `assembleRelease` (cards 111/111, permission allowlist PASS); `tauri build` MSI + NSIS; Playwright 17/17 (one German part found by "Bayern", all parts, delete part) |
 | Maestro on the S23 | `run-countries-e2e.ps1` (device lock): Cyprus, Greece and Japan's Kanto part only (found by "Tokyo") from the local mirror; offline Yokohama in search, map and POIs; delete Cyprus, then the Kanto part (Japan's places go with it): **PASS**, 8 requests all to the mirror, 0 bytes over real interfaces. First run failed: Japan with one listed part showed as a whole country; fixed (`isSplit`). |
-| CI | run 40043196709 green incl. ios-build and ios-e2e (before the `isSplit` fix; re-run on the merge commit) |
+| CI | run [40078020534](https://github.com/Fiouri/skepi/actions/runs/40078020534) (with the `isSplit` fix) green: verify, rag-eval smoke, Android release guards, desktop Windows and macOS, ios-build, ios-e2e |
 
 ## Open
 
