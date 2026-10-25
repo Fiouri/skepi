@@ -1,13 +1,19 @@
-**Current:** v0.2.0-preview (versionCode 5) — prepared on `release/0.2.0-preview`, gate green; not tagged; pack release `packs-20261024` still a DRAFT
-**Next step:** owner: publish `packs-20261024`, then tag, sign, signature-copy check, smoke test and publish v0.2.0-preview (steps in the session report / `docs/release-process.md`); update the fdroiddata recipe to versionCode 5
-**Last session:** 2026-10-25 — signed catalog seq 4 embedded, version bump, CHANGELOG/notes; fixed missing map glyphs (iOS map never ready, labels dropped); pnpm verify 49/49, Rust, cards+numbers check, Android release (vc 5, allowlist PASS) + desktop builds, Playwright 17/17, Maestro S23 countries PASS (real files), CI incl. iOS 9/9 green
+**Current:** v0.2.0-preview published 2026-10-25 (maps and places for every country); fdroiddata MR 53588 updated with its recipe, waiting for review
+**Next step:** owner: follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
+**Last session:** 2026-10-25 — v0.2.0-preview and `packs-20261024` published by the owner; release branch merged into main; Crimea/Sevastopol coverage confirmed; docs only
+
+## v0.2.0-preview published 2026-10-25
+
+- Done (owner): pack release `packs-20261024` published (547 assets, 12:13 UTC), then GitHub pre-release `v0.2.0-preview` (12:51 UTC), tag on `4faad7c0e9cdd3fcf0994b95a56abd3e8c471f82`: signed APK `b6bebe1e96d927932fba8f12e4ce8507ec1b0ec99c0f8e523a94ccd5c671102b`, MSI `74c13ef6…bc75a`, NSIS `93f9c92e…1d416`; fdroiddata MR 53588 updated with the 0.2.0-preview recipe (`159feda9…`) and description. Release branch merged into main (fast-forward).
+- Verified: signature copy PASS on the downloaded asset (owner); signed APK installed over 0.1.2-preview on the S23 (device lock, airplane mode): full Maestro suite 9/9 and the countries flow PASS; release asset digests on GitHub match the hashes above.
+- Open: MR 53588 review; `packs-2026-10` kept (embedded by v0.1.1/v0.1.2).
 
 ## v0.2.0-preview prepared 2026-10-25 (branch `release/0.2.0-preview`, not tagged, nothing published)
 
 - Done: owner signed catalog sequence 4 offline (`734e90cd…c6bc`); embedded in `catalog/embedded/release`; version 0.2.0-preview / versionCode 5 / iOS build 5 / desktop 0.2.0-preview (WiX 0.2.0); CHANGELOG, `changelogs/5.txt`, store description, README, `docs/release-notes/v0.2.0-preview.md`; CI `draft-packs` job (iOS E2E reads map-gr/places-gr from the draft); all glyph ranges bundled (iOS map flows failed with "Failed to load glyph range 1024-1279" on the new Greece extract, which reaches Cyrillic labels); countries flow waits for "Installed" (race with "Partly installed").
 - Verified: pnpm verify 49/49; cargo fmt/clippy/test; cards-source-check PASS (111 steps, 35 countries' numbers); Android `assembleRelease` unsigned preview (versionCode 5, catalog OK seq 4, cards 111/111, permission allowlist PASS, 55.9 MB); `tauri build` MSI 42.79 MiB, NSIS 26.66 MiB; Playwright 17/17; Maestro S23 (device lock) countries flow PASS with the real CI-built files from the local mirror (CY, GR, JP Kanto), 0 bytes egress; CI run 40129038033 green incl. ios-build and ios-e2e (9/9 flows, parity PASS).
 - Release candidate: commit `4faad7c0e9cdd3fcf0994b95a56abd3e8c471f82`; android-repro run 40140411948 (recipe at `fd57c98`): builds (a), (b) and `fdroid build` byte-identical, unsigned SHA-256 `a65f61242952bea358ce73c5e1d3c54ab002102566cbfa7cd4a06fd4f95df70d`, artifact `skepi-0.2.0-preview-vc5-4faad7c0e9cd-unsigned`; recipe in `docs/fdroid/org.skepi.app.yml` (only the 0.2.0-preview build, as for 0.1.2).
-- Open: owner steps (publish `packs-20261024`, tag, sign, signature-copy check, smoke test, publish, fdroiddata MR update); Crimea coverage decision to confirm.
+- Owner decision 2026-10-25: Crimea and Sevastopol stay in both the Ukraine and the Russia packs (confirmed).
 
 ## v0.2.0-preview: full country generation 2026-10-24 (branch `release/0.2.0-preview`, not merged)
 

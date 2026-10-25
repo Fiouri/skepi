@@ -113,6 +113,21 @@ without the variable (`apps/mobile/plugins/withEmergencyCards.js`), and the owne
 line only after an `android-repro` dispatch with the changed recipe shows `fdroid-build` still at
 `9857b660808d9c5e1f53a3d1bfcd185a7489b8a0b2ded6ff04b1f7c1e9ad12c1`.
 
+**v0.2.0-preview published (owner, 2026-10-25):** GitHub pre-release
+<https://github.com/Fiouri/skepi/releases/tag/v0.2.0-preview> (12:51 UTC), tag on
+`4faad7c0e9cdd3fcf0994b95a56abd3e8c471f82`; signed APK `skepi-0.2.0-preview-arm64.apk`
+`b6bebe1e96d927932fba8f12e4ce8507ec1b0ec99c0f8e523a94ccd5c671102b` (from the CI artifact
+`a65f6124…f70d`, `android-repro` run 40140411948, where `fdroid-build` gave the same bytes), MSI
+`74c13ef63b0fe20cb8b741a16798084814cee9bd0da1c6387d3b77da6b3bc75a`, NSIS
+`93f9c92ee46e2fce799fea8cd183e81e8de8ae25466c17eadab1ec2e15a1d416`; `check-fdroid-signature-copy.ps1` on the
+asset downloaded back from the release: **PASS**. Before publishing, the signed APK was installed over
+0.1.2-preview on the S23 and passed the full Maestro suite (9/9, airplane mode) and the countries flow.
+The pack release `packs-20261024` (547 assets, every country) was published first (12:13 UTC).
+
+**MR 53588 updated (owner, 2026-10-25):** MR branch commit `159feda9…` with the 0.2.0-preview recipe
+(`docs/fdroid/org.skepi.app.yml`: one build, versionCode 5, commit `4faad7c0e9cd…`) and the updated
+description.
+
 Status legend: **ready** · **blocked** (a repo change is needed first) · **owner** (needs an owner
 decision or account action).
 
@@ -149,8 +164,8 @@ No Google Play Services, Firebase, analytics, ads or other proprietary SDK was f
 | Reproducible build (publish our signed APK via `Binaries:` + `AllowedAPKSigningKeys:`) | ready (`fdroid build` gives the same bytes) | Byte-identical across paths, Gradle homes and runners (§4); `fdroid build` in the buildserver container compared with `android-repro` (§6) |
 | Anti-features | ready | None expected: no tracking, ads or non-free assets; content hosts (Kiwix, Hugging Face, GitHub) serve freely licensed files, and every pack can also come from import or P2P, so the app does not "depend entirely" on a non-free service (NonFreeNet). Disclose the download hosts in the submission |
 | Metadata | ready | `fastlane/metadata/android/en-US/` (title "S.K.E.P.I. Offline Survival", short and full description, `changelogs/2.txt` and `3.txt`, 6 phone screenshots; none shows the product name, so the rename needed no new ones); icon and feature graphic still to add (§5) |
-| Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`, 4 for `v0.1.2-preview`); a recipe pins the full commit hash |
-| fdroiddata recipe | owner | Submitted 2026-10-22: merge request [53588](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588), open. First pipeline failed (rewritemeta, checkupdates, signature copy of the v0.1.1-preview APK, see "F-Droid submission" above); v0.1.2-preview published 2026-10-22 with a copyable signature (check PASS on the downloaded asset); MR branch updated 2026-10-23 with the 0.1.2-preview recipe (`06ae193c…`); open review question on `-PskepiPreview=true`, waiting for the reviewer |
+| Version scheme | ready | Tags `v<version>`, versionCode in `apps/mobile/app.json` (2 for `v0.1.0-preview`, 3 for `v0.1.1-preview`, 4 for `v0.1.2-preview`, 5 for `v0.2.0-preview`); a recipe pins the full commit hash |
+| fdroiddata recipe | owner | Submitted 2026-10-22: merge request [53588](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53588), open. First pipeline failed (rewritemeta, checkupdates, signature copy of the v0.1.1-preview APK, see "F-Droid submission" above); v0.1.2-preview published 2026-10-22 with a copyable signature (check PASS on the downloaded asset); MR branch updated 2026-10-23 with the 0.1.2-preview recipe (`06ae193c…`); open review question on `-PskepiPreview=true`, waiting for the reviewer; v0.2.0-preview published 2026-10-25 (signature copy PASS on the downloaded asset), MR branch updated 2026-10-25 with the 0.2.0-preview recipe (`159feda9…`) |
 
 ### Google Play (deferred to v1)
 
@@ -285,8 +300,12 @@ comparison and `llvm-objcopy`/`llvm-readelf` from NDK 27.3 (diffoscope is not av
 
 ## 6. fdroiddata recipe (submitted 2026-10-22, merge request 53588; `fdroid build` in CI gives the published bytes)
 
-The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). Since 2026-10-22 it targets
-`v0.1.2-preview`, versionCode 4, with one build only (F-Droid builds the latest): `commit:` is
+The recipe lives in `docs/fdroid/org.skepi.app.yml` (copied below). Since 2026-10-25 it targets
+`v0.2.0-preview`, versionCode 5, one build: `commit:` is `4faad7c0e9cdd3fcf0994b95a56abd3e8c471f82` (the
+tag); `android-repro` run 40140411948 with this recipe: (a), (b) and `fdroid-build` all
+`a65f61242952bea358ce73c5e1d3c54ab002102566cbfa7cd4a06fd4f95df70d` (`scripts/ci/fdroid-build.sh` expects one
+build in the recipe). From 2026-10-22 to 2026-10-25 it targeted
+`v0.1.2-preview`, versionCode 4, with one build only (F-Droid builds the latest): `commit:` was
 `4af3b0c43daf6078abe46163d80d6daf18700e89`, the commit to tag `v0.1.2-preview` (owner decision 2026-10-22: the
 `v0.1.1-preview` APK could not pass F-Droid's signature copy, see "F-Droid submission" above). CI at that
 commit (run 39778296502): `android-repro` (a), (b) and `fdroid-build` all give the unsigned SHA-256
@@ -349,9 +368,9 @@ Repo: https://github.com/Fiouri/skepi.git
 Binaries: https://github.com/Fiouri/skepi/releases/download/v%v/skepi-%v-arm64.apk
 
 Builds:
-  - versionName: 0.1.2-preview
-    versionCode: 4
-    commit: 4af3b0c43daf6078abe46163d80d6daf18700e89
+  - versionName: 0.2.0-preview
+    versionCode: 5
+    commit: 4faad7c0e9cdd3fcf0994b95a56abd3e8c471f82
     subdir: apps/mobile
     sudo:
       - echo 'deb https://deb.debian.org/debian forky main' > /etc/apt/sources.list.d/forky.list
@@ -391,8 +410,8 @@ AllowedAPKSigningKeys: 7d61c38241b178f84b12dd9a67af6b60b56159b1a0ff067fe672db45d
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+(-preview)?$
 UpdateCheckData: apps/mobile/app.json|"versionCode":\s*(\d+)|.|"version":\s*"([^"]+)"
-CurrentVersion: 0.1.2-preview
-CurrentVersionCode: 4
+CurrentVersion: 0.2.0-preview
+CurrentVersionCode: 5
 ```
 
 ## 7. Play Data safety answers
