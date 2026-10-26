@@ -34,7 +34,12 @@ jobs:
       - name: Re-fetch the card and emergency-number sources and compare them with the snapshots
         id: drift
         run: |
-          sudo apt-get install -y -q poppler-utils
+          # The runner image's apt index can be stale (404 on superseded .debs): refresh it, retry once.
+          for attempt in 1 2; do
+            sudo apt-get update -q && sudo apt-get install -y -q poppler-utils && break
+            [ "$attempt" -eq 2 ] && exit 1
+            sleep 15
+          done
           rc=0
           node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts drift --report drift.md || rc=$?
           cat drift.md >> "$GITHUB_STEP_SUMMARY"
