@@ -1,6 +1,6 @@
 import { COUNTRY_NUMBERS, type CountryNumbers } from '@skepi/emergency-cards';
 import { describe, expect, it } from 'vitest';
-import { checkedSources, checkNumbers, formatNumberSnapshot, numberSnapshots, parseNumberSnapshot, pdfLines, quoteShows } from '../src/numbers';
+import { checkedSources, checkNumbers, extractorProblems, formatNumberSnapshot, numberSnapshots, parseNumberSnapshot, pdfLines, quoteShows, readNumberSnapshot } from '../src/numbers';
 
 const SNAP = '# Emergency numbers\nPolice: dial 110.\nFire and ambulance: call 119 when you need an ambulance service\n';
 
@@ -68,8 +68,37 @@ describe('emergency numbers source check', () => {
   });
 
   it('snapshot format round trip; PDF text one trimmed line per line', () => {
-    const snap = { url: 'https://example.org/a.pdf', retrieved: '2026-10-23', format: 'pdf' as const, fileSha256: 'c'.repeat(64), text: 'a\nb\n' };
+    const snap = { url: 'https://example.org/a.pdf', retrieved: '2026-10-23', format: 'pdf' as const, fileSha256: 'c'.repeat(64), extractorVersion: 'pdftotext version 24.02.0', text: 'a\nb\n' };
+    expect(formatNumberSnapshot(snap)).toContain('\nextractor-version: pdftotext version 24.02.0\n---\n');
     expect(parseNumberSnapshot(formatNumberSnapshot(snap))).toEqual(snap);
+    const html = { ...snap, format: 'html' as const, extractorVersion: null };
+    expect(formatNumberSnapshot(html)).not.toContain('extractor-version');
+    expect(parseNumberSnapshot(formatNumberSnapshot(html))).toEqual(html);
     expect(pdfLines('  Guide \fPlease  call 119\n\n\u200b\n')).toBe('Guide\nPlease call 119\n');
+  });
+
+  it('a PDF snapshot must record its extractor version', () => {
+    const old = 'url: https://example.org/a.pdf\nretrieved: 2026-10-23\nformat: pdf\nfile-sha256: c\nextractor: pdftotext -enc UTF-8\n---\ntext\n';
+    expect(() => parseNumberSnapshot(old)).toThrow('snapshot header without "extractor-version"');
+  });
+
+  it('extractorProblems: a PDF snapshot from another pdftotext is a problem, HTML snapshots never', () => {
+    const base = { url: 'u', retrieved: '2026-10-23', fileSha256: 'c', text: 't\n' };
+    const snaps = new Map([
+      ['poppler', { ...base, format: 'pdf' as const, extractorVersion: 'pdftotext version 24.02.0' }],
+      ['xpdf', { ...base, format: 'pdf' as const, extractorVersion: 'pdftotext version 4.06 [www.xpdfreader.com]' }],
+      ['page', { ...base, format: 'html' as const, extractorVersion: null }],
+    ]);
+    expect(extractorProblems(snaps, 'pdftotext version 24.02.0')).toEqual(['xpdf: snapshot extracted with "pdftotext version 4.06 [www.xpdfreader.com]", this pdftotext is "pdftotext version 24.02.0"']);
+    expect(extractorProblems(snaps, 'pdftotext version 25.03.0')).toHaveLength(2);
+  });
+
+  it('the committed PDF snapshots were all extracted with one Poppler version', () => {
+    const pdfs = checkedSources()
+      .filter((s) => s.check.format === 'pdf')
+      .map((s) => readNumberSnapshot(s.check.id).extractorVersion);
+    expect(pdfs.length).toBeGreaterThan(0);
+    expect(new Set(pdfs).size).toBe(1);
+    expect(pdfs[0]).toMatch(/^pdftotext version \d+\.\d+\.\d+$/u);
   });
 });

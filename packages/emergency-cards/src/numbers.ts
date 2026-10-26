@@ -241,7 +241,7 @@ export const COUNTRY_NUMBERS: readonly CountryNumbers[] = [
           id: 'npa-foreign-visitors',
           format: 'pdf',
           fileSha256: '2c376d148ba51bfa695356900a1d71a9cf3219cf299360205e8bff7d02c45262',
-          textSha256: 'acf116320c9713db022ea5afc48d137681f6f2c1888b8180631e607f19923d52',
+          textSha256: 'b58de1fefa0df2508890ce33decb535682eafa1bbb3f732d5892217588ce6dbc',
           quotes: [{ text: 'respond promptly and appropriately to 110 Emergency Calls from non-Japanese speakers', numbers: ['110'] }],
         },
       },
@@ -253,7 +253,7 @@ export const COUNTRY_NUMBERS: readonly CountryNumbers[] = [
           id: 'fdma-ambulance',
           format: 'pdf',
           fileSha256: '8a0d9e8128b3cd095644c7cc9bb86727be914c2f295ef76364d6339c915d8a54',
-          textSha256: '7f3f0dab02dca33243130657f3c784c677d3cd7b165352b35ca700694cb68621',
+          textSha256: '9c92908308ee5d12a524a2cf583998ed94d3fab2692908b107fb28a7d412f542',
           quotes: [
             { text: 'Please call 119 when you need an ambulance service', numbers: ['119'] },
             // "119, fire department here. Is it a fire or an emergency (ambulance)?"

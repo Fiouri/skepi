@@ -55,8 +55,8 @@ export function textSha256(text: string): string {
   return sha256(Buffer.from(text, 'utf8'));
 }
 
-/** Fetches the page now: its HTML hash and extracted text. Node's fetch (some CDNs refuse curl). */
-export async function fetchPage(url: string): Promise<{ htmlSha256: string; text: string }> {
+/** Downloads the page now (the HTML bytes). Node's fetch (some CDNs refuse curl). */
+export async function downloadPage(url: string): Promise<Uint8Array> {
   // cdc.gov (Akamai) answers 403 to GitHub runners for a request without the usual language and
   // encoding headers (drift run 39671621980); with them it serves the page (probe run 39752883835).
   const response = await fetch(url, {
@@ -70,6 +70,16 @@ export async function fetchPage(url: string): Promise<{ htmlSha256: string; text
   });
   if (!response.ok) throw new Error(`download failed: HTTP ${String(response.status)} ${url}`);
   if (response.url !== url) throw new Error(`${url} redirected to ${response.url}: pin the new URL deliberately`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  return { htmlSha256: sha256(bytes), text: extractHtmlText(Buffer.from(bytes).toString('utf8')) };
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+/** The page text of downloaded HTML, as a snapshot holds it. */
+export function pageText(bytes: Uint8Array): string {
+  return extractHtmlText(Buffer.from(bytes).toString('utf8'));
+}
+
+/** Fetches the page now: its HTML hash and extracted text. */
+export async function fetchPage(url: string): Promise<{ htmlSha256: string; text: string }> {
+  const bytes = await downloadPage(url);
+  return { htmlSha256: sha256(bytes), text: pageText(bytes) };
 }

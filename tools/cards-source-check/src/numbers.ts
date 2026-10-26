@@ -1,7 +1,7 @@
 // Emergency numbers (packages/emergency-cards/src/numbers.ts), checked like the card sources: every
 // checked source has a committed text snapshot (snapshots/numbers/<id>.txt: URL, retrieval date, SHA-256
-// of the fetched HTML or PDF, then its text), pinned by the dataset (file and text hash), and every number
-// of a country must stand in a verbatim quote of one of its checked sources.
+// of the fetched HTML or PDF, for a PDF the pdftotext version, then its text), pinned by the dataset (file
+// and text hash), and every number of a country must stand in a verbatim quote of one of its checked sources.
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,6 +20,8 @@ export interface NumberSnapshot {
   retrieved: string;
   format: NumberCheck['format'];
   fileSha256: string;
+  /** PDF only: the `pdftotext -v` line of the extractor that wrote the text (null for HTML: html.ts). */
+  extractorVersion: string | null;
   text: string;
 }
 
@@ -32,7 +34,8 @@ export function formatNumberSnapshot(s: NumberSnapshot): string {
     s.format === 'pdf'
       ? 'pdftotext -enc UTF-8, lines trimmed, blank lines dropped (tools/cards-source-check/src/numbers.ts)'
       : 'tools/cards-source-check/src/html.ts (the <main> element, one block per line)';
-  return [`url: ${s.url}`, `retrieved: ${s.retrieved}`, `format: ${s.format}`, `file-sha256: ${s.fileSha256}`, `extractor: ${extractor}`, SEPARATOR].join('\n') + s.text;
+  const version = s.format === 'pdf' ? [`extractor-version: ${s.extractorVersion ?? ''}`] : [];
+  return [`url: ${s.url}`, `retrieved: ${s.retrieved}`, `format: ${s.format}`, `file-sha256: ${s.fileSha256}`, `extractor: ${extractor}`, ...version, SEPARATOR].join('\n') + s.text;
 }
 
 export function parseNumberSnapshot(content: string): NumberSnapshot {
@@ -50,7 +53,14 @@ export function parseNumberSnapshot(content: string): NumberSnapshot {
   };
   const format = field('format');
   if (format !== 'html' && format !== 'pdf') throw new Error(`snapshot format ${format}`);
-  return { url: field('url'), retrieved: field('retrieved'), format, fileSha256: field('file-sha256'), text: content.slice(split + 1 + SEPARATOR.length) };
+  return {
+    url: field('url'),
+    retrieved: field('retrieved'),
+    format,
+    fileSha256: field('file-sha256'),
+    extractorVersion: format === 'pdf' ? field('extractor-version') : null,
+    text: content.slice(split + 1 + SEPARATOR.length),
+  };
 }
 
 export function readNumberSnapshot(id: string): NumberSnapshot {
@@ -66,8 +76,8 @@ export function pdfLines(text: string): string {
   return `${lines.join('\n')}\n`;
 }
 
-/** Fetches a source now: the file's hash and its text. Node's fetch, as for the card sources. */
-export async function fetchNumberSource(url: string, format: NumberCheck['format']): Promise<{ fileSha256: string; text: string }> {
+/** Downloads a source now (the HTML or PDF bytes). Node's fetch, as for the card sources. */
+export async function downloadNumberSource(url: string, format: NumberCheck['format']): Promise<Uint8Array> {
   const response = await fetch(url, {
     redirect: 'follow',
     headers: {
@@ -79,16 +89,39 @@ export async function fetchNumberSource(url: string, format: NumberCheck['format
   });
   if (!response.ok) throw new Error(`download failed: HTTP ${String(response.status)} ${url}`);
   if (response.url !== url) throw new Error(`${url} redirected to ${response.url}: pin the new URL deliberately`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (format === 'html') return { fileSha256: sha256(bytes), text: extractHtmlText(Buffer.from(bytes).toString('utf8')) };
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+/** The text of a downloaded source as a snapshot holds it (html.ts, or pdftotext and pdfLines). */
+export function numberSourceText(bytes: Uint8Array, format: NumberCheck['format'], bin: string = pdftotextBinary()): string {
+  if (format === 'html') return extractHtmlText(Buffer.from(bytes).toString('utf8'));
   const dir = mkdtempSync(join(tmpdir(), 'skepi-numbers-'));
   try {
     const pdf = join(dir, 'source.pdf');
     writeFileSync(pdf, bytes);
-    return { fileSha256: sha256(bytes), text: pdfLines(extractText(pdf, pdftotextBinary())) };
+    return pdfLines(extractText(pdf, bin));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+/** Fetches a source now: the file's hash and its text. */
+export async function fetchNumberSource(url: string, format: NumberCheck['format']): Promise<{ fileSha256: string; text: string }> {
+  const bytes = await downloadNumberSource(url, format);
+  return { fileSha256: sha256(bytes), text: numberSourceText(bytes, format) };
+}
+
+/**
+ * PDF text depends on the pdftotext build (Xpdf and Poppler, or two Poppler versions, break lines
+ * differently), so a PDF snapshot is only comparable with text from the version that wrote it: one
+ * problem per PDF snapshot written by another version than `current`.
+ */
+export function extractorProblems(snapshots: ReadonlyMap<string, NumberSnapshot>, current: string): string[] {
+  const out: string[] = [];
+  for (const [id, s] of snapshots) {
+    if (s.format === 'pdf' && s.extractorVersion !== current) out.push(`${id}: snapshot extracted with "${s.extractorVersion ?? 'unknown'}", this pdftotext is "${current}"`);
+  }
+  return out;
 }
 
 /** The digits of a text ("(800) 222-1222" → "8002221222"). */
@@ -175,6 +208,7 @@ export function checkedSources(countries: readonly CountryNumbers[] = COUNTRY_NU
 /** The committed snapshots checked against their pins (URL, date, format, file and text hash). */
 export function numberSnapshots(problems: string[]): Map<string, string> {
   const out = new Map<string, string>();
+  const versions = new Set<string>();
   for (const s of checkedSources()) {
     let snap: NumberSnapshot;
     try {
@@ -189,7 +223,10 @@ export function numberSnapshots(problems: string[]): Map<string, string> {
     if (snap.fileSha256 !== s.check.fileSha256) problems.push(`${s.check.id}: snapshot file hash ${snap.fileSha256}, numbers.ts ${s.check.fileSha256}`);
     const got = textSha256(snap.text);
     if (got !== s.check.textSha256) problems.push(`${s.check.id}: snapshot text hash ${got}, numbers.ts ${s.check.textSha256}`);
+    if (snap.extractorVersion !== null) versions.add(snap.extractorVersion);
     out.set(s.check.id, snap.text);
   }
+  // One extractor for every PDF snapshot: the drift check compares new text with one pdftotext.
+  if (versions.size > 1) problems.push(`PDF snapshots extracted with different pdftotext versions: ${[...versions].join(', ')}`);
   return out;
 }

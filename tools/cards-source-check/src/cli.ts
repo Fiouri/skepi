@@ -19,26 +19,46 @@
  * these cards, sources and numbers (the release builds and bundle scans trust that lock); with
  * --write-lock (after a deliberate card or number change) it writes the lock.
  *
- * drift: re-fetches every web source and reports a changed page (HTML or text) with the changed passages
- * (blocks removed from and added to the page, under their headings) and any card step no longer on the
- * live page; exit 1 on drift or on a page that could not be fetched (the weekly CI job turns it into an
- * issue, never a failed build). Nothing is updated automatically: the owner decides whether a card
- * follows the change. The CDC asks reusers to check its pages for revisions.
+ * drift: re-downloads every web source; a file with the snapshot's SHA-256 is unchanged (no text
+ * comparison), only a different file is extracted and its text compared. Reports a text change with the
+ * changed passages (blocks removed from and added to the page, under their headings) and any card step or
+ * number no longer on a live page: exit 1 (the weekly CI job turns it into an issue). A source that could
+ * not be downloaded (HTTP 403, bot challenge) and the UNCHECKED_NUMBER_COUNTRIES sources are listed as
+ * unchecked, not drift: exit 0. A pdftotext version other than the PDF snapshots' fails (exit 2) before
+ * anything is compared, as does any other error. Nothing is updated automatically: the owner decides
+ * whether a card follows the change. The CDC asks reusers to check its pages for revisions.
  *
  * snapshot <id>: re-fetches one web source and rewrites its snapshot with today's date; prints the new
  * hashes to pin in sources.ts (then run the check with --write-lock).
  *
  * snapshot-number <id> <html|pdf> <url>: fetches an official source of emergency numbers and writes
- * snapshots/numbers/<id>.txt with today's date; prints the pins for numbers.ts.
+ * snapshots/numbers/<id>.txt with today's date (and, for a PDF, the pdftotext version); prints the pins
+ * for numbers.ts.
+ *
+ * reextract-numbers: re-extracts the PDF number snapshots with this pdftotext, only for files that still
+ * have the snapshot's hash (retrieval date kept); prints the new text hashes for numbers.ts.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CARDS, IFRC_GUIDELINES, SOURCES, UNCHECKED_NUMBER_COUNTRIES, WEB_SOURCES, type SourceId } from '@skepi/emergency-cards';
+import { CARDS, COUNTRY_NUMBERS, IFRC_GUIDELINES, SOURCES, UNCHECKED_NUMBER_COUNTRIES, WEB_SOURCES, type SourceId } from '@skepi/emergency-cards';
 import { expectedLock, lockProblem, SOURCE_CHECK_LOCK } from '@skepi/emergency-cards/digest';
 import { checkCards, checkWebSteps, splitPages, type StepResult } from './check';
-import { changedPassages, formatPassages } from './drift';
-import { checkedSources, checkNumbers, fetchNumberSource, formatNumberSnapshot, numberSnapshotPath, numberSnapshots, readNumberSnapshot, type NumberResult } from './numbers';
-import { fetchPage, formatSnapshot, readSnapshot, snapshotPath, textSha256 } from './snapshot';
+import { checkSource, driftReport, type DriftEntry } from './drift';
+import {
+  checkedSources,
+  checkNumbers,
+  downloadNumberSource,
+  extractorProblems,
+  fetchNumberSource,
+  formatNumberSnapshot,
+  numberSnapshotPath,
+  numberSnapshots,
+  numberSourceText,
+  readNumberSnapshot,
+  type NumberResult,
+  type NumberSnapshot,
+} from './numbers';
+import { downloadPage, fetchPage, formatSnapshot, pageText, readSnapshot, snapshotPath, textSha256 } from './snapshot';
 import { extractText, fetchPinned, pdftotextBinary, pdftotextVersion, sha256 } from './source';
 
 function arg(name: string): string | null {
@@ -140,84 +160,50 @@ async function check(): Promise<number> {
 }
 
 async function drift(): Promise<number> {
-  const lines: string[] = [];
+  const numberSources = checkedSources();
+  const numberSnaps = new Map<string, NumberSnapshot>(numberSources.map((s) => [s.check.id, readNumberSnapshot(s.check.id)]));
+  const bin = pdftotextBinary();
+  if ([...numberSnaps.values()].some((s) => s.format === 'pdf')) {
+    // Text from another pdftotext would show as drift of every changed PDF: refuse to compare.
+    const mismatch = extractorProblems(numberSnaps, pdftotextVersion(bin));
+    if (mismatch.length > 0) {
+      throw new Error(
+        `pdftotext version differs from the PDF snapshots, nothing compared: ${mismatch.join('; ')}. Use that version, or re-extract deliberately (cli.ts reextract-numbers, then the check with --write-lock).`,
+      );
+    }
+  }
+  const entries: DriftEntry[] = [];
   const live = new Map<SourceId, string>();
-  let drifted = 0;
-  let unfetched = 0;
   for (const w of WEB_SOURCES) {
     const committed = readSnapshot(w.id);
-    let page;
-    try {
-      page = await fetchPage(w.url);
-    } catch (e) {
-      unfetched += 1;
-      lines.push(`- **${w.id}** (${w.url}): could not be fetched, not checked this time: ${e instanceof Error ? e.message : String(e)}`);
-      continue;
-    }
-    live.set(w.id, page.text);
-    if (page.text !== committed.text) {
-      drifted += 1;
-      lines.push(`- **${w.id}** (${w.url}): the page text changed since the snapshot of ${committed.retrieved}. Changed passages:`);
-      lines.push(...formatPassages(changedPassages(committed.text, page.text)));
-    } else if (page.htmlSha256 !== committed.htmlSha256) {
-      lines.push(`- ${w.id}: HTML changed (sha256 ${page.htmlSha256}), text unchanged.`);
-    } else {
-      lines.push(`- ${w.id}: unchanged since ${committed.retrieved}.`);
-    }
+    const result = await checkSource({ fileSha256: committed.htmlSha256, text: committed.text }, () => downloadPage(w.url), pageText);
+    if (result.status !== 'unchecked') live.set(w.id, result.status === 'unchanged' ? committed.text : result.text);
+    entries.push({ label: w.id, url: w.url, since: committed.retrieved, result });
   }
   const liveNumbers = new Map<string, string>();
-  const numberSources = checkedSources();
   for (const s of numberSources) {
-    const committed = readNumberSnapshot(s.check.id);
-    let page;
-    try {
-      page = await fetchNumberSource(s.url, s.check.format);
-    } catch (e) {
-      unfetched += 1;
-      lines.push(`- **numbers ${s.check.id}** (${s.url}): could not be fetched, not checked this time: ${e instanceof Error ? e.message : String(e)}`);
-      continue;
-    }
-    liveNumbers.set(s.check.id, page.text);
-    if (page.text !== committed.text) {
-      drifted += 1;
-      lines.push(`- **numbers ${s.check.id}** (${s.url}): the text changed since the snapshot of ${committed.retrieved}. Changed passages:`);
-      lines.push(...formatPassages(changedPassages(committed.text, page.text)));
-    } else if (page.fileSha256 !== committed.fileSha256) {
-      lines.push(`- numbers ${s.check.id}: file changed (sha256 ${page.fileSha256}), text unchanged.`);
-    } else {
-      lines.push(`- numbers ${s.check.id}: unchanged since ${committed.retrieved}.`);
-    }
+    const committed = numberSnaps.get(s.check.id) as NumberSnapshot;
+    const result = await checkSource(committed, () => downloadNumberSource(s.url, s.check.format), (bytes) => numberSourceText(bytes, s.check.format, bin));
+    // A source that could not be checked keeps its snapshot text for the number check below.
+    liveNumbers.set(s.check.id, result.status === 'unchecked' || result.status === 'unchanged' ? committed.text : result.text);
+    entries.push({ label: `numbers ${s.check.id}`, url: s.url, since: committed.retrieved, result });
   }
-  // A number no longer shown on a live page (pages that could not be fetched keep their snapshot).
-  const merged = new Map<string, string>(numberSources.map((s) => [s.check.id, liveNumbers.get(s.check.id) ?? readNumberSnapshot(s.check.id).text]));
-  const numbersGone = checkNumbers(merged).filter((r) => !r.ok);
-  for (const r of numbersGone) lines.push(`- **emergency numbers ${r.country}**: ${r.problems.join('; ')}`);
-  const gone = checkWebSteps(live, CARDS).filter((r) => !r.ok && live.has(r.source));
-  for (const r of gone) {
+  const unfetchable = COUNTRY_NUMBERS.filter((c) => UNCHECKED_NUMBER_COUNTRIES.includes(c.country)).map((c) => ({
+    label: `numbers ${c.country}`,
+    url: c.sources[0]?.url ?? '',
+    reason: 'no snapshot: the official site refuses automated requests (UNCHECKED_NUMBER_COUNTRIES)',
+  }));
+  const gone: string[] = [];
+  for (const r of checkNumbers(liveNumbers).filter((n) => !n.ok)) gone.push(`- **emergency numbers ${r.country}**: ${r.problems.join('; ')}`);
+  for (const r of checkWebSteps(live, CARDS).filter((step) => !step.ok && live.has(step.source))) {
     const text = CARDS.find((c) => c.id === r.card)?.steps[r.step - 1]?.text ?? '';
-    lines.push(`- **card ${r.card}, step ${String(r.step)}** ("${r.section}", ${r.source}): ${r.problem ?? ''} on the live page: "${text}"`);
+    gone.push(`- **card ${r.card}, step ${String(r.step)}** ("${r.section}", ${r.source}): ${r.problem ?? ''} on the live page: "${text}"`);
   }
-  const head = [
-    drifted > 0
-      ? `Drift in ${String(drifted)} of ${String(WEB_SOURCES.length + numberSources.length)} web sources of the emergency cards and numbers.`
-      : unfetched === 0
-        ? 'No drift: every web source of the emergency cards and numbers matches its committed snapshot.'
-        : 'No text drift in the web sources of the emergency cards and numbers that could be fetched.',
-    unfetched === 0 ? '' : `${String(unfetched)} source(s) could not be fetched and were not checked.`,
-  ];
-  const summary = [
-    head.filter((l) => l.length > 0).join(' '),
-    '',
-    ...lines,
-    '',
-    drifted === 0
-      ? ''
-      : 'Nothing was updated: the cards keep the snapshot text until the owner decides. If a card should follow the change: `cards-source-check snapshot <id>`, update the hashes in packages/emergency-cards/src/sources.ts and the steps, run the check with `--write-lock`, and get a CODEOWNERS review.',
-  ].join('\n');
+  const { summary, exitCode } = driftReport(entries, unfetchable, gone);
   console.log(summary);
   const out = arg('--report');
   if (out) writeFileSync(resolve(out), `${summary}\n`);
-  return drifted === 0 && unfetched === 0 && gone.length === 0 && numbersGone.length === 0 ? 0 : 1;
+  return exitCode;
 }
 
 async function snapshot(): Promise<number> {
@@ -242,20 +228,43 @@ async function snapshotNumber(): Promise<number> {
   }
   const page = await fetchNumberSource(url, format);
   const retrieved = new Date().toISOString().slice(0, 10);
-  writeFileSync(numberSnapshotPath(id), formatNumberSnapshot({ url, retrieved, format, fileSha256: page.fileSha256, text: page.text }));
+  const extractorVersion = format === 'pdf' ? pdftotextVersion() : null;
+  writeFileSync(numberSnapshotPath(id), formatNumberSnapshot({ url, retrieved, format, fileSha256: page.fileSha256, extractorVersion, text: page.text }));
   console.log(`wrote ${numberSnapshotPath(id)}`);
   console.log(`pin in packages/emergency-cards/src/numbers.ts: accessed '${retrieved}', check: { id: '${id}', format: '${format}', fileSha256: '${page.fileSha256}', textSha256: '${textSha256(page.text)}', quotes: [...] }`);
   return 0;
 }
 
-const commands: Record<string, () => Promise<number>> = { drift, snapshot, 'snapshot-number': snapshotNumber };
+/**
+ * reextract-numbers: re-extracts every PDF number snapshot with this pdftotext (after a deliberate
+ * extractor change). The file is downloaded again and must still have the snapshot's hash, so the
+ * retrieval date stays and no source change is hidden; prints the new text hashes for numbers.ts.
+ */
+async function reextractNumbers(): Promise<number> {
+  const bin = pdftotextBinary();
+  const version = pdftotextVersion(bin);
+  for (const s of checkedSources()) {
+    if (s.check.format !== 'pdf') continue;
+    const committed = readNumberSnapshot(s.check.id);
+    const bytes = await downloadNumberSource(s.url, 'pdf');
+    const got = sha256(bytes);
+    if (got !== committed.fileSha256) throw new Error(`${s.check.id}: the file changed (sha256 ${got}, snapshot ${committed.fileSha256}); take a new snapshot with snapshot-number and review it`);
+    const text = numberSourceText(bytes, 'pdf', bin);
+    writeFileSync(numberSnapshotPath(s.check.id), formatNumberSnapshot({ ...committed, extractorVersion: version, text }));
+    console.log(`wrote ${numberSnapshotPath(s.check.id)} (${version}); pin in numbers.ts: textSha256 '${textSha256(text)}'`);
+  }
+  return 0;
+}
+
+const commands: Record<string, () => Promise<number>> = { drift, snapshot, 'snapshot-number': snapshotNumber, 'reextract-numbers': reextractNumbers };
 const command = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'check';
 (commands[command] ?? check)().then(
   (code) => {
     process.exit(code);
   },
   (e: unknown) => {
+    // 2, not 1: for drift, 1 means a real source change (an issue), any error must fail the job.
     console.error(`CARDS SOURCE CHECK ERROR: ${e instanceof Error ? e.message : String(e)}`);
-    process.exit(1);
+    process.exit(2);
   },
 );

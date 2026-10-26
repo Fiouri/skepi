@@ -3,194 +3,278 @@ retrieved: 2026-10-23
 format: pdf
 file-sha256: 8a0d9e8128b3cd095644c7cc9bb86727be914c2f295ef76364d6339c915d8a54
 extractor: pdftotext -enc UTF-8, lines trimmed, blank lines dropped (tools/cards-source-check/src/numbers.ts)
+extractor-version: pdftotext version 24.02.0
 ---
-Guide for Ambulance Services
+Guide for
+Ambulance Services
 救急車利用ガイド 英語版
 Please call 119 when you need an ambulance service
 救急車が必要なときは「１１９」に電話をしてください。
 This guide explains how to use ambulance services in Japan and what you should note when you use it.
 このガイドでは、日本での救急車を呼ぶ際の方法と、注意すべき点を説明しています。
-○How to call an ambulance 救急車の呼び方 ………………………………………………2, 3 ○Examples of signs and symptoms that need ambulance services(Adult and Child) ………4, 5
+○How to call an ambulance
+救急車の呼び方 ………………………………………………2, 3
+○Examples of signs and symptoms that need ambulance services(Adult and Child) ………4, 5
 救急車が必要な症状（大人と子ども）
-○What is heat illness 熱中症とは ……………………………………………………… 6, 7 ○Some tips for calling an ambulance 救急車を呼ぶときのポイント ………………………… 8
+○What is heat illness
+熱中症とは ……………………………………………………… 6, 7
+○Some tips for calling an ambulance
+救急車を呼ぶときのポイント ………………………… 8
 ※The ambulance service is available for anyone in Japan.
 緊急の病気やケガの際は誰もが救急車を利用することができます
-Fire and Disaster Management Agency
+Fire and Disaster
+Management Agency
 (Please see our website)
-How to call an ambulance 救急車の呼び方
-After receiving the 119 call, the dispatcher will ask you some questions needed for an ambulance dispatch. If the situation is serious, the ambulance will be dispatched before all these questions have been asked.
-119に電話をすると、指令員（消防のオペレーター）が救急車の出動に必要なことを、順番にお聞きします。 緊急性が高い場合は、すべてを聞く前に救急車が出動します。
+How to call an ambulance
+救急車の呼び方
+After receiving the 119 call, the dispatcher will ask you some questions needed for an
+ambulance dispatch. If the situation is serious, the ambulance will be dispatched before all these
+questions have been asked.
+119に電話をすると、指令員（消防のオペレーター）が救急車の出動に必要なことを、順番にお聞きします。
+緊急性が高い場合は、すべてを聞く前に救急車が出動します。
 ※ Please ask them to help you call if there are people who speak Japanese around you.
 ※あなたの周囲に日本語を話せる人がいる場合は、お手伝いをお願いしてください。
-Please stay calm and answer slowly. あわてず、ゆっくりと答えてください
-１ Tell the dispatcher you are in a medical emergency. 救急であることを伝える
-119. Are you in a ﬁre emergency or a medical emergency?
-119、消防です。 火事ですか、 救急ですか？
+Please stay calm and answer slowly.
+あわてず、ゆっくりと答えてください
+１ Tell the dispatcher you are in a medical emergency.
+119. Are you in a
+fire emergency or a
+medical emergency?
+救急であることを伝える
+When you call 119, first tell the operator
+you are in a medical emergency. You can
+call 119 by the mobile phone, PHS, fixed
+telephone or the public telephone.
+119、消防です。
+火事ですか、
+救急ですか？
+電話に出た指令員（消防のオペレーター）に救急で
+あることを伝えてください
 Medical emergency.
 救急です
-When you call 119, first tell the operator you are in a medical emergency. You can call 119 by the mobile phone, PHS, fixed telephone or the public telephone.
-電話に出た指令員（消防のオペレーター）に救急で あることを伝えてください
-２ Tell the operator the location of the emergency. 救急車に来てほしい住所を伝える
-Where is the location of the emergency?
-住所（場所）は どこですか？
+２ Tell the operator the location of the emergency.
+救急車に来てほしい住所を伝える
+Please tell the place where you are .
+If you do not know the address,
+describe a nearby building or
+intersection as a landmark.
+Where is the location
+of the emergency?
+住所（場所）は
+どこですか？
+あなたがいる場所を教えてください。住所がわから
+ない場合は、近くの建物や交差点などの目印を教え
+てください。
 The address is ….
 住所は○○○です
-Please tell the place where you are . If you do not know the address, describe a nearby building or intersection as a landmark.
-あなたがいる場所を教えてください。住所がわから ない場合は、近くの建物や交差点などの目印を教え てください。
 2
-３ Tell your symptoms. 具合の悪い方の症状を伝える
-What happened?
+３ Tell your symptoms.
+具合の悪い方の症状を伝える
+What
+happened?
+Tell your symptoms and when they
+started.
 どうしましたか？
+誰が、いつから具合が悪くなったかを伝えてくだ
+さい
 I have chest pain.
 胸が痛いです
-Tell your symptoms and when they started.
-誰が、いつから具合が悪くなったかを伝えてくだ さい
-４ Tell your age. 年齢を教える
-How old are you?
+４ Tell your age.
+年齢を教える
+How old are
+you?
+If you are not the patient, rather
+just calling for others, tell the
+operator how old he/she is or looks.
 年齢は？
+具合の悪い方の年齢を伝えてください。年齢がわか
+らない場合は、おおよその年齢を伝えてください。
 I’m 40.
 40歳です
-If you are not the patient, rather just calling for others, tell the operator how old he/she is or looks.
-具合の悪い方の年齢を伝えてください。年齢がわか らない場合は、おおよその年齢を伝えてください。
 ５ Give your name and contact details.
 あなたの名前と連絡先を伝える
-Please give me your name and contact details.
-あなたの名前と連絡先を 教えてください。
-My name is XXX and my phone number is
+Give your name and a phone number,
+so that you could be reached even
+after the 119 call ends.
+The crew may contact you if they
+cannot find your location.
+Please give me your
+name and contact
+details.
+あなたの名前と連絡先を
+教えてください。
+あなたのお名前と119通報後も連絡が取れる電話
+番号を伝えてください。場所が不明なときなど、
+問い合わせることがあります。
+My name is XXX and
+my phone number is
 XXX-XXXX-XXXX.
-私の名前はXXXです。 電話番号はXXXXです。
-Give your name and a phone number, so that you could be reached even after the 119 call ends. The crew may contact you if they cannot find your location.
-あなたのお名前と119通報後も連絡が取れる電話 番号を伝えてください。場所が不明なときなど、 問い合わせることがあります。
-※ In addition to this, the dispatcher may ask you more details and information about your or the patient’s medical condition.Please give them as much information as possible.
+私の名前はXXXです。
+電話番号はXXXXです。
+※ In addition to this, the dispatcher may ask you more details and information about your or the patient’s medical
+condition.Please give them as much information as possible.
 ※ The above illustrated flow is one of the most common cases of communication with the 119 operators.
-※その他、消防の指令員（オペレータ－）から詳しい症状などについて尋ねられることがあります。答えられる範囲で伝えてください。 ※上記に示したものは、一般的な聞き取り内容です。
+※その他、消防の指令員（オペレータ－）から詳しい症状などについて尋ねられることがあります。答えられる範囲で伝えてください。
+※上記に示したものは、一般的な聞き取り内容です。
 3
 Do not hesitate to call an ambulance if you have any of the following conditions.
 重大な病気やけがの可能性があります!
 Face 顔
-● Have difficulties in moving or feel numbness in half-side of your face
-顔半分が動き にくい、または、 しびれる
-● Facial asymmetry on smiling
-ニッコリ笑うと口や顔の片方がゆがむ
-● Slur of your words or improper speech
-ろれつがまわりにくく、うまく話せない
-● Have difficulties in seeing
-見える範囲が狭くなる
-● Double vision
-突然、周りが二重に見える
-● Obviously looks sick
-顔色が明らかに悪い
-Arms and legs 手・足
-● Sudden numbness
-突然のしびれ
-● Sudden weakness of your leg and/or arm on one-side
-突然、片方の腕や足に力が入らなくなる
-Adult 大人
 Head 頭
+Adult 大人
 ● Sudden severe headache
+● Have difficulties in moving or
+feel numbness
+in half-side
+of your face
 突然の激しい頭痛
 ● Sudden high grade fever
 突然の高熱
 ● Severe dizziness requiring help to stand
+顔半分が動き
+にくい、または、
+しびれる
 支えなしで立てないぐらい急にふらつく
 Chest and back 胸や背中
-● Sudden severe pain 突然の激痛 ● Sudden shortness of breath
+● Facial asymmetry on smiling
+ニッコリ笑うと口や顔の片方がゆがむ
+● Sudden severe pain 突然の激痛
+● Slur of your words or
+improper speech
+● Sudden shortness of breath
 or difficulty in breathing
+ろれつがまわりにくく、うまく話せない
+● Have difficulties in seeing
 急な息切れ、呼吸困難
-● Feeling compression in your chest for a few minutes
-胸の中央が締め付けられるような、 または圧迫されるような痛みが２～３分続く
+見える範囲が狭くなる
+● Double vision
+● Feeling compression in your
+chest for a few minutes
+● Obviously looks sick
 ● Migrating pain 痛む場所が移動する
+胸の中央が締め付けられるような、
+または圧迫されるような痛みが２～３分続く
+突然、周りが二重に見える
+顔色が明らかに悪い
 Stomach おなか
+Arms and legs 手・足
 ● Sudden severe abdominal pain
 突然の激しい腹痛
+● Sudden numbness
 ● Continuous severe abdominal pain
+突然のしびれ
 激しい腹痛が持続する
-● Vomiting of blood 血を吐く ● Blood in stool
+● Sudden weakness of your
+leg and/or arm on one-side
+● Vomiting of blood 血を吐く
+● Blood in stool
+突然、片方の腕や足に力が入らなくなる
 便に血が混ざるまたは、真っ黒い便が出る
 Abnormal mental status 意識の障害
 ● Unconscious (no response) or stupor
-意識がない（返事がない）またはおかしい （もうろうとしている）
-● Exhaustion ぐったりしている
-Seizure/Convulsion けいれん
-● Continuous convulsion けいれんが止まらない ● Unconscious even after termination of convulsion
-けいれんが止まっても、意識がもどらない
 Nausea 吐き気
 ● Severe nausea with cold sweats
+意識がない（返事がない）またはおかしい
+（もうろうとしている）
 冷や汗を伴うような強い吐き気
 Swallowing 飲み込み
+● Exhaustion ぐったりしている
+Seizure/Convulsion
 ● Dyspnea with food gettingstuck in the throat
+けいれん
 食べ物をのどにつまらせて苦しい
-● Unconsciousness after swallowing something
+● Continuous convulsion けいれんが止まらない
+● Unconscious even after termination of convulsion
+けいれんが止まっても、意識がもどらない
+● Unconsciousness after
+swallowing something
 変なものを飲み込んで意識がない
-Trauma / Burn けが やけど
-● Trauma with massive bleeding
-大量の出血を伴うけが
-● Extensive burn 広範囲のやけど
 Accident 事故
+Trauma / Burn けが やけど
 ● Traffic accident with high energy impact
+● Trauma with massive bleeding
 交通事故にあった（強い衝撃を受けた）
-● Near drowning 水におぼれている ● Falls from a high place 高いところから落ちた
+大量の出血を伴うけが
+● Near drowning 水におぼれている
+● Falls from a high place 高いところから落ちた
+● Extensive burn 広範囲のやけど
 ◎ Any other situation in which the patient’s condition is abnormal or unusual.
 その他、いつもと違う場合、様子がおかしい場合
 4
 Do not hesitate to call an ambulance if you have any of the following conditions.
 こんなときには すぐに119番
+Child (under 15 years old)
+こども（15歳以下）
 Face 顔
+Head 頭
+● Complains headache with
+convulsion/seizure happening
 ● Blue lips
+頭を痛がって、けいれんがある
 くちびるの色が紫色
+● Continuous bleeding, loss or
+abnormality of consciousness
+and abnormal mental status
+due to strongly hitting head
+on something
 ● Obviously looks sick
 顔色が明らかに悪い
 Chest 胸
-Child (under 15 years old)
-こども（15歳以下）
-Head 頭
-● Complains headache with convulsion/seizure happening
-頭を痛がって、けいれんがある
-● Continuous bleeding, loss or abnormality of consciousness and abnormal mental status due to strongly hitting head on something
-頭を強くぶつけて、出血がとまらない、 意識がない、けいれんがある
-● Violent cough and/or wheezing
+頭を強くぶつけて、出血がとまらない、
+意識がない、けいれんがある
+● Violent cough and/or
+wheezing
+Stomach おなか
 激しい咳やゼーゼーして呼吸が苦しそう
 ● Weak breathing
+● Severe diarrhea or vomiting,
+not eating or drinking,
+abnormal mental status
 呼吸が弱い
+激しい下痢や嘔吐で水分が取れず
+食欲がなく意識がはっきりしない
 Arms and legs 手・足
-● Rigidity of legs and/or arms
-手足が硬直している
-Stomach おなか
-● Severe diarrhea or vomiting, not eating or drinking, abnormal mental status
-激しい下痢や嘔吐で水分が取れず 食欲がなく意識がはっきりしない
 ● Suffering from strong stomach pain
 激しいおなかの痛みで苦しがる
+● Rigidity of legs and/or arms
 ● Continuously vomiting
+手足が硬直している
 嘔吐が止まらない
 ● Bloody stool
 便に血がまじった
 Abnormal mental status 意識の障害
-Seizure けいれん
-Swallowing 飲み込み
 ● Unconscious (no response) or stupor
-意識がない（返事がない） またはおかしい（もうろうとしている）
+意識がない（返事がない）
+またはおかしい（もうろうとしている）
 Urticaria じんましん
-● Whole body urticaria and pallor of the face after insect bite
-虫に刺されて全身にじんましんが出て、 顔色が悪くなった
+● Whole body urticaria
+and pallor of the face
+after insect bite
+虫に刺されて全身にじんましんが出て、
+顔色が悪くなった
+Seizure けいれん
 ● Continuous seizure
-● Unconsciousness after
 けいれんが止まらない
 ● Unconsciousness after seizure
-swallowing something
-物をのどにつまらせて、
 けいれんが止まっても、
-呼吸が苦しい、意識がない
 意識がもどらない
-Burn やけど
-Accident 事故
-● Traffic accident with
+Burn
+やけど
 ● Severely painful burn
-high energy impact
 痛みのひどいやけど
-交通事故にあった（強い衝撃を受けた）
 ● Extensive burn
 広範囲のやけど
-● Nearly drowning 水におぼれている ● Falls from a high place
+Swallowing 飲み込み
+● Unconsciousness after
+swallowing something
+物をのどにつまらせて、
+呼吸が苦しい、意識がない
+Accident 事故
+● Traffic accident with
+high energy impact
+交通事故にあった（強い衝撃を受けた）
+● Nearly drowning 水におぼれている
+● Falls from a high place
 高いところから落ちた
 Baby under 3 months old 生まれて3カ月未満の乳児
 ● Something wrong with a baby
@@ -199,16 +283,28 @@ Baby under 3 months old 生まれて3カ月未満の乳児
 その他お母さんやお父さんから見て、いつもと違う場合、様子がおかしい場合
 5
 <For Your Information> How to Prevent heat illness 熱中症を防ぐ方法
-It is so humid and hot during summer in Japan, and temperature sometimes exceeds 35℃(95F). As a result, more than 40,000 people are urgently transported to hospitals for “heat illness” every year. You should take enough
+It is so humid and hot during summer in Japan, and temperature sometimes exceeds 35℃(95F). As a result, more
+than 40,000 people are urgently transported to hospitals for “heat illness” every year. You should take enough
 cares before you get heat illness.
-日本の夏は湿度が高く非常に暑いです。時には35℃（95F）を超える場合もあり、その結果、 毎年４万人以上の方が熱中症のため病院に救急搬送されています。熱中症にならないよう注意が必要です。
-What is heat illness? 熱中症とは？
-The symptoms of heat illness are high body temperature, dizziness, malaise, seizure and abnormal mental status. Since high temperature breaks a balance of water and salt(sodium) in your body, you can't control your body temperature and you get heat illness.
-High temperature and humidity may take place even indoors,which makes it difficult to release the heat from body. So you need to take care not to get heat illness when staying at home as well.
-温度や湿度が高い中で、体内の水分や塩分（ナトリウム）のバランスが崩れ、体温の調節機能が働かなくなり、 体温上昇、めまい、体のだるさ、ひどいときには、けいれんや意識の障害など、様々な障害をおこします。
-屋内でも室温や湿度が高いために、体から熱が逃げにくく熱中症になる場合がありますので、注意が 必要です。
-The points of heat illness prevention 熱中症予防のポイント
-Check the temperature in your room frequently! We recommend you put a thermometer in your room.
+日本の夏は湿度が高く非常に暑いです。時には35℃（95F）を超える場合もあり、その結果、
+毎年４万人以上の方が熱中症のため病院に救急搬送されています。熱中症にならないよう注意が必要です。
+What is heat illness?
+熱中症とは？
+The symptoms of heat illness are high body temperature, dizziness, malaise, seizure
+and abnormal mental status. Since high temperature breaks a balance of water and
+salt(sodium) in your body, you can't control your body temperature and you get heat
+illness.
+High temperature and humidity may take place even indoors,which
+makes it difficult to release the heat from body. So you need to take
+care not to get heat illness when staying at home as well.
+温度や湿度が高い中で、体内の水分や塩分（ナトリウム）のバランスが崩れ、体温の調節機能が働かなくなり、
+体温上昇、めまい、体のだるさ、ひどいときには、けいれんや意識の障害など、様々な障害をおこします。
+屋内でも室温や湿度が高いために、体から熱が逃げにくく熱中症になる場合がありますので、注意が
+必要です。
+The points of heat illness prevention
+熱中症予防のポイント
+Check the temperature in your room frequently!
+We recommend you put a thermometer in your room.
 部屋の温度をこまめにチェックしてください！部屋に温度計を置くことをお奨めします。
 Use an air-conditioner or fan to keep the room temperature under 28℃! (82F)
 室温が28℃（82F）を超えないように、エアコンや扇風機を使用してください！
@@ -221,70 +317,106 @@ Take an enough rest and do not work too hard!
 Eat balanced meals and build up healthy condition!
 日頃から栄養バランスの良い食事を取り、健康的な生活をしてください！
 6
-First Aid for heat illness 熱中症の応急手当
-Move patients to a cooler space, loosen their clothes, and lay them down.
+First Aid for heat illness
+熱中症の応急手当
+Move patients to a cooler space, loosen their clothes,
+and lay them down.
 患者を涼しい場所へ移動し、衣服を緩め、安静に寝かせる
-Turn on an air-conditioner and send the wind by fan to cool down their body.
+Turn on an air-conditioner and send the wind by fan to
+cool down their body.
 エアコン、扇風機をつけて体を冷やす
-Cool armpit and the base of thigh.
-首の周り・脇の下・ 太もものつけねを冷やす
-Let them drink water little by little
+Cool armpit and
+the base of thigh.
+Let them drink
+water little by little
 if they can.
-飲めるようであれば 水分を少しずつ飲ませる。
+首の周り・脇の下・
+太もものつけねを冷やす
+飲めるようであれば
+水分を少しずつ飲ませる。
 water
-In the case of having a chronic disease or being a child, please consult your home doctor to get an advice about heat illness prevention.
+In the case of having a chronic disease or being a child, please consult your home doctor to
+get an advice about heat illness prevention.
 持病を持っている方や子どもの場合は、医師に相談し、熱中症予防のアドバイスをもらっておきましょう。
 Please call an ambulance without hesitation under these conditons.
 このような時は、迷わずに救急車を呼びましょう
 ※ Please ask them to help you call if there are people who speak Japanese around you.
 ※あなたの周囲に日本語を話せる人がいる場合は、お手伝いをお願いしてください。
-When you cannot drink water or move by yourself for feeling a strong weakness or languor. 自分で水が飲めない場合、脱力感や倦怠感が強く、動けない場合。 When you find people who have symptoms such as no (or unstable) consciousness or convulsions over the entire body. 意識がない（おかしい）全身にけいれんがある場合
+When you cannot drink water or move by yourself for feeling a strong
+weakness or languor.
+自分で水が飲めない場合、脱力感や倦怠感が強く、動けない場合。
+When you find people who have symptoms such as no (or unstable)
+consciousness or convulsions over the entire body.
+意識がない（おかしい）全身にけいれんがある場合
 7
-Some tips for calling an ambulance 救急車を呼ぶときのポイント
-Dial 119 to call an ambulance 救急車を呼ぶときの番号は「119」です
+Some tips for calling an ambulance
+救急車を呼ぶときのポイント
+Dial 119 to call an ambulance
+救急車を呼ぶときの番号は「119」です
 Emergency transport system by ambulance (from 119 call to medical institution)
 救急車による救急搬送（119通報から医療機関まで）
 119 call 119通報
-Judging level of priority on the call
-消防の指令員（オペレーター）が優先度を判断
-Ambulance dispatch 救急車出動
-Emergency situation
-救急現場
-Observation and
-Selection of medical
-treatment facilities to transport patients to
-観察と処置
-搬送する医療機関を選定
-Transportation by ambulance
-救急車による搬送
+Emergency
+situation
 Medical facility
 医療機関
-If you can ask people on site, send them out to the place where the ambulance is due to arrive. This will help the ambulance crew reach you more quickly.
-人手がある場合は、救急車の来そうな ところまで案内に出ると到着が早くなります。
+救急現場
+Judging level of
+priority on the call
+消防の指令員（オペレーター）が優先度を判断
+Ambulance
+dispatch
+救急車出動
+Observation and
+Selection of medical
+treatment
+facilities to transport patients to
+観察と処置
+搬送する医療機関を選定
+If you can ask people on site, send them out to
+the place where the ambulance is due to arrive.
+This will help the ambulance crew reach you
+more quickly.
+Transportation
+by ambulance
+救急車による搬送
 This way please
 こちらです
+人手がある場合は、救急車の来そうな
+ところまで案内に出ると到着が早くなります。
 It is helpful if you can prepare the following things when calling an ambulance.
 救急車を呼んだら、このような物を用意しておくと便利です。
 ·Passport パスポート
 ·Cash/Credit card (to pay at the hospital)
+Medicine
 現金/クレジットカード（病院での支払い）
 ·Current medication
 普段飲んでいる薬
-PASSPORT パスポート
-Cash 現金
-Medicine
-Current medication 普段飲んでいる薬
+Cash
+PASSPORT
+現金
+パスポート
+Current medication
+普段飲んでいる薬
 When the ambulance arrives, tell the ambulance team the following information.
 救急車が来たら、このようなことを伝えてください。
-・ The conditions under which the accident or illness occurred
+・ The conditions under which the accident or
+illness occurred
 事故や具合が悪くなった状況
 ・Any changes before the ambulance arrived
 救急隊が到着するまでの変化
-・Most painful symptoms 最もつらい症状 ・Past history of sickness 持病 ・Current medication 普段飲んでいる薬
+・ Most painful symptoms 最もつらい症状
+・ Past history of sickness 持病
+・ Current medication 普段飲んでいる薬
 Illness is ●●●
 病気は●●●です。
-Regular medication is ■■■
-普段飲んでいる薬は ■■■です。
-※ It is useful to have a note of your current medical status in hand.
-※あなたの健康状態をメモに まとめておくと便利です。
+Regular medication is
+■■■
+普段飲んでいる薬は
+■■■です。
 8
+※ It is useful to have a note of
+your current medical status
+in hand.
+※あなたの健康状態をメモに
+まとめておくと便利です。

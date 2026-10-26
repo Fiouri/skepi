@@ -1,9 +1,12 @@
 # Weekly drift check of the public-domain web sources of the emergency cards (CDC, FEMA Ready.gov;
 # decision 2026-10-21) and of the official sources of the emergency numbers (pages and PDFs, 2026-10-24):
-# re-fetches each one and compares its text with the committed snapshot (tools/cards-source-check/
-# snapshots/), and reports a number no longer shown. The CDC asks reusers to check its pages for revisions. Never
-# blocks anything: on drift, or when a page cannot be fetched, the job stays green, writes a warning
-# annotation and opens (or comments on) one issue labelled "cards-source-drift" with the changed passages.
+# re-fetches each one; a file with the snapshot's SHA-256 is unchanged, only a different file is extracted
+# and its text compared with the committed snapshot (tools/cards-source-check/snapshots/); reports a number
+# no longer shown. The CDC asks reusers to check its pages for revisions. Never blocks anything: on a real
+# text change the job stays green, writes a warning annotation and opens (or comments on) one issue
+# labelled "cards-source-drift" with the changed passages. A source that cannot be fetched (HTTP 403) is
+# listed as unchecked in the job summary, no issue. The job fails when the drift command cannot compare:
+# a pdftotext version other than the PDF snapshots' (Poppler of this runner image), or any error.
 # Nothing is updated automatically: the owner decides, and a card changes only by a reviewed commit.
 # Actions are pinned to commit SHAs (supply chain, docs/architecture.md).
 name: Card sources drift
@@ -18,7 +21,8 @@ permissions:
 
 jobs:
   drift:
-    runs-on: ubuntu-latest
+    # Pinned image: its Poppler (24.02.0) wrote the PDF snapshots; a newer one fails the job, not drift.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -42,15 +46,20 @@ jobs:
           done
           rc=0
           node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts drift --report drift.md || rc=$?
-          cat drift.md >> "$GITHUB_STEP_SUMMARY"
-          echo "drifted=$([ "$rc" -eq 0 ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+          # 0: no text change (unchecked sources listed); 1: a real text change; anything else: fail.
+          [ -f drift.md ] && cat drift.md >> "$GITHUB_STEP_SUMMARY"
+          case "$rc" in
+            0) echo "drifted=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "drifted=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$rc" ;;
+          esac
       - name: Open or update the drift issue
         if: steps.drift.outputs.drifted == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "::warning title=Emergency card sources drifted::A card or emergency-number source changed since its snapshot or could not be fetched; see the job summary."
+          echo "::warning title=Emergency card sources drifted::The text of a card or emergency-number source changed since its snapshot; see the job summary."
           printf '\n[Workflow run](%s)\n' "$RUN_URL" >> drift.md
           gh label create cards-source-drift --color d93f0b --description "A web source of the emergency cards changed" 2>/dev/null || true
           issue=$(gh issue list --label cards-source-drift --state open --json number --jq '.[0].number // empty')

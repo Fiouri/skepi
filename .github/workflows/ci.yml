@@ -242,7 +242,12 @@ jobs:
           key: ifrc-guidelines-${{ hashFiles('packages/emergency-cards/src/sources.ts') }}
       - name: Cards source check (IFRC PDF via pdftotext, CDC / Ready.gov snapshots, emergency numbers)
         run: |
-          sudo apt-get install -y -q poppler-utils
+          # The runner image's apt index can be stale (404 on superseded .debs): refresh it, retry once.
+          for attempt in 1 2; do
+            sudo apt-get update -q && sudo apt-get install -y -q poppler-utils && break
+            [ "$attempt" -eq 2 ] && exit 1
+            sleep 15
+          done
           node node_modules/tsx/dist/cli.mjs tools/cards-source-check/src/cli.ts --cache-dir .cache/ifrc
       - name: Expo prebuild (android/ is generated, never committed)
         run: pnpm --filter @skepi/mobile run prebuild
