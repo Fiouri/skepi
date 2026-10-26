@@ -1,6 +1,6 @@
 **Current:** v0.2.0-preview published 2026-10-25 (maps and places for every country); fdroiddata MR 53588 updated with its recipe, waiting for review
-**Next step:** owner: follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
-**Last session:** 2026-10-25 — v0.2.0-preview and `packs-20261024` published by the owner; release branch merged into main; Crimea/Sevastopol coverage confirmed; docs only
+**Next step:** owner: resend the IFRC notice (`docs/ifrc-notice-email.md`) via https://www.ifrc.org/contact or first.aid@ifrc.org (secretariat@ifrc.org is no longer in use); follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
+**Last session:** 2026-10-26 — IFRC notice marked not delivered (secretariat@ifrc.org auto-reply 2026-10-21); GFARC address first.aid@ifrc.org found in the pinned 2025 PDF (p. 33); docs only
 
 ## v0.2.0-preview published 2026-10-25
 

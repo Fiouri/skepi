@@ -1,19 +1,32 @@
-# Notice to the IFRC about the use of the First Aid Guidelines (sent 2026-10-21)
+# Notice to the IFRC about the use of the First Aid Guidelines (not delivered)
 
 The IFRC's licence asks that the source is acknowledged and adds: "The IFRC would appreciate receiving
 details of its use." This is the owner's email for that.
 
-**Sent:** 2026-10-21 by the owner, from anywecon@gmail.com to secretariat@ifrc.org (this text; nothing is
-sent from this repository). No reply recorded yet; a reply asking for changes goes into
-`docs/architecture.md` (User safety) and the cards.
+**Status: not delivered.** Sent 2026-10-21 by the owner, from anywecon@gmail.com to secretariat@ifrc.org
+(this text; nothing is sent from this repository). The same day secretariat@ifrc.org auto-replied that the
+address is no longer in use, so the IFRC has not received the notice. It has to be sent again through
+another channel.
 
-- **To:** secretariat@ifrc.org
-- **Cc (optional):** the IFRC Global First Aid Reference Centre (globalfirstaidcentre.org contact form)
+**Channels to use instead:**
+
+- The IFRC contact form: https://www.ifrc.org/contact
+- The IFRC Global First Aid Reference Centre (GFARC), which coordinates the guidelines: first.aid@ifrc.org.
+  Source: the pinned guidelines PDF (sha256 `eed67bdf…8f1f`), "Contexts", p. 33: "Guidance, templates and
+  mentoring are available through the IFRC Global First Aid Reference Centre at first.aid@ifrc.org." The
+  PDF's imprint page (p. 2) still names secretariat@ifrc.org, the address that no longer works, and
+  globalfirstaidcentre.org; it gives no other email address.
+
+When the notice is resent, record the date, channel and any reply here. A reply asking for changes goes
+into `docs/architecture.md` (User safety) and the cards.
+
+- **To:** the IFRC contact form (https://www.ifrc.org/contact)
+- **Cc / or by email:** first.aid@ifrc.org (IFRC Global First Aid Reference Centre)
 - **Subject:** Use of the IFRC International First Aid, Resuscitation and Education Guidelines 2025 in a free, offline app (S.K.E.P.I.)
 
 ---
 
-Dear IFRC Secretariat,
+Dear IFRC,
 
 I maintain S.K.E.P.I. (Survival Knowledge & Emergency Pocket Intelligence), a free and open-source app
 for Android and Windows that works fully offline: an encyclopedia, offline maps and a set of emergency
