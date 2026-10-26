@@ -1,6 +1,12 @@
 **Current:** v0.2.0-preview published 2026-10-25 (maps and places for every country); fdroiddata MR 53588 updated with its recipe, waiting for review
-**Next step:** owner: resend the IFRC notice (`docs/ifrc-notice-email.md`) via https://www.ifrc.org/contact or first.aid@ifrc.org (secretariat@ifrc.org is no longer in use); follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
-**Last session:** 2026-10-26 — IFRC notice marked not delivered (resend to first.aid@ifrc.org, p. 33 of the pinned PDF); drift workflow: apt-get update + one retry, re-run 40360500527 green but opened issue #5: the 2 Japan PDF "text changes" are a false positive (files byte-identical to the snapshots; snapshots extracted with xpdf 4.06 locally, CI uses Poppler 24.02), ec-112 403
+**Next step:** owner: resend the IFRC notice to first.aid@ifrc.org and give the date for `docs/ifrc-notice-email.md`; follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
+**Last session:** 2026-10-27 — drift false positive fixed (hash first, one pdftotext, unchecked ≠ drift), #5 closed; verify 49/49, cards check 111/111 + 35 countries, drift run 40413605349 no drift, CI 40413597667 + Android repro green
+
+## Drift check fix 2026-10-27
+
+- Done: `cards-source-check drift` compares the file SHA-256 first (unchanged file → no extraction); only a changed file is extracted and its text compared. PDF number snapshots record `extractor-version`; the check requires one version for all of them and drift fails (exit 2) on another pdftotext instead of reporting drift; new `reextract-numbers` (file must keep its hash, retrieval date kept). The two Japan PDF snapshots were Xpdf 4.06 output (proved by re-extraction) and are now Poppler 24.02.0 (conda-forge build; identical to CI's output: same passages as #5); text hashes and `numbersDigest` updated. HTTP 403 sources and AU/CA are listed as "Unchecked (not drift)"; exit 1 (issue) only for a real text change; drift runner pinned to `ubuntu-24.04`. `ci.yml` android-release-guards: `apt-get update` + one retry before poppler-utils. Issue #5 closed with the run link.
+- Verified: `pnpm verify` 49/49 (new unit tests: hash-first, extractor version, unchecked vs drift); cards source check 111/111 steps, numbers of 35 countries, lock matches; local drift with Poppler: no drift, with Xpdf: exit 2; drift run 40413605349: no drift, no issue, unchecked ec-112 (403), CA, AU; CI 40413597667 and Android reproducible build 40413597544 green.
+- Open risks: ec-112 (digital-strategy.ec.europa.eu) answers 403 to GitHub runners, so it is only checked from other networks; a runner image with another Poppler needs a deliberate `reextract-numbers`.
 
 ## v0.2.0-preview published 2026-10-25
 
