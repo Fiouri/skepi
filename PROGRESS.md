@@ -1,6 +1,12 @@
 **Current:** v0.2.0-preview published 2026-10-25 (maps and places for every country); fdroiddata MR 53588 updated with its recipe, waiting for review
-**Next step:** owner: resend the IFRC notice to first.aid@ifrc.org and give the date for `docs/ifrc-notice-email.md`; follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
-**Last session:** 2026-10-27 — drift false positive fixed (hash first, one pdftotext, unchecked ≠ drift), #5 closed; verify 49/49, cards check 111/111 + 35 countries, drift run 40413605349 no drift, CI 40413597667 + Android repro green
+**Next step:** owner: watch for a bounce or reply from first.aid@ifrc.org and report it (recorded in `docs/ifrc-notice-email.md`); follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
+**Last session:** 2026-10-27 — IFRC notice sent by the owner to first.aid@ifrc.org, recorded (docs only); earlier the same day: drift false positive fixed, #5 closed, verify 49/49, CI green
+
+## IFRC notice sent 2026-10-27
+
+- Done (owner): the notice in `docs/ifrc-notice-email.md` sent from anywecon@gmail.com to first.aid@ifrc.org (IFRC Global First Aid Reference Centre; address from the pinned 2025 guidelines PDF, p. 33), replacing the 2026-10-21 copy to secretariat@ifrc.org that bounced. `docs/ifrc-notice-email.md` and the architecture licence notes updated.
+- Verified: no bounce or auto-reply so far (owner, 2026-10-27). Docs only; no code changed.
+- Open: no reply from the IFRC yet; if first.aid@ifrc.org bounces, use https://www.ifrc.org/contact. A reply asking for changes goes into `docs/architecture.md` (User safety) and the cards.
 
 ## Drift check fix 2026-10-27
 

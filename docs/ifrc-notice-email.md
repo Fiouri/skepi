@@ -1,27 +1,28 @@
-# Notice to the IFRC about the use of the First Aid Guidelines (not delivered)
+# Notice to the IFRC about the use of the First Aid Guidelines (sent)
 
 The IFRC's licence asks that the source is acknowledged and adds: "The IFRC would appreciate receiving
 details of its use." This is the owner's email for that.
 
-**Status: not delivered.** Sent 2026-10-21 by the owner, from anywecon@gmail.com to secretariat@ifrc.org
-(this text; nothing is sent from this repository). The same day secretariat@ifrc.org auto-replied that the
-address is no longer in use, so the IFRC has not received the notice. It has to be sent again through
-another channel.
+**Status: sent 2026-10-27.** The owner sent this text from anywecon@gmail.com to first.aid@ifrc.org, the
+IFRC Global First Aid Reference Centre (GFARC), which coordinates the guidelines (nothing is sent from
+this repository). Source of the address: the pinned guidelines PDF (sha256 `eed67bdf…8f1f`), "Contexts",
+p. 33: "Guidance, templates and mentoring are available through the IFRC Global First Aid Reference Centre
+at first.aid@ifrc.org." No bounce and no auto-reply so far (as of 2026-10-27); no reply from the IFRC yet.
 
-**Channels to use instead:**
+**History:**
 
-- The IFRC contact form: https://www.ifrc.org/contact
-- The IFRC Global First Aid Reference Centre (GFARC), which coordinates the guidelines: first.aid@ifrc.org.
-  Source: the pinned guidelines PDF (sha256 `eed67bdf…8f1f`), "Contexts", p. 33: "Guidance, templates and
-  mentoring are available through the IFRC Global First Aid Reference Centre at first.aid@ifrc.org." The
-  PDF's imprint page (p. 2) still names secretariat@ifrc.org, the address that no longer works, and
-  globalfirstaidcentre.org; it gives no other email address.
+- 2026-10-21: sent by the owner from anywecon@gmail.com to secretariat@ifrc.org (the address on the PDF's
+  imprint page, p. 2). The same day secretariat@ifrc.org auto-replied that the address is no longer in
+  use, so that copy was not delivered.
+- 2026-10-27: resent to first.aid@ifrc.org (above).
 
-When the notice is resent, record the date, channel and any reply here. A reply asking for changes goes
+If first.aid@ifrc.org bounces, the remaining channel is the IFRC contact form: https://www.ifrc.org/contact
+
+Record any bounce or reply here (date, sender, content). A reply asking for changes goes
 into `docs/architecture.md` (User safety) and the cards.
 
-- **To:** the IFRC contact form (https://www.ifrc.org/contact)
-- **Cc / or by email:** first.aid@ifrc.org (IFRC Global First Aid Reference Centre)
+- **To:** first.aid@ifrc.org (IFRC Global First Aid Reference Centre), sent 2026-10-27
+- **Fallback:** the IFRC contact form (https://www.ifrc.org/contact)
 - **Subject:** Use of the IFRC International First Aid, Resuscitation and Education Guidelines 2025 in a free, offline app (S.K.E.P.I.)
 
 ---
