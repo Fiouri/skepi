@@ -132,9 +132,13 @@ Developer Preview builds (no card steps; `SKEPI_PREVIEW=1`):
 
 ```sh
 cd apps/mobile && npx expo prebuild --platform android --clean
-cd android && SKEPI_PREVIEW=1 ./gradlew assembleRelease -PskepiPreview=true --no-daemon
+cd android && SKEPI_PREVIEW=1 ./gradlew assembleRelease -PskepiPreview=true -PskepiUnsigned=true --no-daemon
 cd apps/desktop && SKEPI_PREVIEW=1 npx tauri build      # via scripts/with-msvc.ps1 on Windows
 ```
+
+The Android build is unsigned (or `-PskepiDebugSign=true` for a local, never-distributed test build).
+Release signing is owner-only: `scripts/release/sign-release-apk.ps1` prompts for the key passwords at
+run time; none is stored ([docs/release-signing.md](docs/release-signing.md)).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [CHANGELOG.md](CHANGELOG.md).
 

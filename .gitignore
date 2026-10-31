@@ -11,6 +11,7 @@ coverage/
 *.p12
 *.pfx
 *.key.json
+keystore.properties
 .env
 .env.*
 # Test-only key of the local E2E mirror; debug builds trust its CA for 127.0.0.1 only (see its README).

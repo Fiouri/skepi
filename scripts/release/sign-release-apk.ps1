@@ -6,9 +6,11 @@
   1. The unsigned APK matches its SHA256SUMS.txt (from the same artifact) and carries no signature.
   2. It is already zip-aligned (4 bytes, native libraries on 16 KB pages): nothing is rewritten.
   3. apksigner signs it with the key named in ~/.gradle/gradle.properties (SKEPI_RELEASE_STORE_FILE,
-     SKEPI_RELEASE_KEY_ALIAS). apksigner asks for the password itself: it never appears in an argument,
-     the environment or a log. Same scheme as the Gradle release build (APK Signature Scheme v2 only; no
-     v1, minSdk 24).
+     SKEPI_RELEASE_KEY_ALIAS; not secret). The passwords are prompted at run time by tools/Signing.psm1
+     (Use-SigningSecrets) and reach apksigner only as process env vars SKEPI_RELEASE_STORE_PASSWORD and
+     SKEPI_RELEASE_KEY_PASSWORD (--ks-pass env:/--key-pass env:), removed when it exits; never an argument
+     value, a file or a log. Owner-only: refuses to run non-interactively, in CI or under an agent. Same
+     scheme as the Gradle release build (APK Signature Scheme v2 only; no v1, minSdk 24).
   4. The signer certificate's SHA-256 is the published SKEPI fingerprint.
   5. The signed APK holds the unsigned APK's entries byte for byte (only the signature is added), and
      apksigner verify passes.
@@ -44,6 +46,7 @@ $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $compare = Join-Path $root 'scripts\ci\apk-compare.py'
+Import-Module (Join-Path $root 'tools\Signing.psm1') -Force
 
 function Invoke-Checked([string]$What, [scriptblock]$Command) {
   & $Command
@@ -95,11 +98,18 @@ if (-not $KeyStore -or -not $KeyAlias) {
 }
 if (-not $KeyStore -or -not (Test-Path $KeyStore)) { throw "release keystore not found ($KeyStore)" }
 if (-not $KeyAlias) { throw 'no key alias (SKEPI_RELEASE_KEY_ALIAS)' }
-Write-Host "signing with alias '$KeyAlias' from $([IO.Path]::GetFileName($KeyStore)); apksigner asks for the password"
-Invoke-Checked 'apksigner sign' {
-  & $apksigner sign --ks $KeyStore --ks-key-alias $KeyAlias `
-    --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false `
-    --alignment-preserved true --out $Out $Unsigned
+Write-Host "signing with alias '$KeyAlias' from $([IO.Path]::GetFileName($KeyStore))"
+# PKCS12: store password == key password, so Enter at the second prompt reuses the first.
+Use-SigningSecrets -Map ([ordered]@{
+  SKEPI_RELEASE_STORE_PASSWORD = 'SKEPI keystore password'
+  SKEPI_RELEASE_KEY_PASSWORD   = 'SKEPI key password (Enter = same as keystore)'
+}) -ScriptBlock {
+  Invoke-Checked 'apksigner sign' {
+    & $apksigner sign --ks $KeyStore --ks-key-alias $KeyAlias `
+      --ks-pass env:SKEPI_RELEASE_STORE_PASSWORD --key-pass env:SKEPI_RELEASE_KEY_PASSWORD `
+      --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false `
+      --alignment-preserved true --out $Out $Unsigned
+  }
 }
 
 try {

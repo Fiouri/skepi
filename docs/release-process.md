@@ -18,9 +18,9 @@ maintainer: download artifact ──► scripts/release/sign-release-apk.ps1 (ap
 
 | Gradle property | Result | Used by |
 | --- | --- | --- |
-| *(none; the four `SKEPI_RELEASE_*` properties in `~/.gradle/gradle.properties`)* | Release signed with the SKEPI key (unchanged) | Local device builds (S23 E2E) |
+| *(none; keystore path and alias in `~/.gradle/gradle.properties`, passwords from `Use-SigningSecrets`, `--no-daemon`)* | Release signed with the SKEPI key (`docs/release-signing.md`) | Owner only, rarely; not the published artifact |
 | `-PskepiUnsigned=true` | Release with no signing config: `app-arm64-v8a-release-unsigned.apk`, unsigned `app-release.aab` | CI (`android-release-guards`, `android-repro`), F-Droid |
-| `-PskepiDebugSign=true` | Expo debug key, loud warning; never distributed | Local E2E on emulators |
+| `-PskepiDebugSign=true` | Expo debug key, loud warning; never distributed | Local release-mode E2E (S23, emulators); needs no release password |
 | *(none of the above)* | Fails at `skepiCheckReleaseSigning` | — |
 
 `-PskepiUnsigned` and `-PskepiDebugSign` are exclusive. Preview builds add `SKEPI_PREVIEW=1` and
@@ -56,8 +56,8 @@ came as prebuilt AARs from `node_modules`). Every CMake build loads `apps/mobile
    ```
    The script checks the SHA-256 against `SHA256SUMS.txt`, that the APK is unsigned and zip-aligned (4
    bytes, 16 KB pages), signs with `apksigner` (APK Signature Scheme v2 only, like the Gradle release
-   build; the key file and alias come from `~/.gradle/gradle.properties`, apksigner prompts for the
-   password), then checks that
+   build; the key file and alias come from `~/.gradle/gradle.properties`, the passwords are prompted at
+   run time by `tools/Signing.psm1` and passed to apksigner as process env vars only), then checks that
    the signer certificate is the published one (`7d61c382…447e`) and that the signed APK holds the
    artifact's entries byte for byte, plus only the signature. apksigner runs with
    `--alignment-preserved true` and the script checks `apk-compare.py copyable`: the signed APK must be
@@ -103,8 +103,9 @@ pnpm from `packageManager`, a JDK 21, `pnpm install --frozen-lockfile`, `bash sc
 
 ## 4. Not part of this flow
 
-- Local signed builds (`gradlew assembleRelease` with the key) stay for device testing; they are built
-  on Windows and are not the published artifact.
+- Local Gradle-signed builds (`gradlew --no-daemon assembleRelease` inside `Use-SigningSecrets`,
+  `docs/release-signing.md`) are possible but not the published artifact; device testing uses debug or
+  `-PskepiDebugSign=true` builds, or the signed release APK from step 5.
 - Google Play (AAB, Play App Signing, account type, IARC, Health declaration): deferred to v1.
 - Android developer verification (package + certificate registration): owner action before 2027
   (roadmap).

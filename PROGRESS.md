@@ -1,6 +1,12 @@
 **Current:** v0.2.0-preview published 2026-10-25 (maps and places for every country); fdroiddata MR 53588 updated with its recipe, waiting for review
-**Next step:** owner: watch for a bounce or reply from first.aid@ifrc.org and report it (recorded in `docs/ifrc-notice-email.md`); follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays: v0.1.1/v0.1.2 embed its Greece files)
-**Last session:** 2026-10-27 — IFRC notice sent by the owner to first.aid@ifrc.org, recorded (docs only); earlier the same day: drift false positive fixed, #5 closed, verify 49/49, CI green
+**Next step:** owner: delete `SKEPI_RELEASE_STORE_PASSWORD` / `SKEPI_RELEASE_KEY_PASSWORD` from `~/.gradle/gradle.properties` (keep path and alias) and any such user env var; watch for a reply from first.aid@ifrc.org; follow MR 53588 (review question on `-PskepiPreview=true` still open); retire nothing yet (`packs-2026-10` stays)
+**Last session:** 2026-10-31 — release signing passwords prompted at run time (`tools/Signing.psm1`), none stored; verify 49/49, prebuild + assembleDebug green, no release build run
+
+## Release signing without stored passwords 2026-10-31
+
+- Done: `tools/Signing.psm1` (from `_templates/signing`); `withReleaseSigning.js` reads `SKEPI_RELEASE_STORE_PASSWORD` / `SKEPI_RELEASE_KEY_PASSWORD` only from the environment (path and alias stay Gradle properties; passwords left in a `gradle.properties` are ignored with a warning naming them); `sign-release-apk.ps1` prompts via `Use-SigningSecrets` and passes `--ks-pass env:` / `--key-pass env:` to apksigner; `keystore.properties` gitignored; README, `docs/release-signing.md`, `docs/release-process.md`, `docs/architecture.md` describe the new flow. Local device/E2E builds stay debug or `-PskepiDebugSign=true`.
+- Verified: `pnpm verify` 49/49; PowerShell parse of the script and module; `expo prebuild --clean` + `assembleDebug` without any signing secret. Not run (owner-only by design): `sign-release-apk.ps1`, any key-signed release build.
+- Open: the owner's first `sign-release-apk.ps1` run is the real test of the prompt path.
 
 ## IFRC notice sent 2026-10-27
 

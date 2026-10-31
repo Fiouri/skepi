@@ -18,29 +18,46 @@ keytool -genkeypair -v `
 `keytool` prompts for the password; PKCS12 uses the same password for store and key. Use a long random
 password from a password manager. Keep the file **outside** the repository (`*.jks` is also gitignored).
 
-## 2. Gradle properties
+## 2. Keystore path, alias and passwords
 
-Add to `~/.gradle/gradle.properties` (Windows: `%USERPROFILE%\.gradle\gradle.properties`), never to the
-project's `gradle.properties`:
+The keystore path and alias are not secret. Keep them in `~/.gradle/gradle.properties` (Windows:
+`%USERPROFILE%\.gradle\gradle.properties`), never in the project's `gradle.properties`:
 
 ```properties
 SKEPI_RELEASE_STORE_FILE=C:/Users/<you>/.android-keys/skepi-release.jks
-SKEPI_RELEASE_STORE_PASSWORD=<password>
 SKEPI_RELEASE_KEY_ALIAS=skepi
-SKEPI_RELEASE_KEY_PASSWORD=<password>
 ```
 
-The key never enters CI: CI builds the release unsigned (`-PskepiUnsigned=true`), and the maintainer
-signs the reproducible CI artifact locally with `scripts/release/sign-release-apk.ps1`
-(`docs/release-process.md`), which reads only the keystore path and alias from this file; apksigner
-prompts for the password.
+The passwords are **never stored**: not in `gradle.properties`, `keystore.properties` (gitignored),
+`.env` or user/machine environment variables. `tools/Signing.psm1` (`Use-SigningSecrets`) prompts for
+them at run time and exposes them only as process environment variables `SKEPI_RELEASE_STORE_PASSWORD`
+and `SKEPI_RELEASE_KEY_PASSWORD` for one script block, then removes them. PKCS12 has one password: press
+Enter at the key password prompt to reuse the keystore password. The module refuses to run
+non-interactively, in CI or under an agent (`CLAUDECODE`), so only the owner can sign.
+
+The key never enters CI: CI builds the release unsigned (`-PskepiUnsigned=true`), and the owner signs
+the reproducible CI artifact locally with `scripts/release/sign-release-apk.ps1`
+(`docs/release-process.md`), the only script that asks for the passwords. Local device and E2E builds
+(S23, emulators) never need them: they are debug builds or `-PskepiDebugSign=true` release builds.
+
+A Gradle-signed release (rarely needed; not the published artifact) runs inside the same wrapper and
+without a daemon, so no long-lived Gradle process keeps the passwords:
+
+```powershell
+Import-Module .\tools\Signing.psm1
+Use-SigningSecrets -Map ([ordered]@{
+  SKEPI_RELEASE_STORE_PASSWORD = 'SKEPI keystore password'
+  SKEPI_RELEASE_KEY_PASSWORD   = 'SKEPI key password (Enter = same as keystore)'
+}) -ScriptBlock { & .\apps\mobile\android\gradlew.bat -p apps\mobile\android --no-daemon assembleRelease }
+```
 
 ## 3. Build behaviour
 
 | Situation | Result |
 | --- | --- |
-| All four properties set, keystore file exists | Release signed with the SKEPI key |
-| Any property missing or keystore file missing | `assembleRelease` / `bundleRelease` **fail** at `skepiCheckReleaseSigning` with the list of missing properties |
+| Path and alias properties set, keystore file exists, both password env vars set | Release signed with the SKEPI key |
+| Any of these missing | `assembleRelease` / `bundleRelease` **fail** at `skepiCheckReleaseSigning` with the list of missing settings |
+| A password still in a `gradle.properties` | Ignored, with a warning naming the property (never its value) |
 | `-PskepiDebugSign=true` | Signed with the Expo debug key, with a loud warning. Local E2E only; never distribute |
 | `-PskepiUnsigned=true` | No signing config: `app-arm64-v8a-release-unsigned.apk` / unsigned `app-release.aab`, with a loud warning. CI and F-Droid; sign before distributing. Exclusive with `-PskepiDebugSign` |
 
